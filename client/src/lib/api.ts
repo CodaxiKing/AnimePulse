@@ -18,6 +18,33 @@ const ANINEWS_API_BASE = import.meta.env.VITE_ANINEWS_API || "https://api.jikan.
 const OTAKUDESU_API_BASE = import.meta.env.VITE_OTAKUDESU_API || "https://unofficial-otakudesu-api-ruang-kreatif.vercel.app/api";
 const MANGAHOOK_API_BASE = import.meta.env.VITE_MANGAHOOK_API || "https://api.jikan.moe/v4";
 
+// Função para melhorar sinopses em português
+function improveSynopsisInPortuguese(synopsis: string | null | undefined): string {
+  if (!synopsis || synopsis.trim() === '') {
+    return 'Sinopse não disponível';
+  }
+  
+  // Limpeza e melhorias básicas
+  let improved = synopsis
+    .replace(/\[.*?\]/g, '') // Remove colchetes
+    .replace(/\(.*?\)/g, '') // Remove parênteses informativos
+    .replace(/Source:.*$/gim, '') // Remove "Source: ..."
+    .replace(/\s+/g, ' ') // Normaliza espaços
+    .trim();
+  
+  // Se a sinopse é muito curta, mantém como está
+  if (improved.length < 50) {
+    return improved;
+  }
+  
+  // Limita o tamanho da sinopse para melhor apresentação
+  if (improved.length > 300) {
+    improved = improved.substring(0, 297) + '...';
+  }
+  
+  return improved;
+}
+
 // Generic fetch with error handling
 async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
   try {
@@ -437,7 +464,7 @@ function adaptAnimeFromOtakudesuAPI(otakuAnime: any): AnimeWithProgress {
     studio: otakuAnime.studio || "Estúdio desconhecido",
     year: parseInt(otakuAnime.release_year) || new Date().getFullYear(),
     genres: Array.isArray(otakuAnime.genres) ? otakuAnime.genres : [],
-    synopsis: otakuAnime.synopsis || otakuAnime.description || "Sinopse não disponível",
+    synopsis: improveSynopsisInPortuguese(otakuAnime.synopsis || otakuAnime.description) || "Sinopse não disponível",
     releaseDate: otakuAnime.release_date || otakuAnime.updated_on || "",
     status: otakuAnime.status?.toLowerCase() || "ongoing",
     totalEpisodes: parseInt(otakuAnime.total_episode) || 0,
@@ -453,7 +480,7 @@ function adaptAnimeFromJikanAPI(jikanAnime: any): AnimeWithProgress {
     studio: jikanAnime.studios?.[0]?.name || "Estúdio desconhecido",
     year: jikanAnime.aired?.prop?.from?.year || new Date().getFullYear(),
     genres: jikanAnime.genres?.map((g: any) => g.name) || [],
-    synopsis: jikanAnime.synopsis || "Sinopse não disponível",
+    synopsis: improveSynopsisInPortuguese(jikanAnime.synopsis) || "Sinopse não disponível",
     releaseDate: jikanAnime.aired?.string || "",
     status: jikanAnime.status?.toLowerCase() || "unknown",
     totalEpisodes: jikanAnime.episodes || 0,
