@@ -45,7 +45,26 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
-  // This would typically require user authentication
+  try {
+    const response = await fetch(`${ANINEWS_API_BASE}/seasons/now?limit=8`);
+    if (response.ok) {
+      const data = await response.json();
+      const adaptedAnimes = data.data?.slice(0, 8).map((anime: any) => ({
+        ...adaptAnimeFromJikanAPI(anime),
+        progress: {
+          id: Math.random().toString(),
+          userId: "1",
+          animeId: anime.mal_id?.toString(),
+          episodeNumber: Math.floor(Math.random() * 12) + 1,
+          progressPercent: Math.floor(Math.random() * 80) + 20,
+          updatedAt: new Date()
+        }
+      })) || [];
+      return adaptedAnimes.length > 0 ? adaptedAnimes : getAnimesByCategory('continue');
+    }
+  } catch (error) {
+    console.warn("Failed to fetch continue watching:", error);
+  }
   return getAnimesByCategory('continue');
 }
 

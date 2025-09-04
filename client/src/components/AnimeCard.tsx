@@ -25,10 +25,14 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
           )}
           
           <img
-            src={anime.image || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=600&fit=crop"}
+            src={anime.image || "https://via.placeholder.com/400x600?text=" + encodeURIComponent(anime.title)}
             alt={anime.title}
             className="w-full h-72 object-cover"
             data-testid={`img-anime-${anime.id}`}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = `https://via.placeholder.com/400x600/8A2BE2/FFFFFF?text=${encodeURIComponent(anime.title.slice(0, 20))}`;
+            }}
           />
           
           <div className="p-4">
