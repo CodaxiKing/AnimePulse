@@ -407,9 +407,9 @@ export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
   };
 }
 
-export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[]> {
+export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = "1"): Promise<Episode[]> {
   try {
-    console.log("🎬 Getting episodes for anime ID:", animeId);
+    console.log("🎬 Getting episodes for anime ID:", animeId, "Season:", season);
     
     // Primeiro, buscar dados do anime para obter informações como número total de episódios
     const anime = await getAnimeByIdAPI(animeId);
@@ -443,13 +443,20 @@ export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[
       "Para Sempre"
     ];
 
+    // Calcular episódios para esta temporada
+    const episodesPerSeason = 12;
+    const seasonNumber = parseInt(season);
+    const startEpisode = (seasonNumber - 1) * episodesPerSeason + 1;
+    const endEpisode = Math.min(seasonNumber * episodesPerSeason, totalEpisodes);
+    
     // Gerar episódios realistas com base nos dados do anime
     const episodes: Episode[] = [];
     
-    for (let i = 1; i <= Math.min(totalEpisodes, 24); i++) {
-      const episodeTitle = episodeTitles[i - 1] || `Aventura Continua`;
+    for (let i = startEpisode; i <= endEpisode; i++) {
+      const episodeIndex = (i - 1) % episodeTitles.length;
+      const episodeTitle = episodeTitles[episodeIndex] || `Aventura Continua`;
       episodes.push({
-        id: `${animeId}-ep-${i}`,
+        id: `${animeId}-s${season}-ep-${i}`,
         animeId: animeId,
         number: i,
         title: `Episódio ${i} - ${episodeTitle}`,
@@ -458,11 +465,11 @@ export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[
         releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
         // URLs de vídeo de demonstração (Big Buck Bunny - vídeo de teste público)
         streamingUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        downloadUrl: `https://example.com/download/${animeId}-ep-${i}.mp4`,
+        downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${i}.mp4`,
       });
     }
     
-    console.log("✅ Generated", episodes.length, "realistic episodes with streaming URLs");
+    console.log("✅ Generated", episodes.length, "episodes for season", season, "with streaming URLs");
     return episodes;
     
   } catch (error) {

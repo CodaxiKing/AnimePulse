@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
 import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI } from "@/lib/api";
@@ -13,6 +14,7 @@ export default function AnimeDetail() {
   const { id } = useParams();
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState("1");
   
   // Função para truncar sinopse
   const truncateSynopsis = (text: string, maxLength: number = 200) => {
@@ -29,10 +31,21 @@ export default function AnimeDetail() {
   });
 
   const { data: episodes, isLoading: loadingEpisodes } = useQuery({
-    queryKey: ["episodes", id],
-    queryFn: () => getEpisodesByAnimeIdAPI(id!),
+    queryKey: ["episodes", id, selectedSeason],
+    queryFn: () => getEpisodesByAnimeIdAPI(id!, selectedSeason),
     enabled: !!id,
   });
+
+  // Gerar lista de temporadas baseada no anime
+  const getAvailableSeasons = () => {
+    if (!anime) return [];
+    const totalEpisodes = anime.totalEpisodes || 12;
+    const seasonsCount = Math.ceil(totalEpisodes / 12);
+    return Array.from({ length: Math.min(seasonsCount, 4) }, (_, i) => ({
+      value: String(i + 1),
+      label: `Temporada ${i + 1}`
+    }));
+  };
 
   if (loadingAnime) {
     return (
@@ -209,14 +222,29 @@ export default function AnimeDetail() {
 
         {/* Seção de Episódios */}
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold">Episódios</h2>
+            {getAvailableSeasons().length > 1 && (
+              <Select value={selectedSeason} onValueChange={setSelectedSeason}>
+                <SelectTrigger className="w-[180px]" data-testid="select-season">
+                  <SelectValue placeholder="Selecione a temporada" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getAvailableSeasons().map((season) => (
+                    <SelectItem key={season.value} value={season.value}>
+                      {season.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          
           {loadingEpisodes ? (
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Episódios</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <Skeleton key={i} className="aspect-video rounded-xl" />
-                ))}
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-video rounded-xl" />
+              ))}
             </div>
           ) : (
             <EpisodeGrid 
