@@ -21,21 +21,25 @@ export default function AnimeDetail() {
   const [showCongrats, setShowCongrats] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
 
-  const handleUnmarkEpisode = (episode: Episode) => {
+  const handleMarkEpisode = (episode: Episode) => {
     if (anime) {
       const isWatched = isEpisodeWatched(anime.id, episode.number);
       
       if (isWatched) {
-        // Apenas desmarcar episódio (não há mais marcação manual)
+        // Desmarcar episódio se já estiver assistido
         removeWatchedEpisode(anime.id, episode.number);
         console.log(`Desmarcado episódio ${episode.number}!`);
-        
-        // Forçar atualização da interface
-        setRefreshKey(prev => prev + 1);
-        
-        // Invalidar queries relacionadas para atualizar seção "Continue assistindo"
-        queryClient.invalidateQueries({ queryKey: ['continue'] });
+      } else {
+        // Marcar como assistindo quando clicar no botão Assistir
+        saveWatchProgress(anime.id, anime.title, anime.image, episode.number, anime.totalEpisodes || episodes?.length || 12, 0);
+        console.log(`✅ Marcado episódio ${episode.number} como assistindo!`);
       }
+      
+      // Forçar atualização da interface
+      setRefreshKey(prev => prev + 1);
+      
+      // Invalidar queries relacionadas para atualizar seção "Continue assistindo"
+      queryClient.invalidateQueries({ queryKey: ['continue'] });
     }
   };
   
@@ -308,7 +312,7 @@ export default function AnimeDetail() {
               episodes={episodes || []} 
               animeTitle={anime.title}
               animeId={id}
-              onMarkAsWatched={(episode) => handleUnmarkEpisode(episode)}
+              onMarkAsWatched={(episode) => handleMarkEpisode(episode)}
             />
           )}
         </div>
