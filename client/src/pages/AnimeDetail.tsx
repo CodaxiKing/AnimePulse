@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Heart, Play } from "lucide-react";
+import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import EpisodeModal from "@/components/EpisodeModal";
@@ -11,6 +11,15 @@ import type { Episode } from "@shared/schema";
 export default function AnimeDetail() {
   const { id } = useParams();
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Função para truncar sinopse
+  const truncateSynopsis = (text: string, maxLength: number = 200) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+  
+  const shouldShowReadMore = (text: string) => text.length > 200;
 
   const { data: anime, isLoading: loadingAnime } = useQuery({
     queryKey: ["anime", id],
@@ -140,9 +149,30 @@ export default function AnimeDetail() {
                 
                 <div>
                   <h3 className="font-semibold mb-2 text-sm text-muted-foreground">SINOPSE</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-anime-synopsis">
-                    {anime.synopsis}
-                  </p>
+                  <div className="text-sm text-muted-foreground leading-relaxed" data-testid="text-anime-synopsis">
+                    <p>
+                      {isExpanded ? (anime.synopsis || 'Sinopse não disponível') : truncateSynopsis(anime.synopsis || 'Sinopse não disponível')}
+                    </p>
+                    {shouldShowReadMore(anime.synopsis || '') && (
+                      <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="inline-flex items-center mt-2 text-primary hover:text-primary/80 transition-colors text-xs font-medium"
+                        data-testid="button-read-more"
+                      >
+                        {isExpanded ? (
+                          <>
+                            Ler menos
+                            <ChevronUp className="w-3 h-3 ml-1" />
+                          </>
+                        ) : (
+                          <>
+                            Ler mais
+                            <ChevronDown className="w-3 h-3 ml-1" />
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3 pt-2">

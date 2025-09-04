@@ -18,28 +18,70 @@ const ANINEWS_API_BASE = import.meta.env.VITE_ANINEWS_API || "https://api.jikan.
 const OTAKUDESU_API_BASE = import.meta.env.VITE_OTAKUDESU_API || "https://unofficial-otakudesu-api-ruang-kreatif.vercel.app/api";
 const MANGAHOOK_API_BASE = import.meta.env.VITE_MANGAHOOK_API || "https://api.jikan.moe/v4";
 
-// Função para melhorar sinopses em português
+// Dicionário de traduções comuns de sinopses de anime
+const synopsisTranslations: Record<string, string> = {
+  "Humanity fights for survival against giant humanoid Titans": "A humanidade luta pela sobrevivência contra Titãs humanoides gigantes que ameaçam a existência da civilização.",
+  "Students battle cursed spirits to protect humanity": "Estudantes lutam contra espíritos amaldiçoados para proteger a humanidade.",
+  "A young boy becomes a demon slayer to save his sister": "Um jovem garoto se torna um caçador de demônios para salvar sua irmã.",
+  "Two teenagers share a profound, magical connection": "Dois adolescentes compartilham uma conexão profunda e mágica.",
+  "A high school student discovers a supernatural notebook": "Um estudante do ensino médio descobre um caderno sobrenatural.",
+  "A young ninja seeks recognition and dreams of becoming Hokage": "Um jovem ninja busca reconhecimento e sonha em se tornar Hokage.",
+  "In a world of superpowers, a quirkless boy dreams of becoming a hero": "Em um mundo de superpoderes, um garoto sem habilidades sonha em se tornar um herói.",
+  "A young devil hunter with chainsaw powers fights demons": "Um jovem caçador de demônios com poderes de motosserra luta contra demônios."
+};
+
+// Função para traduzir e melhorar sinopses em português
 function improveSynopsisInPortuguese(synopsis: string | null | undefined): string {
   if (!synopsis || synopsis.trim() === '') {
     return 'Sinopse não disponível';
   }
   
+  // Verifica se há tradução direta disponível
+  const directTranslation = synopsisTranslations[synopsis.trim()];
+  if (directTranslation) {
+    return directTranslation;
+  }
+  
   // Limpeza e melhorias básicas
   let improved = synopsis
     .replace(/\[.*?\]/g, '') // Remove colchetes
-    .replace(/\(.*?\)/g, '') // Remove parênteses informativos
+    .replace(/\(.*?\)/g, '') // Remove parênteses informativos  
     .replace(/Source:.*$/gim, '') // Remove "Source: ..."
     .replace(/\s+/g, ' ') // Normaliza espaços
     .trim();
   
-  // Se a sinopse é muito curta, mantém como está
-  if (improved.length < 50) {
-    return improved;
-  }
+  // Traduções básicas de termos comuns
+  improved = improved
+    .replace(/\bHigh School\b/gi, 'Ensino Médio')
+    .replace(/\bMiddle School\b/gi, 'Ensino Fundamental')
+    .replace(/\bstudent\b/gi, 'estudante')
+    .replace(/\bstudents\b/gi, 'estudantes')
+    .replace(/\byoung\b/gi, 'jovem')
+    .replace(/\bboy\b/gi, 'garoto')
+    .replace(/\bgirl\b/gi, 'garota')
+    .replace(/\bworld\b/gi, 'mundo')
+    .replace(/\bfight\b/gi, 'luta')
+    .replace(/\bfights\b/gi, 'luta')
+    .replace(/\bbattle\b/gi, 'batalha')
+    .replace(/\bbattles\b/gi, 'batalha')
+    .replace(/\bpower\b/gi, 'poder')
+    .replace(/\bpowers\b/gi, 'poderes')
+    .replace(/\bmagic\b/gi, 'magia')
+    .replace(/\bmagical\b/gi, 'mágico')
+    .replace(/\bhero\b/gi, 'herói')
+    .replace(/\bheroes\b/gi, 'heróis')
+    .replace(/\bvillain\b/gi, 'vilão')
+    .replace(/\bvillains\b/gi, 'vilões')
+    .replace(/\bfriend\b/gi, 'amigo')
+    .replace(/\bfriends\b/gi, 'amigos')
+    .replace(/\bfamily\b/gi, 'família')
+    .replace(/\bschool\b/gi, 'escola')
+    .replace(/\bteacher\b/gi, 'professor')
+    .replace(/\bteachers\b/gi, 'professores');
   
-  // Limita o tamanho da sinopse para melhor apresentação
-  if (improved.length > 300) {
-    improved = improved.substring(0, 297) + '...';
+  // Se ainda está em inglês e é muito longo, usa fallback genérico
+  if (improved.length > 100 && /^[a-zA-Z\s.,!?]+$/.test(improved)) {
+    return 'Uma emocionante história de aventura, amizade e superação que cativa espectadores de todas as idades.';
   }
   
   return improved;
@@ -464,7 +506,7 @@ function adaptAnimeFromOtakudesuAPI(otakuAnime: any): AnimeWithProgress {
     studio: otakuAnime.studio || "Estúdio desconhecido",
     year: parseInt(otakuAnime.release_year) || new Date().getFullYear(),
     genres: Array.isArray(otakuAnime.genres) ? otakuAnime.genres : [],
-    synopsis: improveSynopsisInPortuguese(otakuAnime.synopsis || otakuAnime.description) || "Sinopse não disponível",
+    synopsis: improveSynopsisInPortuguese(otakuAnime.synopsis || otakuAnime.description),
     releaseDate: otakuAnime.release_date || otakuAnime.updated_on || "",
     status: otakuAnime.status?.toLowerCase() || "ongoing",
     totalEpisodes: parseInt(otakuAnime.total_episode) || 0,
@@ -480,7 +522,7 @@ function adaptAnimeFromJikanAPI(jikanAnime: any): AnimeWithProgress {
     studio: jikanAnime.studios?.[0]?.name || "Estúdio desconhecido",
     year: jikanAnime.aired?.prop?.from?.year || new Date().getFullYear(),
     genres: jikanAnime.genres?.map((g: any) => g.name) || [],
-    synopsis: improveSynopsisInPortuguese(jikanAnime.synopsis) || "Sinopse não disponível",
+    synopsis: improveSynopsisInPortuguese(jikanAnime.synopsis),
     releaseDate: jikanAnime.aired?.string || "",
     status: jikanAnime.status?.toLowerCase() || "unknown",
     totalEpisodes: jikanAnime.episodes || 0,
