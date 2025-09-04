@@ -386,7 +386,7 @@ export default function AnimeDetail() {
                 <div className="relative bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-400/30 text-center">
                   <div className="flex items-center justify-center gap-3">
                     <Star className="w-8 h-8 text-yellow-400 animate-spin" />
-                    <div className="text-5xl font-black text-yellow-300 transform animate-bounce hover:animate-pulse transition-all duration-500 drop-shadow-lg bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent animate-pulse">
+                    <div className="text-4xl font-black text-yellow-300">
                       +{earnedPoints}
                     </div>
                     <Star className="w-8 h-8 text-yellow-400 animate-spin" style={{ animationDirection: 'reverse' }} />
