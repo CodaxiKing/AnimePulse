@@ -97,12 +97,12 @@ export default function Header() {
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end" 
-                className="w-48 z-[100]" 
+                className="w-44 z-[100]" 
                 sideOffset={8}
-                avoidCollisions={true}
-                collisionPadding={20}
+                avoidCollisions={false}
+                collisionPadding={30}
                 side="bottom"
-                alignOffset={-40}
+                alignOffset={-80}
               >
                 {isLoading ? (
                   <DropdownMenuItem disabled>
