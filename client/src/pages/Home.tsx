@@ -21,6 +21,56 @@ import {
   getActiveUsers,
 } from "@/lib/api";
 
+function ContinueWatchingSection() {
+  const { data: continueAnimes, isLoading } = useQuery({
+    queryKey: ['continue'],
+    queryFn: async () => {
+      const { getContinueWatching } = await import("@/lib/api");
+      return getContinueWatching();
+    },
+  });
+
+  // Não renderizar a seção se não houver animes para continuar assistindo
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <h3 className="text-xl font-semibold">Continue assistindo</h3>
+        <div className="flex space-x-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex-none w-48 aspect-[3/4.5]">
+              <Skeleton className="w-full h-[70%] rounded-2xl mb-3" />
+              <Skeleton className="h-4 w-32 mb-2" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!continueAnimes || continueAnimes.length === 0) {
+    return null; // Não renderiza nada se não há progresso
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-xl font-semibold" data-testid="text-section-continue">Continue assistindo</h3>
+      <div className="relative">
+        <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
+          {continueAnimes.map((anime) => (
+            <AnimeCard
+              key={anime.id}
+              anime={anime}
+              showProgress={true}
+              variant="horizontal"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AnimeSection({ title, queryKey, showProgress = false, showRank = false, isNew = false }: {
   title: string;
   queryKey: string;
@@ -31,7 +81,8 @@ function AnimeSection({ title, queryKey, showProgress = false, showRank = false,
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: animes, isLoading } = useQuery({
     queryKey: [queryKey],
-    queryFn: () => {
+    queryFn: async () => {
+      const { getContinueWatching } = await import("@/lib/api");
       switch (queryKey) {
         case 'continue': return getContinueWatching();
         case 'trending': return getTrendingAnime();
@@ -147,11 +198,8 @@ export default function Home() {
             Assistir Animes
           </h2>
           
-          <AnimeSection
-            title="Continue assistindo"
-            queryKey="continue"
-            showProgress={true}
-          />
+          {/* Só mostrar Continue Assistindo se houver progresso */}
+          <ContinueWatchingSection />
           
           <AnimeSection
             title="Recomendados para você"

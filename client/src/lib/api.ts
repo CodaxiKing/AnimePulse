@@ -254,47 +254,100 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
   return getAnimesByCategory('trending');
 }
 
+// Sistema de armazenamento local para progresso de animes
+const WATCH_PROGRESS_KEY = 'animepulse_watch_progress';
+
+interface LocalWatchProgress {
+  animeId: string;
+  animeTitle: string;
+  animeImage: string;
+  episodeNumber: number;
+  totalEpisodes: number;
+  progressPercent: number;
+  lastWatched: string;
+}
+
+export function getLocalWatchProgress(): LocalWatchProgress[] {
+  try {
+    const stored = localStorage.getItem(WATCH_PROGRESS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveWatchProgress(animeId: string, animeTitle: string, animeImage: string, episodeNumber: number, totalEpisodes: number, progressPercent: number = 0) {
+  const progress = getLocalWatchProgress();
+  const existingIndex = progress.findIndex(p => p.animeId === animeId);
+  
+  const newProgress: LocalWatchProgress = {
+    animeId,
+    animeTitle,
+    animeImage,
+    episodeNumber,
+    totalEpisodes,
+    progressPercent: Math.round(progressPercent),
+    lastWatched: new Date().toISOString()
+  };
+  
+  if (existingIndex >= 0) {
+    progress[existingIndex] = newProgress;
+  } else {
+    progress.unshift(newProgress); // Adicionar no início
+  }
+  
+  // Manter apenas os 10 mais recentes
+  const recentProgress = progress.slice(0, 10);
+  localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(recentProgress));
+}
+
+export function removeWatchProgress(animeId: string) {
+  const progress = getLocalWatchProgress();
+  const filtered = progress.filter(p => p.animeId !== animeId);
+  localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(filtered));
+}
+
 export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
   console.log("🔄 Getting continue watching anime...");
   
-  const apiData = await getAnimeDataFromAPI();
-  if (apiData.length > 0) {
-    // Verificar se os dados são do Jikan API ou Otakudesu
-    const isJikanData = apiData[0]?.mal_id !== undefined;
-    const continueAnimes = apiData.slice(8, 12).map((anime: any) => {
-      const adaptedAnime = isJikanData ? adaptAnimeFromJikanAPI(anime) : anime;
-      // Garantir que a imagem seja preservada
-      console.log("🎯 Continue watching anime:", adaptedAnime.title, "Image URL:", adaptedAnime.image?.substring(0, 50) + "...");
-      return {
-        ...adaptedAnime,
-        progress: {
-          id: Math.random().toString(),
-          userId: "1",
-          animeId: anime.mal_id?.toString() || anime.id?.toString() || Math.random().toString(),
-          episodeNumber: Math.floor(Math.random() * 12) + 1,
-          progressPercent: Math.floor(Math.random() * 80) + 20,
-          updatedAt: new Date()
-        }
-      };
-    });
-    console.log("✅ Returning", continueAnimes.length, "continue watching animes from API cache with images");
-    return continueAnimes;
+  // Buscar progresso local real do usuário
+  const localProgress = getLocalWatchProgress();
+  
+  if (localProgress.length === 0) {
+    console.log("📭 No watch progress found - user hasn't started watching any anime");
+    return [];
   }
   
-  console.log("⚠️ No API data found, using trending data as fallback for continue watching");
-  // Se não tiver dados da API, usar os mesmos dados do trending
-  const trendingData = await getTrendingAnime();
-  return trendingData.slice(0, 4).map(anime => ({
-    ...anime,
-    progress: {
-      id: Math.random().toString(),
-      userId: "1",
-      animeId: anime.id,
-      episodeNumber: Math.floor(Math.random() * 12) + 1,
-      progressPercent: Math.floor(Math.random() * 80) + 20,
-      updatedAt: new Date()
-    }
-  }));
+  // Converter progresso local para formato AnimeWithProgress
+  const continueWatching: AnimeWithProgress[] = localProgress.map(progress => {
+    const calculatedPercent = Math.round((progress.episodeNumber / progress.totalEpisodes) * 100);
+    
+    return {
+      id: progress.animeId,
+      title: progress.animeTitle,
+      image: progress.animeImage,
+      studio: null,
+      year: null,
+      genres: null,
+      synopsis: null,
+      releaseDate: null,
+      status: "ongoing",
+      totalEpisodes: progress.totalEpisodes,
+      rating: null,
+      viewCount: null,
+      progress: {
+        id: Math.random().toString(),
+        userId: "1",
+        animeId: progress.animeId,
+        episodeNumber: progress.episodeNumber,
+        progressPercent: calculatedPercent,
+        updatedAt: new Date(progress.lastWatched)
+      }
+    };
+  });
+  
+  console.log("✅ Returning", continueWatching.length, "animes from real user progress");
+  return continueWatching;
 }
 
 export async function getLatestAnime(): Promise<AnimeWithProgress[]> {

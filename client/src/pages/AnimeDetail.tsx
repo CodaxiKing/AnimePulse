@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
-import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI } from "@/lib/api";
+import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 export default function AnimeDetail() {
@@ -15,6 +15,22 @@ export default function AnimeDetail() {
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState("1");
+
+  const handleMarkAsWatched = (episode: Episode) => {
+    if (anime) {
+      saveWatchProgress(
+        anime.id,
+        anime.title,
+        anime.image,
+        episode.number,
+        anime.totalEpisodes || 12,
+        (episode.number / (anime.totalEpisodes || 12)) * 100
+      );
+      
+      // Mostrar feedback visual
+      console.log(`Marcado episódio ${episode.number} como assistido!`);
+    }
+  };
   
   // Função para truncar sinopse
   const truncateSynopsis = (text: string, maxLength: number = 200) => {
@@ -255,6 +271,7 @@ export default function AnimeDetail() {
             <EpisodeGrid 
               episodes={episodes || []} 
               animeTitle={anime.title}
+              onMarkAsWatched={(episode) => handleMarkAsWatched(episode)}
             />
           )}
         </div>
