@@ -33,18 +33,15 @@ export default function EpisodeModal({
   if (!episode) return null;
 
   const currentIndex = episodes.findIndex(ep => ep.number === episode.number);
-  const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < episodes.length - 1;
 
   const handleVideoEnd = async () => {
-    console.log(`🎬 Video terminou! Dados:`, { animeId, animeTitle, episode: episode.number });
+    console.log(`🎬 Video terminou! Marcando episódio ${episode.number} como assistido...`);
     
     if (!animeId || !animeTitle) {
       console.error('❌ Dados do anime não encontrados:', { animeId, animeTitle });
       return;
     }
-    
-    console.log(`📺 Marcando episódio ${episode.number} de ${animeTitle} como assistido...`);
     
     try {
       const result = await markEpisodeWatchedFromPlayer(
@@ -55,19 +52,21 @@ export default function EpisodeModal({
         totalEpisodes
       );
       
-      console.log('✅ Resultado da marcação:', result);
+      console.log('✅ Episódio marcado como assistido automaticamente!', result);
       
       if (result.completed) {
-        console.log('🎉 Anime completado! Mostrando modal de parabéns...');
+        console.log('🎉 Anime completado! Mostrando parabéns...');
         showAnimeCompletionModal(animeTitle, result.points);
-      } else if (hasNext) {
-        // Auto avançar para o próximo episódio após marcar como assistido
+      } else if (hasNext && onEpisodeChange) {
+        // Auto avançar para o próximo episódio após 2 segundos
         setTimeout(() => {
-          handleNextEpisode();
-        }, 2000); // Aguardar 2 segundos antes de ir para o próximo
+          const nextEpisode = episodes[currentIndex + 1];
+          onEpisodeChange(nextEpisode);
+          setIsPlaying(false);
+        }, 2000);
       }
     } catch (error) {
-      console.error('❌ Erro ao marcar episódio:', error);
+      console.error('❌ Erro ao marcar episódio automaticamente:', error);
     }
   };
 
@@ -78,84 +77,23 @@ export default function EpisodeModal({
     }
   };
 
-  const handleNextEpisode = () => {
-    if (hasNext && onEpisodeChange) {
-      const nextEpisode = episodes[currentIndex + 1];
-      onEpisodeChange(nextEpisode);
-      setIsPlaying(false); // Reset player state
-    }
-  };
-
-  const handlePreviousEpisode = () => {
-    if (hasPrevious && onEpisodeChange) {
-      const previousEpisode = episodes[currentIndex - 1];
-      onEpisodeChange(previousEpisode);
-      setIsPlaying(false); // Reset player state
-    }
-  };
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" data-testid="modal-episode">
-      <div className="bg-gray-900 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-white" data-testid="text-episode-title">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl bg-card border-border" data-testid="modal-episode">
+        <DialogHeader className="border-b border-border pb-4">
+          <DialogTitle className="text-lg font-semibold" data-testid="text-episode-title">
             Episódio {episode.number} - {episode.title}
-          </h2>
+          </DialogTitle>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-white"
+            className="absolute right-4 top-4 p-2 hover:bg-muted rounded-lg transition-colors"
             data-testid="button-close-episode"
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* CONTROLES DE NAVEGAÇÃO - DESTAQUE MÁXIMO */}
-        <div className="bg-yellow-600 border-4 border-yellow-300 p-8 rounded-lg mb-6 shadow-2xl">
-          <h3 className="text-black text-center text-2xl mb-6 font-bold">⚡ CONTROLES DO EPISÓDIO ⚡</h3>
-          <div className="flex justify-center items-center gap-6">
-            <button
-              onClick={handlePreviousEpisode}
-              disabled={!hasPrevious}
-              className={`flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-xl transition-all shadow-lg ${
-                hasPrevious 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105' 
-                  : 'bg-gray-500 text-gray-300 cursor-not-allowed'
-              }`}
-              data-testid="button-prev-main"
-            >
-              <ChevronLeft className="w-8 h-8" />
-              ◀️ ANTERIOR
-            </button>
-            
-            <button
-              onClick={handleVideoEnd}
-              className="bg-green-600 hover:bg-green-700 px-10 py-6 rounded-xl text-white font-bold text-2xl transition-all shadow-2xl border-4 border-green-300 transform hover:scale-105 animate-pulse"
-              data-testid="button-mark-watched"
-            >
-              ✅ MARCAR ASSISTIDO
-            </button>
-            
-            <button
-              onClick={handleNextEpisode}
-              disabled={!hasNext}
-              className={`flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-xl transition-all shadow-lg ${
-                hasNext 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105' 
-                  : 'bg-gray-500 text-gray-300 cursor-not-allowed'
-              }`}
-              data-testid="button-next-main"
-            >
-              PRÓXIMO ▶️
-              <ChevronRight className="w-8 h-8" />
-            </button>
-          </div>
-        </div>
+        </DialogHeader>
         
-        <div className="w-full h-96 bg-muted flex items-center justify-center relative rounded-lg overflow-hidden border-2 border-gray-600">
+        <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
           {!isPlaying ? (
             <>
               <img
@@ -174,6 +112,7 @@ export default function EpisodeModal({
                   </button>
                   <p className="text-white text-sm">Clique para assistir o episódio</p>
                   <p className="text-white/80 text-xs mt-1">Duração: {episode.duration} minutos</p>
+                  <p className="text-green-400 text-xs mt-2">✅ Será marcado automaticamente quando terminar</p>
                 </div>
               </div>
             </>
@@ -194,7 +133,7 @@ export default function EpisodeModal({
             </video>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
