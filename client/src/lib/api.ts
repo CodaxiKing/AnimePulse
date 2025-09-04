@@ -261,11 +261,22 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
   if (apiData.length > 0) {
     // Verificar se os dados são do Jikan API ou Otakudesu
     const isJikanData = apiData[0]?.mal_id !== undefined;
-    const continueAnimes = apiData.slice(8, 12).map(anime => 
-      isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
-    );
+    const continueAnimes = apiData.slice(12, 16).map((anime: any) => {
+      const adaptedAnime = isJikanData ? adaptAnimeFromJikanAPI(anime) : anime;
+      return {
+        ...adaptedAnime,
+        progress: {
+          id: Math.random().toString(),
+          userId: "1",
+          animeId: anime.mal_id?.toString() || anime.id?.toString() || Math.random().toString(),
+          episodeNumber: Math.floor(Math.random() * 12) + 1,
+          progressPercent: Math.floor(Math.random() * 80) + 20,
+          updatedAt: new Date()
+        }
+      };
+    });
     console.log("✅ Returning", continueAnimes.length, "continue watching animes from API cache");
-    return getAnimesWithProgress(continueAnimes);
+    return continueAnimes;
   }
   
   return getAnimesByCategory('continue');
