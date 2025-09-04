@@ -709,12 +709,12 @@ function adaptEpisodeFromAnimeTVAPI(episodeData: any): Episode {
   return {
     id: episodeData.id?.toString() || Math.random().toString(),
     animeId: episodeData.anime_id?.toString() || "1",
-    episodeNumber: parseInt(episodeData.episode_number) || 1,
+    number: parseInt(episodeData.episode_number) || 1,
     title: episodeData.title || `Episódio ${episodeData.episode_number || 1}`,
-    image: episodeData.image || "https://via.placeholder.com/400x225",
+    thumbnail: episodeData.image || "https://via.placeholder.com/400x225",
     duration: episodeData.duration || "24 min",
     releaseDate: episodeData.release_date || new Date().toISOString().split('T')[0],
-    videoUrl: episodeData.video_url || episodeData.stream_url || "",
-    synopsis: episodeData.synopsis || "Sinopse do episódio não disponível",
+    streamingUrl: episodeData.video_url || episodeData.stream_url || "",
+    downloadUrl: episodeData.download_url || "",
   };
 }
