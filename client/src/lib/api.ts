@@ -261,7 +261,7 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
   if (apiData.length > 0) {
     // Verificar se os dados são do Jikan API ou Otakudesu
     const isJikanData = apiData[0]?.mal_id !== undefined;
-    const continueAnimes = apiData.slice(12, 16).map((anime: any) => {
+    const continueAnimes = apiData.slice(8, 12).map((anime: any) => {
       const adaptedAnime = isJikanData ? adaptAnimeFromJikanAPI(anime) : anime;
       return {
         ...adaptedAnime,
