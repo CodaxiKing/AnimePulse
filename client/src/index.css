@@ -48,11 +48,26 @@ main {
   position: fixed !important;
   z-index: 999 !important;
   transform-origin: var(--radix-dropdown-menu-content-transform-origin) !important;
+  max-width: calc(100vw - 20px) !important;
+  right: 10px !important;
 }
 
 /* Ensure carousel doesn't shift */
 body:has([data-radix-dropdown-menu-content]) {
   overflow-x: hidden !important;
+}
+
+/* Force dropdown to stay within viewport */
+[data-radix-popper-content-wrapper] {
+  max-width: calc(100vw - 20px) !important;
+  box-sizing: border-box !important;
+}
+
+/* Header dropdown specific positioning */
+header [data-radix-dropdown-menu-content] {
+  right: 8px !important;
+  left: auto !important;
+  transform: translateX(0) !important;
 }
 
 /* Utility classes para truncar texto */
