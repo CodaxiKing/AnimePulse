@@ -61,7 +61,7 @@ export default function HeroCarousel() {
             )}
           </div>
           <p className="text-lg text-muted-foreground mb-6 max-w-lg" data-testid="text-hero-synopsis">
-            {current.synopsis}
+            {current.synopsis?.length > 120 ? `${current.synopsis.slice(0, 120)}...` : current.synopsis}
           </p>
           <div className="flex items-center space-x-4">
             <Button
