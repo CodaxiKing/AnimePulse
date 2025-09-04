@@ -38,7 +38,18 @@ export default function AnimeDetail() {
           anime.image, 
           anime.totalEpisodes || episodes?.length || 12
         );
-        console.log(`✅ Marcado episódio ${episode.number} como assistido!`);
+        
+        // TAMBÉM salvar como progresso para aparecer em "Continue Assistindo"
+        saveWatchProgress(
+          anime.id, 
+          anime.title, 
+          anime.image, 
+          episode.number, 
+          anime.totalEpisodes || episodes?.length || 12, 
+          100 // 100% assistido
+        );
+        
+        console.log(`✅ Marcado episódio ${episode.number} como assistido E adicionado ao Continue Assistindo!`);
       }
       
       // Forçar atualização da interface
