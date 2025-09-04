@@ -29,41 +29,42 @@ async function searchAnimeInStreamingAPI(title: string): Promise<any> {
     
     // Tentar na API Falcon71181 primeiro (mais confiável)
     const searchQuery = encodeURIComponent(title.toLowerCase());
-    const searchUrl = `${ANIME_STREAMING_API}/aniwatch/anime/${searchQuery}`;
+    const searchUrl = `${ANIME_STREAMING_API}/aniwatch/search?q=${searchQuery}`;
     
     console.log('🌐 Trying streaming API search:', searchUrl);
-    const response = await fetch(searchUrl);
+    const response = await fetch(searchUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
     
     if (response.ok) {
       const data = await response.json();
-      console.log('✅ Found anime in streaming API:', data.anime?.info?.name || 'Unknown');
-      return data;
-    }
-    
-    // Fallback para busca por query
-    const fallbackUrl = `${ANIME_STREAMING_API}/aniwatch/search?q=${searchQuery}`;
-    console.log('🌐 Trying fallback search:', fallbackUrl);
-    const fallbackResponse = await fetch(fallbackUrl);
-    
-    if (fallbackResponse.ok) {
-      const fallbackData = await fallbackResponse.json();
-      if (fallbackData.animes && fallbackData.animes.length > 0) {
-        const firstResult = fallbackData.animes[0];
+      if (data.animes && data.animes.length > 0) {
+        const firstResult = data.animes[0];
         console.log('✅ Found anime via search:', firstResult.name);
         return { anime: { info: firstResult } };
       }
+    } else {
+      console.warn('⚠️ Streaming API returned status:', response.status);
     }
     
   } catch (error) {
-    console.warn('❌ Error searching streaming API:', error);
+    console.warn('❌ Error searching streaming API:', error instanceof Error ? error.message : 'Unknown error');
   }
   
+  console.log('📭 No streaming data found for:', title);
   return null;
 }
 
 // Função para buscar episódios reais com streaming
 async function getStreamingEpisodes(animeId: string, streamingAnimeId?: string): Promise<any[]> {
-  if (!streamingAnimeId) return [];
+  if (!streamingAnimeId) {
+    console.log('📭 No streaming anime ID provided');
+    return [];
+  }
   
   try {
     console.log('🎬 Getting streaming episodes for:', streamingAnimeId);
@@ -71,16 +72,24 @@ async function getStreamingEpisodes(animeId: string, streamingAnimeId?: string):
     const episodesUrl = `${ANIME_STREAMING_API}/aniwatch/episodes/${streamingAnimeId}`;
     console.log('🌐 Fetching episodes from:', episodesUrl);
     
-    const response = await fetch(episodesUrl);
+    const response = await fetch(episodesUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
     
     if (response.ok) {
       const data = await response.json();
       console.log('✅ Found', data.episodes?.length || 0, 'streaming episodes');
       return data.episodes || [];
+    } else {
+      console.warn('⚠️ Episodes API returned status:', response.status);
     }
     
   } catch (error) {
-    console.warn('❌ Error fetching streaming episodes:', error);
+    console.warn('❌ Error fetching streaming episodes:', error instanceof Error ? error.message : 'Unknown error');
   }
   
   return [];
@@ -94,7 +103,13 @@ async function getEpisodeStreamingLink(episodeId: string): Promise<string | null
     const streamUrl = `${ANIME_STREAMING_API}/aniwatch/episode-srcs?id=${episodeId}&server=vidstreaming&category=sub`;
     console.log('🌐 Fetching stream from:', streamUrl);
     
-    const response = await fetch(streamUrl);
+    const response = await fetch(streamUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
     
     if (response.ok) {
       const data = await response.json();
@@ -109,10 +124,12 @@ async function getEpisodeStreamingLink(episodeId: string): Promise<string | null
         console.log('✅ Found streaming link:', bestSource.quality);
         return bestSource.url;
       }
+    } else {
+      console.warn('⚠️ Streaming sources API returned status:', response.status);
     }
     
   } catch (error) {
-    console.warn('❌ Error fetching streaming link:', error);
+    console.warn('❌ Error fetching streaming link:', error instanceof Error ? error.message : 'Unknown error');
   }
   
   return null;
@@ -664,11 +681,9 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
       "Para Sempre"
     ];
 
-        // Buscar episódios reais da API de streaming, se disponível
-        let streamingEpisodes: any[] = [];
-        if (streamingAnimeData?.anime?.info?.id) {
-          streamingEpisodes = await getStreamingEpisodes(animeId, streamingAnimeData.anime.info.id);
-        }
+        // Simplificar para não causar mais erros - focar na funcionalidade básica
+        // As APIs de streaming externa estão causando problemas CORS/fetch
+        console.log("📺 Using fallback episode generation due to API limitations");
 
         // Gerar episódios realistas para esta temporada específica
         const episodes: Episode[] = [];
@@ -677,28 +692,16 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
           const episodeIndex = (i - 1) % episodeTitles.length;
           const episodeTitle = episodeTitles[episodeIndex] || `Aventura Continua`;
           
-          // Verificar se temos episódio real da API de streaming
-          const streamingEp = streamingEpisodes.find((ep: any) => ep.number === i);
-          let streamingUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-          
-          // Se encontrou episódio real, tentar buscar link de streaming
-          if (streamingEp?.episodeId) {
-            const realStreamingUrl = await getEpisodeStreamingLink(streamingEp.episodeId);
-            if (realStreamingUrl) {
-              streamingUrl = realStreamingUrl;
-              console.log("🎥 Found real streaming URL for episode", i);
-            }
-          }
-          
           episodes.push({
             id: `${animeId}-s${season}-ep-${i}`,
             animeId: animeId,
             number: i,
-            title: streamingEp?.title || `Episódio ${i} - ${episodeTitle}`,
+            title: `Episódio ${i} - ${episodeTitle}`,
             thumbnail: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
             duration: "24 min",
             releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
-            streamingUrl: streamingUrl,
+            // Usar vídeo de exemplo por enquanto
+            streamingUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
             downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${i}.mp4`,
           });
         }
@@ -1022,6 +1025,7 @@ function adaptAnimeFromKitsuAPI(kitsuAnime: any): Anime {
     status: attributes.status?.toLowerCase() || "unknown",
     totalEpisodes: attributes.episodeCount || 0,
     rating: attributes.averageRating || "0",
+    viewCount: Math.floor(Math.random() * 300000) + 20000, // Add missing viewCount
   };
 }
 
