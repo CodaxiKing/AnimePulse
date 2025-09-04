@@ -21,23 +21,6 @@ export default function AnimeDetail() {
   const [showCongrats, setShowCongrats] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
 
-  // Listener para evento de conclusão de anime via player
-  useEffect(() => {
-    const handleAnimeCompleted = (event: CustomEvent) => {
-      const { animeTitle, points } = event.detail;
-      if (anime && anime.title === animeTitle) {
-        setEarnedPoints(points);
-        setShowCongrats(true);
-      }
-    };
-
-    window.addEventListener('animeCompleted', handleAnimeCompleted as EventListener);
-    
-    return () => {
-      window.removeEventListener('animeCompleted', handleAnimeCompleted as EventListener);
-    };
-  }, [anime]);
-
   const handleUnmarkEpisode = (episode: Episode) => {
     if (anime) {
       const isWatched = isEpisodeWatched(anime.id, episode.number);
@@ -75,6 +58,23 @@ export default function AnimeDetail() {
     queryFn: () => getEpisodesByAnimeIdAPI(id!, selectedSeason),
     enabled: !!id,
   });
+
+  // Listener para evento de conclusão de anime via player
+  useEffect(() => {
+    const handleAnimeCompleted = (event: CustomEvent) => {
+      const { animeTitle, points } = event.detail;
+      if (anime && anime.title === animeTitle) {
+        setEarnedPoints(points);
+        setShowCongrats(true);
+      }
+    };
+
+    window.addEventListener('animeCompleted', handleAnimeCompleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('animeCompleted', handleAnimeCompleted as EventListener);
+    };
+  }, [anime]);
 
   // Gerar lista de temporadas baseada no anime (máximo 3 temporadas por simplicidade)
   const getAvailableSeasons = () => {
