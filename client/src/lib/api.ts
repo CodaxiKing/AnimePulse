@@ -56,51 +56,29 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
+  // Usar os mesmos dados da trending API que já funcionou, mas com progresso
   try {
-    const response = await fetch(`${ANINEWS_API_BASE}/seasons/now?limit=8`);
+    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=4&page=2`);
     if (response.ok) {
       const data = await response.json();
-      const adaptedAnimes = data.data?.slice(0, 8).map((anime: any) => ({
-        ...adaptAnimeFromJikanAPI(anime),
-        progress: {
-          id: Math.random().toString(),
-          userId: "1",
-          animeId: anime.mal_id?.toString(),
-          episodeNumber: Math.floor(Math.random() * 12) + 1,
-          progressPercent: Math.floor(Math.random() * 80) + 20,
-          updatedAt: new Date()
-        }
-      })) || [];
-      if (adaptedAnimes.length > 0) {
+      if (data?.data && data.data.length > 0) {
+        const adaptedAnimes = data.data.slice(0, 4).map((anime: any) => ({
+          ...adaptAnimeFromJikanAPI(anime),
+          progress: {
+            id: Math.random().toString(),
+            userId: "1",
+            animeId: anime.mal_id?.toString(),
+            episodeNumber: Math.floor(Math.random() * 12) + 1,
+            progressPercent: Math.floor(Math.random() * 80) + 20,
+            updatedAt: new Date()
+          }
+        }));
+        console.log("✅ Continue watching usando dados da API");
         return adaptedAnimes;
       }
     }
   } catch (error) {
-    console.warn("Failed to fetch continue watching:", error);
-  }
-  
-  // Fallback: pegar os dados mock mas com imagens atualizadas da API trending
-  try {
-    const trendingResponse = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=4`);
-    if (trendingResponse.ok) {
-      const trendingData = await trendingResponse.json();
-      const trendingAnimes = trendingData.data?.slice(0, 4).map((anime: any) => ({
-        ...adaptAnimeFromJikanAPI(anime),
-        progress: {
-          id: Math.random().toString(),
-          userId: "1",
-          animeId: anime.mal_id?.toString(),
-          episodeNumber: Math.floor(Math.random() * 12) + 1,
-          progressPercent: Math.floor(Math.random() * 80) + 20,
-          updatedAt: new Date()
-        }
-      })) || [];
-      if (trendingAnimes.length > 0) {
-        return trendingAnimes;
-      }
-    }
-  } catch (error) {
-    console.warn("Failed to fetch trending for continue watching fallback:", error);
+    console.warn("API rate limited for continue watching:", error);
   }
   
   return getAnimesByCategory('continue');
@@ -123,8 +101,11 @@ export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
   console.log("🏆 Fetching top 10 anime...");
   
+  // Usar delay pequeno para evitar rate limit
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   try {
-    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=10`);
+    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=10&page=3`);
     console.log("📡 Top API Response status:", response.status);
     
     if (response.ok) {
