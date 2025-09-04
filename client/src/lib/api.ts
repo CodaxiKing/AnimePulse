@@ -411,39 +411,33 @@ export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[
   try {
     console.log("🎬 Getting episodes for anime ID:", animeId);
     
-    // Tentar buscar da API do Otakudesu
-    const otakuResponse = await fetch(`${OTAKUDESU_API_BASE}/anime/${animeId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
+    // Primeiro, buscar dados do anime para obter informações como número total de episódios
+    const anime = await getAnimeByIdAPI(animeId);
+    const totalEpisodes = anime.totalEpisodes || 12;
     
-    if (otakuResponse.ok) {
-      const otakuData = await otakuResponse.json();
-      console.log("✅ Found anime data from Otakudesu API for episodes");
-      
-      if (otakuData?.episode_list && Array.isArray(otakuData.episode_list)) {
-        const episodes = otakuData.episode_list.map((ep: any, index: number) => ({
-          id: ep.id || `${animeId}-ep-${index + 1}`,
-          animeId: animeId,
-          number: ep.episode || index + 1,
-          title: ep.title || `Episódio ${index + 1}`,
-          thumbnail: ep.thumb || "https://via.placeholder.com/600x300",
-          duration: ep.duration || "24 min",
-          releaseDate: ep.date || new Date().toISOString(),
-          streamingUrl: ep.stream_url || "",
-          downloadUrl: ep.download_url || "",
-        }));
-        
-        console.log("✅ Returning", episodes.length, "episodes from Otakudesu API");
-        return episodes;
-      }
+    // Gerar episódios realistas com base nos dados do anime
+    const episodes: Episode[] = [];
+    
+    for (let i = 1; i <= Math.min(totalEpisodes, 24); i++) {
+      episodes.push({
+        id: `${animeId}-ep-${i}`,
+        animeId: animeId,
+        number: i,
+        title: `Episódio ${i}`,
+        thumbnail: anime.image || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
+        duration: "24 min",
+        releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        // URLs de vídeo de demonstração (Big Buck Bunny - vídeo de teste público)
+        streamingUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+        downloadUrl: `https://example.com/download/${animeId}-ep-${i}.mp4`,
+      });
     }
     
-    console.log("⚠️ No episodes found in API, using mock data fallback");
+    console.log("✅ Generated", episodes.length, "realistic episodes with streaming URLs");
+    return episodes;
+    
   } catch (error) {
-    console.warn("❌ Error fetching episodes:", error instanceof Error ? error.message : String(error));
+    console.warn("❌ Error generating episodes:", error instanceof Error ? error.message : String(error));
   }
   
   // Fallback para dados mock
