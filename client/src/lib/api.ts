@@ -32,15 +32,32 @@ async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
 // Anime API functions
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
   try {
-    const response = await fetch(`${ANINEWS_API_BASE}/top/anime`);
+    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=8`);
     if (response.ok) {
       const data = await response.json();
       const adaptedAnimes = data.data?.slice(0, 8).map(adaptAnimeFromJikanAPI) || [];
-      return adaptedAnimes.length > 0 ? adaptedAnimes : getAnimesByCategory('trending');
+      if (adaptedAnimes.length > 0) {
+        return adaptedAnimes;
+      }
     }
   } catch (error) {
     console.warn("Failed to fetch trending anime:", error);
   }
+  
+  // Fallback: tentar outra API endpoint
+  try {
+    const fallbackResponse = await fetch(`${ANINEWS_API_BASE}/seasons/now?limit=8`);
+    if (fallbackResponse.ok) {
+      const fallbackData = await fallbackResponse.json();
+      const fallbackAnimes = fallbackData.data?.slice(4, 12).map(adaptAnimeFromJikanAPI) || [];
+      if (fallbackAnimes.length > 0) {
+        return fallbackAnimes;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to fetch fallback trending anime:", error);
+  }
+  
   return getAnimesByCategory('trending');
 }
 
