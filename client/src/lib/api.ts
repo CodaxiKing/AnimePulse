@@ -422,11 +422,60 @@ export function removeEpisodeProgress(animeId: string, episodeNumber: number, an
   }
 }
 
+// Lista de episódios assistidos individualmente
+const WATCHED_EPISODES_KEY = 'animepulse_watched_episodes';
+
+interface WatchedEpisode {
+  animeId: string;
+  episodeNumber: number;
+  watchedAt: string;
+}
+
+export function getWatchedEpisodesList(): WatchedEpisode[] {
+  try {
+    const stored = localStorage.getItem(WATCHED_EPISODES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveWatchedEpisode(animeId: string, episodeNumber: number) {
+  const watchedEpisodes = getWatchedEpisodesList();
+  const episodeKey = `${animeId}-${episodeNumber}`;
+  
+  // Verificar se já existe
+  const existingIndex = watchedEpisodes.findIndex(
+    ep => ep.animeId === animeId && ep.episodeNumber === episodeNumber
+  );
+  
+  if (existingIndex === -1) {
+    // Adicionar novo episódio assistido
+    watchedEpisodes.push({
+      animeId,
+      episodeNumber,
+      watchedAt: new Date().toISOString()
+    });
+    
+    localStorage.setItem(WATCHED_EPISODES_KEY, JSON.stringify(watchedEpisodes));
+  }
+}
+
+export function removeWatchedEpisode(animeId: string, episodeNumber: number) {
+  const watchedEpisodes = getWatchedEpisodesList();
+  const filtered = watchedEpisodes.filter(
+    ep => !(ep.animeId === animeId && ep.episodeNumber === episodeNumber)
+  );
+  
+  localStorage.setItem(WATCHED_EPISODES_KEY, JSON.stringify(filtered));
+}
+
 // Função para verificar se um episódio específico foi assistido
 export function isEpisodeWatched(animeId: string, episodeNumber: number): boolean {
-  const progress = getLocalWatchProgress();
-  const animeProgress = progress.find(p => p.animeId === animeId);
-  return animeProgress ? animeProgress.episodeNumber >= episodeNumber : false;
+  const watchedEpisodes = getWatchedEpisodesList();
+  return watchedEpisodes.some(
+    ep => ep.animeId === animeId && ep.episodeNumber === episodeNumber
+  );
 }
 
 // Função para obter lista de episódios assistidos de um anime
