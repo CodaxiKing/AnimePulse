@@ -105,8 +105,8 @@ function AnimeSection({ title, queryKey, showProgress = false, showRank = false,
     }
   };
 
-  // Mostrar setas apenas para "Top 10 mais assistidos"
-  const showNavigation = queryKey === 'top';
+  // Mostrar setas para "Top 10 mais assistidos", "Lançamentos" e "Recomendados para você"
+  const showNavigation = queryKey === 'top' || queryKey === 'latest' || queryKey === 'trending';
 
   return (
     <div className="space-y-4">
