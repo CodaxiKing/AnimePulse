@@ -19,14 +19,14 @@ const VideoPlayer = ({ episode, isOpen, onClose }: VideoPlayerProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <div>
-            <h3 className="font-semibold text-lg" data-testid="text-episode-title">
+    <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-background rounded-xl w-full h-full max-w-7xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-border flex-shrink-0">
+          <div className="min-w-0 flex-1 mr-4">
+            <h3 className="font-semibold text-base sm:text-lg truncate" data-testid="text-episode-title">
               {episode.title}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Episódio {episode.number} • {episode.duration || '24 min'}
             </p>
           </div>
@@ -34,20 +34,20 @@ const VideoPlayer = ({ episode, isOpen, onClose }: VideoPlayerProps) => {
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="rounded-full"
+            className="rounded-full flex-shrink-0"
             data-testid="button-close-player"
           >
             <X className="w-5 h-5" />
           </Button>
         </div>
         
-        <div className="aspect-video bg-black relative">
+        <div className="flex-1 bg-black relative min-h-0">
           {episode.streamingUrl ? (
             <video
               src={episode.streamingUrl}
               controls
               autoPlay
-              className="w-full h-full"
+              className="w-full h-full object-contain"
               data-testid="video-player"
             >
               Seu navegador não suporta a tag de vídeo.
