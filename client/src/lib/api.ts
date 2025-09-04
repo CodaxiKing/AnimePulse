@@ -467,6 +467,10 @@ export async function markEpisodeWatchedFromPlayer(
     // Verificar se completou todos os episódios para dar pontos
     const watchedCount = watchedEpisodes.filter(ep => ep.animeId === animeId).length;
     
+    // Notificar que um episódio foi assistido
+    const episodeEvent = new CustomEvent('episodeWatched');
+    window.dispatchEvent(episodeEvent);
+
     if (watchedCount >= totalEpisodes) {
       console.log(`🎉 Anime completado: ${animeTitle}! Pontos serão calculados.`);
       return { completed: true, points: calculateAnimePoints(totalEpisodes) };

@@ -66,15 +66,26 @@ export default function AnimeDetail() {
       if (anime && anime.title === animeTitle) {
         setEarnedPoints(points);
         setShowCongrats(true);
+        // Atualizar interface para refletir episódios assistidos
+        setRefreshKey(prev => prev + 1);
+        queryClient.invalidateQueries({ queryKey: ['continue'] });
       }
     };
 
+    const handleEpisodeWatched = () => {
+      // Atualizar interface quando um episódio for marcado via player
+      setRefreshKey(prev => prev + 1);
+      queryClient.invalidateQueries({ queryKey: ['continue'] });
+    };
+
     window.addEventListener('animeCompleted', handleAnimeCompleted as EventListener);
+    window.addEventListener('episodeWatched', handleEpisodeWatched as EventListener);
     
     return () => {
       window.removeEventListener('animeCompleted', handleAnimeCompleted as EventListener);
+      window.removeEventListener('episodeWatched', handleEpisodeWatched as EventListener);
     };
-  }, [anime]);
+  }, [anime, queryClient]);
 
   // Gerar lista de temporadas baseada no anime (máximo 3 temporadas por simplicidade)
   const getAvailableSeasons = () => {
@@ -306,6 +317,10 @@ export default function AnimeDetail() {
           episode={selectedEpisode}
           isOpen={!!selectedEpisode}
           onClose={() => setSelectedEpisode(null)}
+          animeTitle={anime?.title}
+          animeImage={anime?.image}
+          animeId={anime?.id}
+          totalEpisodes={anime?.totalEpisodes}
         />
 
         {/* Modal de Parabéns */}

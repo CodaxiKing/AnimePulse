@@ -1,15 +1,61 @@
 import { X, Play } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal } from "@/lib/api";
+import { useState, useRef } from "react";
 import type { Episode } from "@shared/schema";
 
 interface EpisodeModalProps {
   episode: Episode | null;
   isOpen: boolean;
   onClose: () => void;
+  animeTitle?: string;
+  animeImage?: string;
+  animeId?: string;
+  totalEpisodes?: number;
 }
 
-export default function EpisodeModal({ episode, isOpen, onClose }: EpisodeModalProps) {
+export default function EpisodeModal({ 
+  episode, 
+  isOpen, 
+  onClose, 
+  animeTitle = "", 
+  animeImage = "", 
+  animeId = "", 
+  totalEpisodes = 12 
+}: EpisodeModalProps) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   if (!episode) return null;
+
+  const handleVideoEnd = async () => {
+    if (!animeId || !animeTitle) return;
+    
+    console.log(`📺 Episódio ${episode.number} de ${animeTitle} terminou!`);
+    
+    try {
+      const result = await markEpisodeWatchedFromPlayer(
+        animeId,
+        episode.number,
+        animeTitle,
+        animeImage,
+        totalEpisodes
+      );
+      
+      if (result.completed) {
+        showAnimeCompletionModal(animeTitle, result.points);
+      }
+    } catch (error) {
+      console.error('Erro ao marcar episódio:', error);
+    }
+  };
+
+  const handlePlayClick = () => {
+    setIsPlaying(true);
+    if (videoRef.current) {
+      videoRef.current.play();
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -27,21 +73,44 @@ export default function EpisodeModal({ episode, isOpen, onClose }: EpisodeModalP
           </button>
         </DialogHeader>
         
-        <div className="aspect-video bg-muted flex items-center justify-center relative">
-          <img
-            src={episode.thumbnail || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=450&fit=crop"}
-            alt={episode.title}
-            className="w-full h-full object-cover rounded-lg"
-          />
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <div className="text-center">
-              <button className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] rounded-full flex items-center justify-center anime-glow hover:opacity-90 transition-opacity" data-testid="button-play-episode">
-                <Play className="w-8 h-8 text-white ml-1" />
-              </button>
-              <p className="text-white text-sm">Player de vídeo seria integrado aqui</p>
-              <p className="text-white/80 text-xs mt-1">Duração: {episode.duration} minutos</p>
-            </div>
-          </div>
+        <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
+          {!isPlaying ? (
+            <>
+              <img
+                src={episode.thumbnail || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=450&fit=crop"}
+                alt={episode.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <div className="text-center">
+                  <button 
+                    onClick={handlePlayClick}
+                    className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] rounded-full flex items-center justify-center anime-glow hover:opacity-90 transition-opacity" 
+                    data-testid="button-play-episode"
+                  >
+                    <Play className="w-8 h-8 text-white ml-1" />
+                  </button>
+                  <p className="text-white text-sm">Clique para assistir o episódio</p>
+                  <p className="text-white/80 text-xs mt-1">Duração: {episode.duration} minutos</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <video
+              ref={videoRef}
+              className="w-full h-full"
+              controls
+              autoPlay
+              onEnded={handleVideoEnd}
+              data-testid="video-player"
+            >
+              <source 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+                type="video/mp4" 
+              />
+              Seu navegador não suporta reprodução de vídeo.
+            </video>
+          )}
         </div>
       </DialogContent>
     </Dialog>
