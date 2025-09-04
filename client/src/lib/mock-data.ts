@@ -125,6 +125,7 @@ export const mockAnimes: Anime[] = [
     status: "completed",
     totalEpisodes: 720,
     rating: "8.3",
+    viewCount: 780000,
   },
 ];
 

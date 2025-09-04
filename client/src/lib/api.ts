@@ -363,6 +363,7 @@ export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
           status: otakuData.status?.toLowerCase() || "ongoing",
           totalEpisodes: parseInt(otakuData.total_episode) || 0,
           rating: otakuData.rating || "0",
+          viewCount: Math.floor(Math.random() * 400000) + 30000,
         };
       }
     }
@@ -404,6 +405,7 @@ export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
     status: "unknown",
     totalEpisodes: 0,
     rating: "0",
+    viewCount: Math.floor(Math.random() * 50000) + 5000,
   };
 }
 
@@ -635,6 +637,7 @@ function adaptAnimeFromAPI(apiAnime: any): AnimeWithProgress {
     status: apiAnime.status?.toLowerCase() || "unknown",
     totalEpisodes: apiAnime.episodes || apiAnime.episodeCount,
     rating: apiAnime.rating || apiAnime.score?.toString(),
+    viewCount: apiAnime.members || apiAnime.popularity || Math.floor(Math.random() * 300000) + 20000,
   };
 }
 
@@ -711,6 +714,7 @@ function adaptAnimeFromOtakudesuAPI(otakuAnime: any): AnimeWithProgress {
     status: otakuAnime.status?.toLowerCase() || "ongoing",
     totalEpisodes: parseInt(otakuAnime.total_episode) || 0,
     rating: otakuAnime.rating || "0",
+    viewCount: Math.floor(Math.random() * 300000) + 25000,
   };
 }
 
