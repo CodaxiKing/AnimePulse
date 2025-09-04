@@ -75,6 +75,16 @@ export default function EpisodeModal({
     if (videoRef.current) {
       videoRef.current.play();
     }
+    
+    // Agora SIM marcar como "assistindo" quando realmente clica no play
+    if (animeId && animeTitle && animeImage) {
+      console.log(`▶️ Começou a assistir episódio ${episode.number} de ${animeTitle}`);
+      // Importar e usar a função de salvar progresso
+      import("@/lib/api").then(({ saveWatchProgress }) => {
+        saveWatchProgress(animeId, animeTitle, animeImage, episode.number, totalEpisodes, 0);
+        console.log(`✅ Salvo como "assistindo" no localStorage`);
+      });
+    }
   };
 
   return (
