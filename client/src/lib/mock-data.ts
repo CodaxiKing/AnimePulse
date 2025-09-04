@@ -13,6 +13,7 @@ export const mockAnimes: Anime[] = [
     status: "completed",
     totalEpisodes: 75,
     rating: "9.0",
+    viewCount: 850000,
   },
   {
     id: "2",
@@ -26,6 +27,7 @@ export const mockAnimes: Anime[] = [
     status: "ongoing",
     totalEpisodes: 24,
     rating: "8.8",
+    viewCount: 720000,
   },
   {
     id: "3",
@@ -39,6 +41,7 @@ export const mockAnimes: Anime[] = [
     status: "ongoing",
     totalEpisodes: 26,
     rating: "8.7",
+    viewCount: 650000,
   },
   {
     id: "4",
@@ -52,6 +55,7 @@ export const mockAnimes: Anime[] = [
     status: "completed",
     totalEpisodes: 1,
     rating: "8.4",
+    viewCount: 490000,
   },
   {
     id: "5",
@@ -65,6 +69,7 @@ export const mockAnimes: Anime[] = [
     status: "completed",
     totalEpisodes: 37,
     rating: "9.0",
+    viewCount: 380000,
   },
   {
     id: "6",
@@ -78,6 +83,7 @@ export const mockAnimes: Anime[] = [
     status: "ongoing",
     totalEpisodes: 1000,
     rating: "9.2",
+    viewCount: 920000,
   },
   {
     id: "7",
@@ -91,6 +97,7 @@ export const mockAnimes: Anime[] = [
     status: "ongoing",
     totalEpisodes: 138,
     rating: "8.5",
+    viewCount: 560000,
   },
   {
     id: "8",
@@ -104,6 +111,7 @@ export const mockAnimes: Anime[] = [
     status: "ongoing",
     totalEpisodes: 12,
     rating: "8.9",
+    viewCount: 410000,
   },
   {
     id: "9",

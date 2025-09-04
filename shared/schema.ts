@@ -24,6 +24,7 @@ export const animes = pgTable("animes", {
   status: text("status").default("ongoing"),
   totalEpisodes: integer("total_episodes"),
   rating: text("rating"),
+  viewCount: integer("view_count").default(0),
 });
 
 export const episodes = pgTable("episodes", {

@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { Eye } from "lucide-react";
 import type { AnimeWithProgress } from "@shared/schema";
 
 interface AnimeCardProps {
@@ -10,6 +11,14 @@ interface AnimeCardProps {
 }
 
 export default function AnimeCard({ anime, showProgress = false, rank, isNew = false, variant = 'grid' }: AnimeCardProps) {
+  // Função para formatar o número de visualizações
+  const formatViewCount = (count?: number | null) => {
+    if (!count) return "0";
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(0)}K`;
+    return count.toString();
+  };
+
   return (
     <Link href={`/animes/${anime.id}`}>
       <div className={`group cursor-pointer ${
@@ -24,6 +33,14 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
           {isNew && (
             <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] text-white text-xs px-2 py-1 rounded-full font-medium">
               NOVO
+            </div>
+          )}
+          
+          {/* Tag de visualizações */}
+          {anime.viewCount && (
+            <div className="absolute top-2 right-2 z-10 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1">
+              <Eye className="w-3 h-3" />
+              {formatViewCount(anime.viewCount)}
             </div>
           )}
           
