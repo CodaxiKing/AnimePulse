@@ -263,6 +263,8 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
     const isJikanData = apiData[0]?.mal_id !== undefined;
     const continueAnimes = apiData.slice(8, 12).map((anime: any) => {
       const adaptedAnime = isJikanData ? adaptAnimeFromJikanAPI(anime) : anime;
+      // Garantir que a imagem seja preservada
+      console.log("🎯 Continue watching anime:", adaptedAnime.title, "Image URL:", adaptedAnime.image?.substring(0, 50) + "...");
       return {
         ...adaptedAnime,
         progress: {
@@ -275,11 +277,24 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
         }
       };
     });
-    console.log("✅ Returning", continueAnimes.length, "continue watching animes from API cache");
+    console.log("✅ Returning", continueAnimes.length, "continue watching animes from API cache with images");
     return continueAnimes;
   }
   
-  return getAnimesByCategory('continue');
+  console.log("⚠️ No API data found, using trending data as fallback for continue watching");
+  // Se não tiver dados da API, usar os mesmos dados do trending
+  const trendingData = await getTrendingAnime();
+  return trendingData.slice(0, 4).map(anime => ({
+    ...anime,
+    progress: {
+      id: Math.random().toString(),
+      userId: "1",
+      animeId: anime.id,
+      episodeNumber: Math.floor(Math.random() * 12) + 1,
+      progressPercent: Math.floor(Math.random() * 80) + 20,
+      updatedAt: new Date()
+    }
+  }));
 }
 
 export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
