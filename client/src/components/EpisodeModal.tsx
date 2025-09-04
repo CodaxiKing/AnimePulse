@@ -96,66 +96,62 @@ export default function EpisodeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] bg-card border-border overflow-y-auto" data-testid="modal-episode">
-        <DialogHeader className="border-b border-border pb-4">
-          <DialogTitle className="text-lg font-semibold" data-testid="text-episode-title">
+      <DialogContent className="max-w-4xl w-full bg-card border-border p-6" data-testid="modal-episode">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-white" data-testid="text-episode-title">
             Episódio {episode.number} - {episode.title}
-          </DialogTitle>
+          </h2>
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 p-2 hover:bg-muted rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-white"
             data-testid="button-close-episode"
           >
             <X className="w-5 h-5" />
           </button>
-        </DialogHeader>
-        
-        {/* Controles principais bem visíveis */}
-        <div className="bg-gray-800 p-4 rounded-lg mb-4">
-          <div className="flex justify-between items-center gap-4">
+        </div>
+
+        {/* CONTROLES DE NAVEGAÇÃO - SEMPRE VISÍVEIS */}
+        <div className="bg-red-900 border-2 border-red-500 p-6 rounded-lg mb-6 z-50 relative">
+          <h3 className="text-white text-center mb-4 font-bold">CONTROLES DE EPISÓDIO</h3>
+          <div className="flex justify-center items-center gap-8">
             <button
               onClick={handlePreviousEpisode}
               disabled={!hasPrevious}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold text-lg transition-all ${
                 hasPrevious 
-                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  ? 'bg-blue-600 hover:bg-blue-700 shadow-lg' 
                   : 'bg-gray-600 opacity-50 cursor-not-allowed'
               }`}
               data-testid="button-prev-main"
             >
-              <ChevronLeft className="w-5 h-5" />
-              Ep. Anterior
+              <ChevronLeft className="w-6 h-6" />
+              ANTERIOR
             </button>
             
-            <div className="text-center">
-              <button
-                onClick={handleVideoEnd}
-                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg text-white font-bold transition-colors shadow-lg text-lg"
-                data-testid="button-mark-watched"
-              >
-                ✅ MARCAR ASSISTIDO
-              </button>
-              <p className="text-gray-400 text-xs mt-1">Clique para testar a marcação</p>
-            </div>
+            <button
+              onClick={handleVideoEnd}
+              className="bg-green-600 hover:bg-green-700 px-8 py-4 rounded-lg text-white font-bold text-xl transition-colors shadow-xl border-2 border-green-400"
+              data-testid="button-mark-watched"
+            >
+              ✅ MARCAR ASSISTIDO
+            </button>
             
             <button
               onClick={handleNextEpisode}
               disabled={!hasNext}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold text-lg transition-all ${
                 hasNext 
-                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  ? 'bg-blue-600 hover:bg-blue-700 shadow-lg' 
                   : 'bg-gray-600 opacity-50 cursor-not-allowed'
               }`}
               data-testid="button-next-main"
             >
-              Próx. Ep.
-              <ChevronRight className="w-5 h-5" />
+              PRÓXIMO
+              <ChevronRight className="w-6 h-6" />
             </button>
           </div>
         </div>
-        
-        {/* Espaçamento adicional */}
-        <div className="py-2"></div>
         
         <div className="w-full h-96 bg-muted flex items-center justify-center relative rounded-lg overflow-hidden border-2 border-gray-600">
           {!isPlaying ? (
