@@ -56,31 +56,44 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
-  // Usar os mesmos dados da trending API que já funcionou, mas com progresso
+  console.log("🔄 Fetching continue watching anime...");
+  
+  // Usar delay para evitar rate limit
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
   try {
-    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=4&page=2`);
+    const response = await fetch(`${ANINEWS_API_BASE}/anime?order_by=score&limit=4`);
+    console.log("📡 Continue watching API Response status:", response.status);
+    
     if (response.ok) {
       const data = await response.json();
+      console.log("📊 Continue watching API Data received:", data?.data?.length, "animes");
+      
       if (data?.data && data.data.length > 0) {
-        const adaptedAnimes = data.data.slice(0, 4).map((anime: any) => ({
-          ...adaptAnimeFromJikanAPI(anime),
-          progress: {
-            id: Math.random().toString(),
-            userId: "1",
-            animeId: anime.mal_id?.toString(),
-            episodeNumber: Math.floor(Math.random() * 12) + 1,
-            progressPercent: Math.floor(Math.random() * 80) + 20,
-            updatedAt: new Date()
-          }
-        }));
-        console.log("✅ Continue watching usando dados da API");
+        const adaptedAnimes = data.data.slice(0, 4).map((anime: any) => {
+          const adaptedAnime = {
+            ...adaptAnimeFromJikanAPI(anime),
+            progress: {
+              id: Math.random().toString(),
+              userId: "1",
+              animeId: anime.mal_id?.toString(),
+              episodeNumber: Math.floor(Math.random() * 12) + 1,
+              progressPercent: Math.floor(Math.random() * 80) + 20,
+              updatedAt: new Date()
+            }
+          };
+          console.log("🎯 Continue watching anime:", adaptedAnime.title, "Image:", adaptedAnime.image);
+          return adaptedAnime;
+        });
+        console.log("✅ Returning", adaptedAnimes.length, "continue watching animes from API");
         return adaptedAnimes;
       }
     }
   } catch (error) {
-    console.warn("API rate limited for continue watching:", error);
+    console.warn("❌ Failed to fetch continue watching:", error);
   }
   
+  console.log("🔄 Using mock data as fallback for continue watching");
   return getAnimesByCategory('continue');
 }
 
