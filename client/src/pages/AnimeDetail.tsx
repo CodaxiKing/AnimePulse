@@ -271,6 +271,7 @@ export default function AnimeDetail() {
             <EpisodeGrid 
               episodes={episodes || []} 
               animeTitle={anime.title}
+              animeId={id}
               onMarkAsWatched={(episode) => handleMarkAsWatched(episode)}
             />
           )}

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Clock, Calendar, X, Check } from "lucide-react";
+import { isEpisodeWatched } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 interface EpisodeGridProps {
   episodes: Episode[];
   animeTitle?: string;
+  animeId?: string;
   onMarkAsWatched?: (episode: Episode) => void;
 }
 
@@ -67,9 +69,15 @@ const VideoPlayer = ({ episode, isOpen, onClose }: VideoPlayerProps) => {
   );
 };
 
-const EpisodeCard = ({ episode, onClick, handleMarkAsWatched }: { episode: Episode; onClick: () => void; handleMarkAsWatched?: (episode: Episode) => void }) => {
+const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episode: Episode; onClick: () => void; handleMarkAsWatched?: (episode: Episode) => void; animeId?: string }) => {
+  const isWatched = animeId ? isEpisodeWatched(animeId, episode.number) : false;
+  
   return (
-    <div className="group relative bg-card rounded-xl overflow-hidden border border-border hover:border-primary/20 transition-all duration-200">
+    <div className={`group relative bg-card rounded-xl overflow-hidden border transition-all duration-200 ${
+      isWatched 
+        ? 'border-green-500/50 bg-green-50/10 dark:bg-green-900/10' 
+        : 'border-border hover:border-primary/20'
+    }`}>
       <div className="aspect-video relative overflow-hidden">
         <img
           src={episode.thumbnail || "https://via.placeholder.com/400x225"}
@@ -91,9 +99,20 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched }: { episode: Episo
         </div>
         
         {/* Número do episódio */}
-        <div className="absolute top-2 left-2 bg-black/80 text-white px-2 py-1 rounded-lg text-xs font-medium">
+        <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-medium ${
+          isWatched 
+            ? 'bg-green-500/90 text-white' 
+            : 'bg-black/80 text-white'
+        }`}>
           EP {episode.number}
         </div>
+        
+        {/* Indicador de assistido */}
+        {isWatched && (
+          <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+            <Check className="w-3 h-3" />
+          </div>
+        )}
         
         {/* Duração */}
         <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1">
@@ -128,9 +147,13 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched }: { episode: Episo
               e.stopPropagation();
               handleMarkAsWatched?.(episode);
             }}
-            variant="ghost"
+            variant={isWatched ? "default" : "ghost"}
             size="sm"
-            className="px-2 text-xs"
+            className={`px-2 text-xs ${
+              isWatched 
+                ? 'bg-green-500 hover:bg-green-600 text-white' 
+                : ''
+            }`}
             data-testid={`button-mark-watched-${episode.number}`}
           >
             <Check className="w-3 h-3" />
@@ -141,7 +164,7 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched }: { episode: Episo
   );
 };
 
-export default function EpisodeGrid({ episodes, animeTitle, onMarkAsWatched }: EpisodeGridProps) {
+export default function EpisodeGrid({ episodes, animeTitle, animeId, onMarkAsWatched }: EpisodeGridProps) {
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
 
   const handleEpisodeClick = (episode: Episode) => {
@@ -182,6 +205,7 @@ export default function EpisodeGrid({ episodes, animeTitle, onMarkAsWatched }: E
             episode={episode}
             onClick={() => handleEpisodeClick(episode)}
             handleMarkAsWatched={onMarkAsWatched}
+            animeId={animeId}
           />
         ))}
       </div>

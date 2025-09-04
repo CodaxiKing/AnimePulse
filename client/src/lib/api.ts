@@ -395,6 +395,23 @@ export function removeWatchProgress(animeId: string) {
   localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(filtered));
 }
 
+// Função para verificar se um episódio específico foi assistido
+export function isEpisodeWatched(animeId: string, episodeNumber: number): boolean {
+  const progress = getLocalWatchProgress();
+  const animeProgress = progress.find(p => p.animeId === animeId);
+  return animeProgress ? animeProgress.episodeNumber >= episodeNumber : false;
+}
+
+// Função para obter lista de episódios assistidos de um anime
+export function getWatchedEpisodes(animeId: string): number[] {
+  const progress = getLocalWatchProgress();
+  const animeProgress = progress.find(p => p.animeId === animeId);
+  if (!animeProgress) return [];
+  
+  // Retornar array com todos os episódios até o episódio atual assistido
+  return Array.from({ length: animeProgress.episodeNumber }, (_, i) => i + 1);
+}
+
 export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
   console.log("🔄 Getting continue watching anime...");
   
