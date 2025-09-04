@@ -1,4 +1,4 @@
-import { X, Play } from "lucide-react";
+import { X, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal } from "@/lib/api";
 import { useState, useRef } from "react";
@@ -12,6 +12,8 @@ interface EpisodeModalProps {
   animeImage?: string;
   animeId?: string;
   totalEpisodes?: number;
+  episodes?: Episode[];
+  onEpisodeChange?: (episode: Episode) => void;
 }
 
 export default function EpisodeModal({ 
@@ -21,12 +23,18 @@ export default function EpisodeModal({
   animeTitle = "", 
   animeImage = "", 
   animeId = "", 
-  totalEpisodes = 12 
+  totalEpisodes = 12,
+  episodes = [],
+  onEpisodeChange
 }: EpisodeModalProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   if (!episode) return null;
+
+  const currentIndex = episodes.findIndex(ep => ep.number === episode.number);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < episodes.length - 1;
 
   const handleVideoEnd = async () => {
     console.log(`🎬 Video terminou! Dados:`, { animeId, animeTitle, episode: episode.number });
@@ -52,6 +60,11 @@ export default function EpisodeModal({
       if (result.completed) {
         console.log('🎉 Anime completado! Mostrando modal de parabéns...');
         showAnimeCompletionModal(animeTitle, result.points);
+      } else if (hasNext) {
+        // Auto avançar para o próximo episódio após marcar como assistido
+        setTimeout(() => {
+          handleNextEpisode();
+        }, 2000); // Aguardar 2 segundos antes de ir para o próximo
       }
     } catch (error) {
       console.error('❌ Erro ao marcar episódio:', error);
@@ -62,6 +75,22 @@ export default function EpisodeModal({
     setIsPlaying(true);
     if (videoRef.current) {
       videoRef.current.play();
+    }
+  };
+
+  const handleNextEpisode = () => {
+    if (hasNext && onEpisodeChange) {
+      const nextEpisode = episodes[currentIndex + 1];
+      onEpisodeChange(nextEpisode);
+      setIsPlaying(false); // Reset player state
+    }
+  };
+
+  const handlePreviousEpisode = () => {
+    if (hasPrevious && onEpisodeChange) {
+      const previousEpisode = episodes[currentIndex - 1];
+      onEpisodeChange(previousEpisode);
+      setIsPlaying(false); // Reset player state
     }
   };
 
@@ -115,7 +144,7 @@ export default function EpisodeModal({
               </div>
             </>
           ) : (
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full group">
               <video
                 ref={videoRef}
                 className="w-full h-full"
@@ -131,14 +160,45 @@ export default function EpisodeModal({
                 Seu navegador não suporta reprodução de vídeo.
               </video>
               
+              {/* Controles de navegação de episódios */}
+              <div className="absolute inset-y-0 left-4 flex items-center">
+                <button
+                  onClick={handlePreviousEpisode}
+                  disabled={!hasPrevious}
+                  className={`p-3 rounded-full bg-black/60 text-white transition-all ${
+                    hasPrevious 
+                      ? 'hover:bg-black/80 cursor-pointer' 
+                      : 'opacity-40 cursor-not-allowed'
+                  }`}
+                  data-testid="button-previous-episode"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="absolute inset-y-0 right-4 flex items-center">
+                <button
+                  onClick={handleNextEpisode}
+                  disabled={!hasNext}
+                  className={`p-3 rounded-full bg-black/60 text-white transition-all ${
+                    hasNext 
+                      ? 'hover:bg-black/80 cursor-pointer' 
+                      : 'opacity-40 cursor-not-allowed'
+                  }`}
+                  data-testid="button-next-episode"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </div>
+
               {/* Botão de teste para simular fim do episódio */}
-              <div className="absolute top-4 right-4 z-10">
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
                 <button
                   onClick={handleVideoEnd}
-                  className="bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] px-3 py-2 rounded-lg text-white text-xs font-semibold hover:opacity-90 transition-all shadow-lg anime-glow"
+                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-all shadow-lg"
                   data-testid="button-simulate-end"
                 >
-                  🎯 Teste: Marcar Assistido
+                  ✅ Marcar Assistido
                 </button>
               </div>
             </div>

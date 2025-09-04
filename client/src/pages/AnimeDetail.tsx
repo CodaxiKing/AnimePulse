@@ -321,6 +321,8 @@ export default function AnimeDetail() {
           animeImage={anime?.image}
           animeId={anime?.id}
           totalEpisodes={anime?.totalEpisodes}
+          episodes={episodes || []}
+          onEpisodeChange={setSelectedEpisode}
         />
 
         {/* Modal de Parabéns */}
