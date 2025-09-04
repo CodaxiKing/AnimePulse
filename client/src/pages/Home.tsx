@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useRef } from "react";
 import HeroCarousel from "@/components/HeroCarousel";
 import AnimeCard from "@/components/AnimeCard";
 import MangaCard from "@/components/MangaCard";
@@ -6,6 +7,8 @@ import NewsCard from "@/components/NewsCard";
 import SocialPost from "@/components/SocialPost";
 import ActiveUsers from "@/components/ActiveUsers";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import {
   getContinueWatching,
@@ -25,6 +28,7 @@ function AnimeSection({ title, queryKey, showProgress = false, showRank = false,
   showRank?: boolean;
   isNew?: boolean;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { data: animes, isLoading } = useQuery({
     queryKey: [queryKey],
     queryFn: () => {
@@ -38,11 +42,53 @@ function AnimeSection({ title, queryKey, showProgress = false, showRank = false,
     },
   });
 
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
+
+  // Mostrar setas apenas para "Top 10 mais assistidos"
+  const showNavigation = queryKey === 'top';
+
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-semibold" data-testid={`text-section-${queryKey}`}>{title}</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-semibold" data-testid={`text-section-${queryKey}`}>{title}</h3>
+        {showNavigation && !isLoading && animes && animes.length > 4 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={scrollLeft}
+              className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
+              data-testid="button-scroll-left"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={scrollRight}
+              className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
+              data-testid="button-scroll-right"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
       <div className="relative">
-        <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
+        <div 
+          ref={scrollRef}
+          className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r"
+        >
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex-none w-48 aspect-[3/4.5]">
