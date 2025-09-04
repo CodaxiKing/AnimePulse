@@ -91,7 +91,10 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
           <Button
             onClick={() => {
               onClick();
-              // Apenas abrir o modal, não marcar como assistindo automaticamente
+              // Marcar como assistindo quando clicar no botão play do grid
+              if (!isWatched) {
+                handleMarkAsWatched?.(episode);
+              }
             }}
             size="lg"
             className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-full p-4 anime-glow"
@@ -138,7 +141,10 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
           <Button
             onClick={() => {
               onClick();
-              // Apenas abrir o modal, não marcar como assistindo automaticamente
+              // Marcar como assistindo quando clicar no botão Assistir
+              if (!isWatched) {
+                handleMarkAsWatched?.(episode);
+              }
             }}
             variant="outline"
             size="sm"
