@@ -298,23 +298,39 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🆕 Getting latest anime...");
+  console.log("🆕 Getting latest anime from current season...");
   
-  const apiData = await getAnimeDataFromAPI();
-  if (apiData.length > 0) {
-    // Verificar se os dados são do Jikan API ou Otakudesu
-    const isJikanData = apiData[0]?.mal_id !== undefined;
-    const latestAnimes = apiData.slice(16, 24).map(anime => 
-      isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
-    );
-    console.log("✅ Returning", latestAnimes.length, "latest animes from API cache with images");
-    return getAnimesWithProgress(latestAnimes);
+  try {
+    // Buscar diretamente da API de temporada atual (season now) para ter mais lançamentos
+    const seasonResponse = await fetch(`${JIKAN_API_BASE}/seasons/now?limit=25`);
+    if (seasonResponse.ok) {
+      const seasonData = await seasonResponse.json();
+      if (seasonData?.data && seasonData.data.length > 0) {
+        const seasonAnimes = seasonData.data.map(adaptAnimeFromJikanAPI);
+        console.log("✅ Returning", seasonAnimes.length, "season animes from Jikan API");
+        return getAnimesWithProgress(seasonAnimes);
+      }
+    }
+    
+    // Fallback para dados da API geral
+    const apiData = await getAnimeDataFromAPI();
+    if (apiData.length > 0) {
+      // Verificar se os dados são do Jikan API ou Otakudesu
+      const isJikanData = apiData[0]?.mal_id !== undefined;
+      const latestAnimes = apiData.map(anime => 
+        isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
+      );
+      console.log("✅ Returning", latestAnimes.length, "latest animes from API cache");
+      return getAnimesWithProgress(latestAnimes);
+    }
+  } catch (error) {
+    console.warn("❌ Error fetching season anime:", error);
   }
   
   console.log("⚠️ No API data found, using trending data as fallback for latest");
   // Se não tiver dados da API, usar os mesmos dados do trending
   const trendingData = await getTrendingAnime();
-  return getAnimesWithProgress(trendingData.slice(4, 8));
+  return getAnimesWithProgress(trendingData);
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
