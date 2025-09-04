@@ -68,7 +68,7 @@ header [data-radix-dropdown-menu-content] {
   position: fixed !important;
   right: auto !important;
   left: auto !important;
-  transform: translateX(-60px) translateY(0px) !important;
+  transform: translateX(-120px) translateY(0px) !important;
   max-width: 160px !important;
   min-width: 160px !important;
   z-index: 9999 !important;

@@ -102,8 +102,8 @@ export default function Header() {
                 avoidCollisions={false}
                 collisionPadding={0}
                 side="bottom"
-                alignOffset={-60}
-                style={{ transform: 'translateX(-60px)' }}
+                alignOffset={-120}
+                style={{ transform: 'translateX(-120px)' }}
               >
                 {isLoading ? (
                   <DropdownMenuItem disabled>
