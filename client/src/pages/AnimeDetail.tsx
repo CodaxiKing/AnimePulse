@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
-import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, removeWatchedEpisode, isEpisodeWatched, areAllEpisodesWatched, calculateAnimePoints } from "@/lib/api";
+import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, removeWatchedEpisode, isEpisodeWatched, areAllEpisodesWatched, calculateAnimePoints, markEpisodeWatchedFromPlayer } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 export default function AnimeDetail() {
@@ -21,7 +21,7 @@ export default function AnimeDetail() {
   const [showCongrats, setShowCongrats] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
 
-  const handleMarkEpisode = (episode: Episode) => {
+  const handleMarkEpisode = async (episode: Episode) => {
     if (anime) {
       const isWatched = isEpisodeWatched(anime.id, episode.number);
       
@@ -30,9 +30,15 @@ export default function AnimeDetail() {
         removeWatchedEpisode(anime.id, episode.number);
         console.log(`Desmarcado episódio ${episode.number}!`);
       } else {
-        // Marcar como assistindo quando clicar no botão Assistir
-        saveWatchProgress(anime.id, anime.title, anime.image, episode.number, anime.totalEpisodes || episodes?.length || 12, 0);
-        console.log(`✅ Marcado episódio ${episode.number} como assistindo!`);
+        // Marcar como assistido quando clicar no botão Assistir
+        await markEpisodeWatchedFromPlayer(
+          anime.id, 
+          episode.number, 
+          anime.title, 
+          anime.image, 
+          anime.totalEpisodes || episodes?.length || 12
+        );
+        console.log(`✅ Marcado episódio ${episode.number} como assistido!`);
       }
       
       // Forçar atualização da interface
