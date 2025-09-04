@@ -94,9 +94,11 @@ export default function EpisodeModal({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full bg-card border-border p-6" data-testid="modal-episode">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" data-testid="modal-episode">
+      <div className="bg-gray-900 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-white" data-testid="text-episode-title">
@@ -111,27 +113,27 @@ export default function EpisodeModal({
           </button>
         </div>
 
-        {/* CONTROLES DE NAVEGAÇÃO - SEMPRE VISÍVEIS */}
-        <div className="bg-red-900 border-2 border-red-500 p-6 rounded-lg mb-6 z-50 relative">
-          <h3 className="text-white text-center mb-4 font-bold">CONTROLES DE EPISÓDIO</h3>
-          <div className="flex justify-center items-center gap-8">
+        {/* CONTROLES DE NAVEGAÇÃO - DESTAQUE MÁXIMO */}
+        <div className="bg-yellow-600 border-4 border-yellow-300 p-8 rounded-lg mb-6 shadow-2xl">
+          <h3 className="text-black text-center text-2xl mb-6 font-bold">⚡ CONTROLES DO EPISÓDIO ⚡</h3>
+          <div className="flex justify-center items-center gap-6">
             <button
               onClick={handlePreviousEpisode}
               disabled={!hasPrevious}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold text-lg transition-all ${
+              className={`flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-xl transition-all shadow-lg ${
                 hasPrevious 
-                  ? 'bg-blue-600 hover:bg-blue-700 shadow-lg' 
-                  : 'bg-gray-600 opacity-50 cursor-not-allowed'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105' 
+                  : 'bg-gray-500 text-gray-300 cursor-not-allowed'
               }`}
               data-testid="button-prev-main"
             >
-              <ChevronLeft className="w-6 h-6" />
-              ANTERIOR
+              <ChevronLeft className="w-8 h-8" />
+              ◀️ ANTERIOR
             </button>
             
             <button
               onClick={handleVideoEnd}
-              className="bg-green-600 hover:bg-green-700 px-8 py-4 rounded-lg text-white font-bold text-xl transition-colors shadow-xl border-2 border-green-400"
+              className="bg-green-600 hover:bg-green-700 px-10 py-6 rounded-xl text-white font-bold text-2xl transition-all shadow-2xl border-4 border-green-300 transform hover:scale-105 animate-pulse"
               data-testid="button-mark-watched"
             >
               ✅ MARCAR ASSISTIDO
@@ -140,15 +142,15 @@ export default function EpisodeModal({
             <button
               onClick={handleNextEpisode}
               disabled={!hasNext}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg text-white font-bold text-lg transition-all ${
+              className={`flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-xl transition-all shadow-lg ${
                 hasNext 
-                  ? 'bg-blue-600 hover:bg-blue-700 shadow-lg' 
-                  : 'bg-gray-600 opacity-50 cursor-not-allowed'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105' 
+                  : 'bg-gray-500 text-gray-300 cursor-not-allowed'
               }`}
               data-testid="button-next-main"
             >
-              PRÓXIMO
-              <ChevronRight className="w-6 h-6" />
+              PRÓXIMO ▶️
+              <ChevronRight className="w-8 h-8" />
             </button>
           </div>
         </div>
@@ -192,7 +194,7 @@ export default function EpisodeModal({
             </video>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
