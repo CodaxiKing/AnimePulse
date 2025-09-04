@@ -1,0 +1,258 @@
+Crie um projeto ReactJS com Next.js 14+ (App Router) chamado AnimePulse com TailwindCSS (dark mode por padrão). O objetivo é replicar o layout da imagem enviada: tema escuro, acentos neon roxo/rosa, tipografia moderna e UI limpa.
+
+Tech & Setup
+
+Next.js 14+ com App Router (/app).
+
+TailwindCSS configurado (dark por padrão).
+
+Ícones via lucide-react.
+
+Fonte: Inter (Google Fonts).
+
+ESLint + Prettier.
+
+Responsivo (desktop e mobile).
+
+Paleta
+
+Fundo: #0B0B0F
+
+Card/Surface: #14141B
+
+Texto primário: #EAEAF0
+
+Texto secundário: #A1A1B2
+
+Acento/Neon: gradiente roxo→rosa from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8]
+
+Borda: #23232F
+
+Estrutura de pastas
+/app
+  /(routes)
+    /page.tsx              // Home
+    /animes/page.tsx
+    /mangas/page.tsx
+    /noticias/page.tsx
+    /comunidade/page.tsx
+    /animes/[id]/page.tsx  // Detalhe do anime + episódios
+  /globals.css
+/components
+  Header.tsx
+  Logo.tsx
+  SearchBar.tsx
+  HeroCarousel.tsx
+  SectionRow.tsx
+  AnimeCard.tsx
+  MangaCard.tsx
+  NewsCard.tsx
+  SocialPost.tsx
+  ActiveUsers.tsx
+  Footer.tsx
+  Button.tsx
+  Badge.tsx
+  Skeleton.tsx
+/lib
+  api/anime.ts
+  api/manga.ts
+  api/news.ts
+  mock/*.json
+  utils.ts
+/types
+  anime.ts
+  manga.ts
+  news.ts
+/public
+  /placeholders/*
+
+Header (fixo)
+
+Logo AnimePulse (texto com gradiente roxo/rosa).
+
+Menu: Animes | Mangás | Notícias | Comunidade (links navegáveis).
+
+Barra de busca com ícone de lupa.
+
+Ícone/avatar de perfil à direita.
+
+Hero (banner principal)
+
+Carrossel com imagem de fundo (ex.: Night Hunters), título e botão “Assistir agora” (estilo botão roxo com glow).
+
+Setas esquerda/direita para navegar.
+
+Sessão “Assistir Animes”
+
+Quatro “rows” horizontais (scroll-x suave):
+
+Continue assistindo
+
+Recomendados para você
+
+Lançamentos
+
+Top 10 mais assistidos
+
+Cada card: capa, título, pequena barra de progresso (quando existir).
+
+Sessão “Ler Mangás”
+
+Lista horizontal com categorias (cards):
+
+Mangás, Últimos lançamentos, Mangakás, Braço, Bibliotecas, Funding, Revieloga, Manegais
+
+Adicionar um botão “Ver mais” visível no topo da sessão, alinhado à direita, que leva para /mangas.
+
+Sessão “Notícias”
+
+4 cards quadrados com títulos:
+
+Novidades de animes
+
+Lançamentos de mangás
+
+Cultura geek
+
+Cosplay & Eventos
+
+Feed Social
+
+Coluna com posts: avatar, nome do usuário, timestamp, texto e imagem.
+
+Lateral direita “Mais ativos”: lista de usuários online (avatar + status).
+
+Footer
+
+Links: FAQ, Suporte, Contrato, Termos.
+
+Ícones sociais: Twitter, Instagram, Discord.
+
+Rotas
+
+/ Home (todas as sessões acima).
+
+/animes (listagem).
+
+/mangas (listagem).
+
+/noticias (listagem).
+
+/comunidade (feed expandido).
+
+/animes/[id] (página de detalhe do anime).
+
+Página de detalhe do anime /animes/[id]
+
+Header com capa/poster, título, ano, data de lançamento, gêneros, estúdio, sinopse, botões:
+
+Assistir agora
+
+Adicionar à fila
+
+Favoritar (ícone coração)
+Abaixo, grade de episódios (thumb + título/numeração). Ao clicar em um episódio, abrir página/overlay com player embutido (pode ser um VideoPlayer simples com poster e controle fake).
+
+Dados & APIs (com fallback mock)
+
+Implementar serviços em /lib/api com fetch e tratamento de erro + skeletons. Usar mock JSON em /lib/mock se a API falhar (para a UI sempre renderizar).
+
+APIs:
+
+Animes: https://github.com/yahyaMomin/hianime-API
+
+Criar funções:
+
+getTrendingAnime(), getContinueWatching(), getLatestAnime(), getTopAnime(),
+
+getAnimeById(id), getEpisodesByAnimeId(id)
+
+Mangás: https://github.com/Shineii86/AniNewsAPI
+
+Funções:
+
+getLatestManga(), getMangaCategories()
+
+Notícias: https://github.com/kiraaziz/mangahook-api
+
+Funções:
+
+getLatestNews(), getNewsByCategory(category)
+
+Observação: se os endpoints reais diferirem, mantenha adapters nos serviços para mapear os campos (id, title, image, studio, genres, releaseDate, episodes, etc). Em caso de erro de rede, retornar dados de /lib/mock/*.json.
+
+Tipos básicos (JSdoc ou TS se preferir)
+
+Anime { id, title, image, studio, genres[], releaseDate, synopsis }
+
+Episode { id, number, title, thumbnail, url }
+
+Manga { id, title, image, author, latestChapter }
+
+News { id, title, image, category, publishedAt, source, summary }
+
+User { id, name, avatar, online }
+
+Post { id, user, text, image, createdAt }
+
+Comportamentos obrigatórios
+
+Scroll horizontal com mouse/touch; setas aparecem ao hover (desktop).
+
+Skeletons enquanto carrega.
+
+Fallback de imagem (placeholder) se image não vier.
+
+Dark mode fixo.
+
+“Ver mais” na sessão Ler Mangás (leva para /mangas).
+
+Cliques em cards de anime levam para /animes/[id] com detalhes + episódios.
+
+Responsividade: grid colapsa para 2 colunas no mobile; carrossel vira swipe.
+
+Estilo (classes Tailwind de referência)
+
+Container: max-w-7xl mx-auto px-4 md:px-6 lg:px-8
+
+Cards: bg-[#14141B] rounded-2xl overflow-hidden shadow-lg/20 hover:shadow-xl/30 transition
+
+Título seção: text-xl md:text-2xl font-semibold
+
+Botão primário: bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-5 py-2.5 shadow-[0_0_20px_rgba(176,38,255,0.35)] hover:opacity-95
+
+Texto secundário: text-[#A1A1B2]
+
+Borda: border border-[#23232F]
+
+Conteúdo mock (crie arquivos em /lib/mock)
+
+animes.json (4 arrays p/ as 4 categorias + objetos detalhados por id)
+
+episodes_<id>.json
+
+mangas.json
+
+news.json
+
+users.json, posts.json
+
+Acessibilidade
+
+alt em imagens, aria-label em botões/ícones, foco visível, prefers-reduced-motion.
+
+Aceite / DoD
+
+Home com todas as seções renderizando (dados reais ou mock).
+
+Header fixo com busca funcional (filtra localmente na Home).
+
+Botão Ver mais na sessão Mangás → /mangas.
+
+Clique em qualquer card de anime abre /animes/[id] com detalhes + episódios clicáveis.
+
+Footer com links e ícones sociais.
+
+Totalmente responsivo.
+
+Entregue o projeto pronto para rodar com npm run dev.
