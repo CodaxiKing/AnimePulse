@@ -63,11 +63,15 @@ body:has([data-radix-dropdown-menu-content]) {
   box-sizing: border-box !important;
 }
 
-/* Header dropdown specific positioning */
+/* Header dropdown specific positioning - Force left positioning */
 header [data-radix-dropdown-menu-content] {
-  transform: translateX(-100px) !important;
+  position: fixed !important;
+  right: auto !important;
+  left: auto !important;
+  transform: translateX(-140px) translateY(0px) !important;
   max-width: 160px !important;
   min-width: 160px !important;
+  z-index: 9999 !important;
 }
 
 /* Fix all dropdown and select positioning issues */
