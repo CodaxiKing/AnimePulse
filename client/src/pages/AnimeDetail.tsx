@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
-import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress } from "@/lib/api";
+import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, removeEpisodeProgress, isEpisodeWatched } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 export default function AnimeDetail() {
@@ -18,17 +18,30 @@ export default function AnimeDetail() {
 
   const handleMarkAsWatched = (episode: Episode) => {
     if (anime) {
-      saveWatchProgress(
-        anime.id,
-        anime.title,
-        anime.image,
-        episode.number,
-        anime.totalEpisodes || 12,
-        (episode.number / (anime.totalEpisodes || 12)) * 100
-      );
+      const isWatched = isEpisodeWatched(anime.id, episode.number);
       
-      // Mostrar feedback visual
-      console.log(`Marcado episódio ${episode.number} como assistido!`);
+      if (isWatched) {
+        // Se já está assistido, desmarcar
+        removeEpisodeProgress(
+          anime.id,
+          episode.number,
+          anime.title,
+          anime.image,
+          anime.totalEpisodes || 12
+        );
+        console.log(`Desmarcado episódio ${episode.number}!`);
+      } else {
+        // Se não está assistido, marcar
+        saveWatchProgress(
+          anime.id,
+          anime.title,
+          anime.image,
+          episode.number,
+          anime.totalEpisodes || 12,
+          (episode.number / (anime.totalEpisodes || 12)) * 100
+        );
+        console.log(`Marcado episódio ${episode.number} como assistido!`);
+      }
     }
   };
   

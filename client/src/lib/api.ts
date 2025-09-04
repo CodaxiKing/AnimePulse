@@ -395,6 +395,33 @@ export function removeWatchProgress(animeId: string) {
   localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(filtered));
 }
 
+// Função para remover progresso de um episódio específico ou ajustar para episódio anterior
+export function removeEpisodeProgress(animeId: string, episodeNumber: number, animeTitle: string, animeImage: string, totalEpisodes: number) {
+  const progress = getLocalWatchProgress();
+  const animeIndex = progress.findIndex(p => p.animeId === animeId);
+  
+  if (animeIndex >= 0) {
+    const animeProgress = progress[animeIndex];
+    
+    if (episodeNumber === 1) {
+      // Se for o episódio 1, remover completamente o progresso
+      progress.splice(animeIndex, 1);
+    } else if (animeProgress.episodeNumber >= episodeNumber) {
+      // Se o episódio atual é maior ou igual ao que queremos remover,
+      // ajustar para o episódio anterior
+      progress[animeIndex] = {
+        ...animeProgress,
+        episodeNumber: episodeNumber - 1,
+        progressPercent: Math.round(((episodeNumber - 1) / totalEpisodes) * 100),
+        lastWatched: new Date().toISOString()
+      };
+    }
+    // Se o episódio atual é menor que o que queremos remover, não fazer nada
+    
+    localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(progress));
+  }
+}
+
 // Função para verificar se um episódio específico foi assistido
 export function isEpisodeWatched(animeId: string, episodeNumber: number): boolean {
   const progress = getLocalWatchProgress();
