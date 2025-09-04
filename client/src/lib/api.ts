@@ -31,33 +31,27 @@ async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
 
 // Anime API functions
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
+  console.log("🔍 Fetching trending anime...");
+  
   try {
     const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=8`);
+    console.log("📡 API Response status:", response.status);
+    
     if (response.ok) {
       const data = await response.json();
-      const adaptedAnimes = data.data?.slice(0, 8).map(adaptAnimeFromJikanAPI) || [];
-      if (adaptedAnimes.length > 0) {
+      console.log("📊 API Data received:", data?.data?.length, "animes");
+      
+      if (data?.data && data.data.length > 0) {
+        const adaptedAnimes = data.data.slice(0, 8).map(adaptAnimeFromJikanAPI);
+        console.log("✅ Returning", adaptedAnimes.length, "trending animes from API");
         return adaptedAnimes;
       }
     }
   } catch (error) {
-    console.warn("Failed to fetch trending anime:", error);
+    console.warn("❌ Failed to fetch trending anime:", error);
   }
   
-  // Fallback: tentar outra API endpoint
-  try {
-    const fallbackResponse = await fetch(`${ANINEWS_API_BASE}/seasons/now?limit=8`);
-    if (fallbackResponse.ok) {
-      const fallbackData = await fallbackResponse.json();
-      const fallbackAnimes = fallbackData.data?.slice(4, 12).map(adaptAnimeFromJikanAPI) || [];
-      if (fallbackAnimes.length > 0) {
-        return fallbackAnimes;
-      }
-    }
-  } catch (error) {
-    console.warn("Failed to fetch fallback trending anime:", error);
-  }
-  
+  console.log("🔄 Using mock data as fallback");
   return getAnimesByCategory('trending');
 }
 
@@ -127,47 +121,27 @@ export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
+  console.log("🏆 Fetching top 10 anime...");
+  
   try {
-    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?type=tv&limit=10`);
+    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=10`);
+    console.log("📡 Top API Response status:", response.status);
+    
     if (response.ok) {
       const data = await response.json();
-      const adaptedAnimes = data.data?.slice(0, 10).map(adaptAnimeFromJikanAPI) || [];
-      if (adaptedAnimes.length > 0) {
+      console.log("📊 Top API Data received:", data?.data?.length, "animes");
+      
+      if (data?.data && data.data.length > 0) {
+        const adaptedAnimes = data.data.slice(0, 10).map(adaptAnimeFromJikanAPI);
+        console.log("✅ Returning", adaptedAnimes.length, "top animes from API");
         return adaptedAnimes;
       }
     }
   } catch (error) {
-    console.warn("Failed to fetch top anime:", error);
+    console.warn("❌ Failed to fetch top anime:", error);
   }
   
-  // Fallback: tentar endpoint alternativo para top animes
-  try {
-    const fallbackResponse = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=10`);
-    if (fallbackResponse.ok) {
-      const fallbackData = await fallbackResponse.json();
-      const fallbackAnimes = fallbackData.data?.slice(0, 10).map(adaptAnimeFromJikanAPI) || [];
-      if (fallbackAnimes.length > 0) {
-        return fallbackAnimes;
-      }
-    }
-  } catch (error) {
-    console.warn("Failed to fetch fallback top anime:", error);
-  }
-  
-  // Último recurso: usar animes populares
-  try {
-    const popularResponse = await fetch(`${ANINEWS_API_BASE}/anime?order_by=popularity&limit=10`);
-    if (popularResponse.ok) {
-      const popularData = await popularResponse.json();
-      const popularAnimes = popularData.data?.slice(0, 10).map(adaptAnimeFromJikanAPI) || [];
-      if (popularAnimes.length > 0) {
-        return popularAnimes;
-      }
-    }
-  } catch (error) {
-    console.warn("Failed to fetch popular anime:", error);
-  }
-  
+  console.log("🔄 Using mock data as fallback for top anime");
   return getAnimesByCategory('trending');
 }
 
