@@ -4,6 +4,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent scrollbar issues with fixed header */
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+  padding-right: 0 !important;
+}
+
+/* Ensure main content doesn't interfere with fixed header */
+main {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fix for dropdown and modal z-index conflicts */
+.fixed {
+  position: fixed !important;
+}
+
 /* Utility classes para truncar texto */
 .line-clamp-1 {
   display: -webkit-box;
