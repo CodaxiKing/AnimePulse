@@ -15,7 +15,7 @@ import {
 // API configuration
 const HIANIME_API_BASE = import.meta.env.VITE_HIANIME_API || "https://hianime-api-pi.vercel.app/api/v2";
 const ANINEWS_API_BASE = import.meta.env.VITE_ANINEWS_API || "https://api.jikan.moe/v4";
-const OTAKUDESU_API_BASE = import.meta.env.VITE_OTAKUDESU_API || "https://anime.kaedenoki.net/api";
+const OTAKUDESU_API_BASE = import.meta.env.VITE_OTAKUDESU_API || "https://unofficial-otakudesu-api-ruang-kreatif.vercel.app/api";
 const MANGAHOOK_API_BASE = import.meta.env.VITE_MANGAHOOK_API || "https://api.jikan.moe/v4";
 
 // Generic fetch with error handling
@@ -80,8 +80,12 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
   
   // Tentar API do Otakudesu como último recurso
   try {
-    const otakuData = await getOtakudesuData();
-    if (otakuData.length > 0) {
+    const otakuData = await getOtakudesuData().catch(err => {
+      console.warn("❌ Otakudesu API promise rejected:", err instanceof Error ? err.message : String(err));
+      return [];
+    });
+    
+    if (otakuData && otakuData.length > 0) {
       // Adaptar dados do Otakudesu para o formato esperado
       const adaptedData = otakuData.map(adaptAnimeFromOtakudesuAPI);
       apiCache = adaptedData;
@@ -90,7 +94,7 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
       return adaptedData;
     }
   } catch (error) {
-    console.warn("❌ Otakudesu API also failed:", error);
+    console.warn("❌ Otakudesu API also failed:", error instanceof Error ? error.message : String(error));
   }
   
   console.log("⚠️ All APIs failed, using fallback data");
@@ -281,31 +285,55 @@ async function getOtakudesuData(): Promise<any[]> {
   try {
     console.log("🌐 Trying Otakudesu API...");
     
-    // Buscar animes em progresso (ongoing)
-    const ongoingResponse = await fetch(`${OTAKUDESU_API_BASE}/ongoing`);
+    // Primeiro tentar a API da home page que tem todos os animes
+    const homeResponse = await fetch(`${OTAKUDESU_API_BASE}/home`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (homeResponse.ok) {
+      const homeData = await homeResponse.json();
+      console.log("📡 Otakudesu home response status:", homeResponse.status);
+      
+      // Verificar se tem dados na home
+      if (homeData?.ongoing?.length > 0) {
+        console.log("✅ Found", homeData.ongoing.length, "ongoing animes from Otakudesu");
+        return homeData.ongoing;
+      }
+      
+      if (homeData?.complete?.length > 0) {
+        console.log("✅ Found", homeData.complete.length, "complete animes from Otakudesu");
+        return homeData.complete;
+      }
+    } else {
+      console.log("📡 Otakudesu home response failed:", homeResponse.status, homeResponse.statusText);
+    }
+    
+    // Fallback: tentar endpoint ongoing diretamente
+    const ongoingResponse = await fetch(`${OTAKUDESU_API_BASE}/ongoing`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
     if (ongoingResponse.ok) {
       const ongoingData = await ongoingResponse.json();
-      console.log("📡 Otakudesu ongoing response:", ongoingData);
+      console.log("📡 Otakudesu ongoing response status:", ongoingResponse.status);
       
-      if (ongoingData.results?.length > 0) {
+      if (ongoingData?.results?.length > 0) {
+        console.log("✅ Found", ongoingData.results.length, "animes from Otakudesu ongoing");
         return ongoingData.results;
       }
     }
     
-    // Se não encontrar ongoing, tentar animes completos
-    const completeResponse = await fetch(`${OTAKUDESU_API_BASE}/complete`);
-    if (completeResponse.ok) {
-      const completeData = await completeResponse.json();
-      console.log("📡 Otakudesu complete response:", completeData);
-      
-      if (completeData.results?.length > 0) {
-        return completeData.results;
-      }
-    }
-    
+    console.log("⚠️ No data found from Otakudesu API");
     return [];
   } catch (error) {
-    console.warn("❌ Otakudesu API error:", error);
+    console.warn("❌ Otakudesu API error:", error instanceof Error ? error.message : String(error));
     return [];
   }
 }
@@ -313,14 +341,14 @@ async function getOtakudesuData(): Promise<any[]> {
 // Função para adaptar dados da API do Otakudesu
 function adaptAnimeFromOtakudesuAPI(otakuAnime: any): AnimeWithProgress {
   return {
-    id: otakuAnime.id || Math.random().toString(),
-    title: otakuAnime.title || "Sem título",
-    image: otakuAnime.thumb || "https://via.placeholder.com/400x600",
+    id: otakuAnime.id || otakuAnime.slug || Math.random().toString(),
+    title: otakuAnime.title || otakuAnime.anime_title || "Sem título",
+    image: otakuAnime.thumb || otakuAnime.poster || "https://via.placeholder.com/400x600",
     studio: otakuAnime.studio || "Estúdio desconhecido",
-    year: new Date().getFullYear(), // Otakudesu não tem ano específico
-    genres: otakuAnime.genres || [],
-    synopsis: otakuAnime.synopsis || "Sinopse não disponível",
-    releaseDate: otakuAnime.release_date || "",
+    year: parseInt(otakuAnime.release_year) || new Date().getFullYear(),
+    genres: Array.isArray(otakuAnime.genres) ? otakuAnime.genres : [],
+    synopsis: otakuAnime.synopsis || otakuAnime.description || "Sinopse não disponível",
+    releaseDate: otakuAnime.release_date || otakuAnime.updated_on || "",
     status: otakuAnime.status?.toLowerCase() || "ongoing",
     totalEpisodes: parseInt(otakuAnime.total_episode) || 0,
     rating: otakuAnime.rating || "0",
