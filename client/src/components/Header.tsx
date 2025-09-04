@@ -1,17 +1,51 @@
 import { Link, useLocation } from "wouter";
 import Logo from "./Logo";
 import SearchBar from "./SearchBar";
-import { User, LogIn, UserPlus, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { User, LogIn, UserPlus, LogOut, Settings, Trophy, BarChart3 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Header() {
   const [location] = useLocation();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { toast } = useToast();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/auth/logout");
+      return await response.json();
+    },
+    onSuccess: () => {
+      // Invalidar cache de autenticação
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      });
+      // Redirecionar para home
+      window.location.href = "/";
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro no logout",
+        description: error.message || "Erro ao fazer logout.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   const navItems = [
     { href: "/animes", label: "Animes" },
@@ -61,19 +95,88 @@ export default function Header() {
                   </div>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/login" className="flex items-center gap-2 w-full" data-testid="link-login">
-                    <LogIn className="w-4 h-4" />
-                    Entrar
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/register" className="flex items-center gap-2 w-full" data-testid="link-register">
-                    <UserPlus className="w-4 h-4" />
-                    Criar Conta
-                  </Link>
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-56">
+                {isLoading ? (
+                  <DropdownMenuItem disabled>
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                      Carregando...
+                    </div>
+                  </DropdownMenuItem>
+                ) : isAuthenticated && user ? (
+                  <>
+                    {/* Header do usuário */}
+                    <div className="px-2 py-2 border-b border-border">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5">
+                          <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                            <User className="w-3 h-3 text-foreground" />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{user.username}</p>
+                          <p className="text-xs text-muted-foreground">Online</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Opções do usuário logado */}
+                    <DropdownMenuItem asChild>
+                      <Link href="/perfil" className="flex items-center gap-2 w-full" data-testid="link-profile">
+                        <User className="w-4 h-4" />
+                        Meu Perfil
+                      </Link>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem asChild>
+                      <Link href="/estatisticas" className="flex items-center gap-2 w-full" data-testid="link-stats">
+                        <BarChart3 className="w-4 h-4" />
+                        Estatísticas
+                      </Link>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem asChild>
+                      <Link href="/conquistas" className="flex items-center gap-2 w-full" data-testid="link-achievements">
+                        <Trophy className="w-4 h-4" />
+                        Conquistas
+                      </Link>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem asChild>
+                      <Link href="/configuracoes" className="flex items-center gap-2 w-full" data-testid="link-settings">
+                        <Settings className="w-4 h-4" />
+                        Configurações
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+                    
+                    <DropdownMenuItem 
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+                      data-testid="button-logout"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {logoutMutation.isPending ? "Saindo..." : "Sair"}
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    {/* Opções para usuário não logado */}
+                    <DropdownMenuItem asChild>
+                      <Link href="/login" className="flex items-center gap-2 w-full" data-testid="link-login">
+                        <LogIn className="w-4 h-4" />
+                        Entrar
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/register" className="flex items-center gap-2 w-full" data-testid="link-register">
+                        <UserPlus className="w-4 h-4" />
+                        Criar Conta
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
