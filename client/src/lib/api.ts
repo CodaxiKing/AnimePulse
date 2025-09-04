@@ -60,11 +60,38 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
           updatedAt: new Date()
         }
       })) || [];
-      return adaptedAnimes.length > 0 ? adaptedAnimes : getAnimesByCategory('continue');
+      if (adaptedAnimes.length > 0) {
+        return adaptedAnimes;
+      }
     }
   } catch (error) {
     console.warn("Failed to fetch continue watching:", error);
   }
+  
+  // Fallback: pegar os dados mock mas com imagens atualizadas da API trending
+  try {
+    const trendingResponse = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=4`);
+    if (trendingResponse.ok) {
+      const trendingData = await trendingResponse.json();
+      const trendingAnimes = trendingData.data?.slice(0, 4).map((anime: any) => ({
+        ...adaptAnimeFromJikanAPI(anime),
+        progress: {
+          id: Math.random().toString(),
+          userId: "1",
+          animeId: anime.mal_id?.toString(),
+          episodeNumber: Math.floor(Math.random() * 12) + 1,
+          progressPercent: Math.floor(Math.random() * 80) + 20,
+          updatedAt: new Date()
+        }
+      })) || [];
+      if (trendingAnimes.length > 0) {
+        return trendingAnimes;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to fetch trending for continue watching fallback:", error);
+  }
+  
   return getAnimesByCategory('continue');
 }
 
