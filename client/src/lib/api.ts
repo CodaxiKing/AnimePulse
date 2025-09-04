@@ -182,10 +182,100 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress | undefined> {
+  try {
+    console.log("📺 Getting anime details for ID:", id);
+    
+    // Primeiro tentar buscar da API do Otakudesu
+    const otakuResponse = await fetch(`${OTAKUDESU_API_BASE}/anime/${id}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (otakuResponse.ok) {
+      const otakuData = await otakuResponse.json();
+      console.log("✅ Found anime details from Otakudesu API");
+      
+      if (otakuData) {
+        return {
+          id: otakuData.id || id,
+          title: otakuData.title || "Sem título",
+          image: otakuData.thumb || "https://via.placeholder.com/400x600",
+          studio: otakuData.studio || "Estúdio desconhecido",
+          year: parseInt(otakuData.release_year) || new Date().getFullYear(),
+          genres: Array.isArray(otakuData.genre) ? otakuData.genre : [],
+          synopsis: otakuData.synopsis || "Sinopse não disponível",
+          releaseDate: otakuData.release_date || "",
+          status: otakuData.status?.toLowerCase() || "ongoing",
+          totalEpisodes: parseInt(otakuData.total_episode) || 0,
+          rating: otakuData.rating || "0",
+        };
+      }
+    }
+    
+    // Fallback para Jikan API se o ID for numérico (MAL ID)
+    if (!isNaN(Number(id))) {
+      const jikanResponse = await fetch(`${ANINEWS_API_BASE}/anime/${id}`);
+      if (jikanResponse.ok) {
+        const jikanData = await jikanResponse.json();
+        console.log("✅ Found anime details from Jikan API");
+        
+        if (jikanData?.data) {
+          return adaptAnimeFromJikanAPI(jikanData.data);
+        }
+      }
+    }
+    
+    console.log("⚠️ No anime found in APIs, using mock data fallback");
+  } catch (error) {
+    console.warn("❌ Error fetching anime details:", error instanceof Error ? error.message : String(error));
+  }
+  
+  // Fallback para dados mock
   return getAnimeById(id);
 }
 
 export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[]> {
+  try {
+    console.log("🎬 Getting episodes for anime ID:", animeId);
+    
+    // Tentar buscar da API do Otakudesu
+    const otakuResponse = await fetch(`${OTAKUDESU_API_BASE}/anime/${animeId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (otakuResponse.ok) {
+      const otakuData = await otakuResponse.json();
+      console.log("✅ Found anime data from Otakudesu API for episodes");
+      
+      if (otakuData?.episode_list && Array.isArray(otakuData.episode_list)) {
+        const episodes = otakuData.episode_list.map((ep: any, index: number) => ({
+          id: ep.id || `${animeId}-ep-${index + 1}`,
+          animeId: animeId,
+          number: ep.episode || index + 1,
+          title: ep.title || `Episódio ${index + 1}`,
+          thumbnail: ep.thumb || "https://via.placeholder.com/600x300",
+          duration: ep.duration || "24 min",
+          releaseDate: ep.date || new Date().toISOString(),
+          streamingUrl: ep.stream_url || "",
+          downloadUrl: ep.download_url || "",
+        }));
+        
+        console.log("✅ Returning", episodes.length, "episodes from Otakudesu API");
+        return episodes;
+      }
+    }
+    
+    console.log("⚠️ No episodes found in API, using mock data fallback");
+  } catch (error) {
+    console.warn("❌ Error fetching episodes:", error instanceof Error ? error.message : String(error));
+  }
+  
+  // Fallback para dados mock
   return getEpisodesByAnimeId(animeId);
 }
 

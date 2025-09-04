@@ -32,8 +32,10 @@ export const episodes = pgTable("episodes", {
   number: integer("number").notNull(),
   title: text("title").notNull(),
   thumbnail: text("thumbnail"),
-  url: text("url"),
-  duration: integer("duration"), // in minutes
+  duration: text("duration"), // formato "24 min"
+  releaseDate: text("release_date"),
+  streamingUrl: text("streaming_url"),
+  downloadUrl: text("download_url"),
 });
 
 export const mangas = pgTable("mangas", {
