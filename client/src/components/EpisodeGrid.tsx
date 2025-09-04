@@ -9,6 +9,7 @@ interface EpisodeGridProps {
   animeTitle?: string;
   animeId?: string;
   onMarkAsWatched?: (episode: Episode) => void;
+  onEpisodeClick?: (episode: Episode) => void;
 }
 
 interface VideoPlayerProps {
@@ -176,7 +177,7 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
   );
 };
 
-export default function EpisodeGrid({ episodes, animeTitle, animeId, onMarkAsWatched }: EpisodeGridProps) {
+export default function EpisodeGrid({ episodes, animeTitle, animeId, onMarkAsWatched, onEpisodeClick }: EpisodeGridProps) {
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
 
   const handleEpisodeClick = (episode: Episode) => {
@@ -215,7 +216,7 @@ export default function EpisodeGrid({ episodes, animeTitle, animeId, onMarkAsWat
           <EpisodeCard
             key={episode.id}
             episode={episode}
-            onClick={() => handleEpisodeClick(episode)}
+            onClick={() => onEpisodeClick?.(episode)}
             handleMarkAsWatched={onMarkAsWatched}
             animeId={animeId}
           />

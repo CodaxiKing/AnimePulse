@@ -313,6 +313,7 @@ export default function AnimeDetail() {
               animeTitle={anime.title}
               animeId={id}
               onMarkAsWatched={(episode) => handleMarkEpisode(episode)}
+              onEpisodeClick={(episode) => setSelectedEpisode(episode)}
             />
           )}
         </div>
