@@ -11,8 +11,8 @@ interface AnimeCardProps {
 export default function AnimeCard({ anime, showProgress = false, rank, isNew = false }: AnimeCardProps) {
   return (
     <Link href={`/animes/${anime.id}`}>
-      <div className="flex-none w-48 group cursor-pointer" data-testid={`card-anime-${anime.id}`}>
-        <div className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative">
+      <div className="flex-none w-48 h-80 group cursor-pointer" data-testid={`card-anime-${anime.id}`}>
+        <div className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative h-full flex flex-col">
           {rank && (
             <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
               {rank}
@@ -35,9 +35,9 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
             }}
           />
           
-          <div className="p-4">
-            <h4 className="font-semibold text-sm mb-1" data-testid={`text-anime-title-${anime.id}`}>
-              {anime.title}
+          <div className="p-4 flex-1 flex flex-col">
+            <h4 className="font-semibold text-sm mb-1 line-clamp-2 min-h-[2.5rem]" data-testid={`text-anime-title-${anime.id}`} title={anime.title}>
+              {anime.title.length > 35 ? anime.title.slice(0, 32) + '...' : anime.title}
             </h4>
             
             {showProgress && anime.progress ? (
@@ -54,8 +54,8 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
                 </div>
               </>
             ) : (
-              <p className="text-xs text-muted-foreground" data-testid={`text-anime-info-${anime.id}`}>
-                {anime.genres?.join(" • ")} • {anime.totalEpisodes} episódios
+              <p className="text-xs text-muted-foreground line-clamp-1" data-testid={`text-anime-info-${anime.id}`}>
+                {anime.genres?.slice(0, 2).join(" • ")} • {anime.totalEpisodes} eps
               </p>
             )}
           </div>
