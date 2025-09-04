@@ -81,6 +81,17 @@ export default function EpisodeModal({
           </button>
         </DialogHeader>
         
+        {/* Botão de teste na parte superior para facilitar acesso */}
+        <div className="flex justify-end mb-2">
+          <button
+            onClick={handleVideoEnd}
+            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors"
+            data-testid="button-test-outside"
+          >
+            ✅ Teste Rápido: Marcar como Assistido
+          </button>
+        </div>
+        
         <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
           {!isPlaying ? (
             <>
@@ -121,13 +132,15 @@ export default function EpisodeModal({
               </video>
               
               {/* Botão de teste para simular fim do episódio */}
-              <button
-                onClick={handleVideoEnd}
-                className="absolute bottom-4 right-4 bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] px-4 py-2 rounded-lg text-white text-sm hover:opacity-90 transition-opacity"
-                data-testid="button-simulate-end"
-              >
-                🎯 Simular Fim do Episódio
-              </button>
+              <div className="absolute top-4 right-4 z-10">
+                <button
+                  onClick={handleVideoEnd}
+                  className="bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] px-3 py-2 rounded-lg text-white text-xs font-semibold hover:opacity-90 transition-all shadow-lg anime-glow"
+                  data-testid="button-simulate-end"
+                >
+                  🎯 Teste: Marcar Assistido
+                </button>
+              </div>
             </div>
           )}
         </div>
