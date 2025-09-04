@@ -65,9 +65,11 @@ body:has([data-radix-dropdown-menu-content]) {
 
 /* Header dropdown specific positioning */
 header [data-radix-dropdown-menu-content] {
-  right: 8px !important;
+  right: 20px !important;
   left: auto !important;
   transform: translateX(0) !important;
+  max-width: 200px !important;
+  margin-right: 10px !important;
 }
 
 /* Utility classes para truncar texto */
