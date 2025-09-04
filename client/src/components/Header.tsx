@@ -1,6 +1,5 @@
 import { Link, useLocation } from "wouter";
 import Logo from "./Logo";
-import SearchBar from "./SearchBar";
 import { User, LogIn, UserPlus, LogOut, Settings, Trophy, BarChart3 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -82,7 +81,6 @@ export default function Header() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <SearchBar />
             
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
