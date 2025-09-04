@@ -132,11 +132,42 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
     if (response.ok) {
       const data = await response.json();
       const adaptedAnimes = data.data?.slice(0, 10).map(adaptAnimeFromJikanAPI) || [];
-      return adaptedAnimes.length > 0 ? adaptedAnimes : getAnimesByCategory('trending');
+      if (adaptedAnimes.length > 0) {
+        return adaptedAnimes;
+      }
     }
   } catch (error) {
     console.warn("Failed to fetch top anime:", error);
   }
+  
+  // Fallback: tentar endpoint alternativo para top animes
+  try {
+    const fallbackResponse = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=10`);
+    if (fallbackResponse.ok) {
+      const fallbackData = await fallbackResponse.json();
+      const fallbackAnimes = fallbackData.data?.slice(0, 10).map(adaptAnimeFromJikanAPI) || [];
+      if (fallbackAnimes.length > 0) {
+        return fallbackAnimes;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to fetch fallback top anime:", error);
+  }
+  
+  // Último recurso: usar animes populares
+  try {
+    const popularResponse = await fetch(`${ANINEWS_API_BASE}/anime?order_by=popularity&limit=10`);
+    if (popularResponse.ok) {
+      const popularData = await popularResponse.json();
+      const popularAnimes = popularData.data?.slice(0, 10).map(adaptAnimeFromJikanAPI) || [];
+      if (popularAnimes.length > 0) {
+        return popularAnimes;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to fetch popular anime:", error);
+  }
+  
   return getAnimesByCategory('trending');
 }
 
