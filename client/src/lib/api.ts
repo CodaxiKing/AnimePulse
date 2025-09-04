@@ -317,7 +317,7 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
   return getAnimesByCategory('trending');
 }
 
-export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress | undefined> {
+export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
   try {
     console.log("📺 Getting anime details for ID:", id);
     
@@ -368,8 +368,26 @@ export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress | u
     console.warn("❌ Error fetching anime details:", error instanceof Error ? error.message : String(error));
   }
   
-  // Fallback para dados mock
-  return getAnimeById(id);
+  // Fallback para dados mock - sempre retorna um anime válido
+  const mockAnime = getAnimeById(id);
+  if (mockAnime) {
+    return mockAnime;
+  }
+  
+  // Se nem os dados mock existem, retorna um anime padrão
+  return {
+    id: id,
+    title: "Anime não encontrado",
+    image: "https://via.placeholder.com/400x600",
+    studio: "Desconhecido",
+    year: new Date().getFullYear(),
+    genres: ["Desconhecido"],
+    synopsis: "Detalhes do anime não disponíveis no momento.",
+    releaseDate: "",
+    status: "unknown",
+    totalEpisodes: 0,
+    rating: "0",
+  };
 }
 
 export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[]> {
