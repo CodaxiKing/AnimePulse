@@ -12,7 +12,7 @@ import {
   getTrendingAnime,
   getLatestAnime,
   getTopAnime,
-  getMangaCategories,
+  getLatestManga,
   getLatestNews,
   getSocialPosts,
   getActiveUsers,
@@ -69,9 +69,9 @@ function AnimeSection({ title, queryKey, showProgress = false, showRank = false,
 }
 
 export default function Home() {
-  const { data: mangaCategories, isLoading: loadingCategories } = useQuery({
-    queryKey: ["manga-categories"],
-    queryFn: getMangaCategories,
+  const { data: mangas, isLoading: loadingMangas } = useQuery({
+    queryKey: ["home-mangas"],
+    queryFn: getLatestManga,
   });
 
   const { data: news, isLoading: loadingNews } = useQuery({
@@ -139,16 +139,44 @@ export default function Home() {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {loadingCategories ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[4/3] rounded-2xl" />
-              ))
-            ) : (
-              mangaCategories?.map((category) => (
-                <MangaCard key={category.id} category={category} />
-              ))
-            )}
+          <div className="relative">
+            <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
+              {loadingMangas ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex-none w-48">
+                    <Skeleton className="w-full h-72 rounded-2xl mb-4" />
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                ))
+              ) : (
+                mangas?.slice(0, 8).map((manga) => (
+                  <Link key={manga.id} href={`/mangas/${manga.id}`}>
+                    <div className="flex-none w-48 group cursor-pointer" data-testid={`card-manga-${manga.id}`}>
+                      <div className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative">
+                        <img
+                          src={manga.image || "https://via.placeholder.com/400x600"}
+                          alt={manga.title}
+                          className="w-full h-72 object-cover"
+                          data-testid={`img-manga-${manga.id}`}
+                        />
+                        <div className="p-4">
+                          <h4 className="font-semibold text-sm mb-1" data-testid={`text-manga-title-${manga.id}`}>
+                            {manga.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mb-1" data-testid={`text-manga-author-${manga.id}`}>
+                            {manga.author}
+                          </p>
+                          <p className="text-xs text-muted-foreground" data-testid={`text-manga-chapters-${manga.id}`}>
+                            {manga.latestChapter ? `Cap. ${manga.latestChapter}` : "Em andamento"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
           </div>
         </section>
 

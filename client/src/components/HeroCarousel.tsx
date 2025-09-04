@@ -1,30 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Plus, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const heroAnimes = [
-  {
-    id: "1",
-    title: "Night Hunters",
-    year: "2023",
-    genres: ["Ação", "Sobrenatural", "Romance"],
-    studio: "AmpleX",
-    synopsis: "Em um mundo tomado pela escuridão sobrenatural, dois caçadores relutantes unem forças para combater forças das sombras e restaurar a paz.",
-    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&h=1080&fit=crop",
-  },
-  {
-    id: "2",
-    title: "Demon Slayer",
-    year: "2019",
-    genres: ["Ação", "Histórico", "Sobrenatural"],
-    studio: "Ufotable",
-    synopsis: "Um jovem se torna um caçador de demônios para salvar sua irmã transformada.",
-    image: "https://images.unsplash.com/photo-1596727147705-61a532a659bd?w=1920&h=1080&fit=crop",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import { getTrendingAnime } from "@/lib/api";
 
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  
+  const { data: animes } = useQuery({
+    queryKey: ["hero-trending"],
+    queryFn: getTrendingAnime,
+  });
+
+  const heroAnimes = animes?.slice(0, 3) || [
+    {
+      id: "1",
+      title: "Night Hunters",
+      year: 2023,
+      genres: ["Ação", "Sobrenatural", "Romance"],
+      studio: "AmpleX",
+      synopsis: "Em um mundo tomado pela escuridão sobrenatural, dois caçadores relutantes unem forças para combater forças das sombras e restaurar a paz.",
+      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&h=1080&fit=crop",
+    },
+  ];
+
   const current = heroAnimes[currentSlide];
 
   const nextSlide = () => {
@@ -36,7 +35,7 @@ export default function HeroCarousel() {
   };
 
   return (
-    <section className="relative h-[60vh] overflow-hidden">
+    <section className="relative h-[80vh] overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10" />
       
       <img
@@ -53,7 +52,13 @@ export default function HeroCarousel() {
           <div className="flex items-center space-x-4 mb-4 text-sm text-muted-foreground">
             <span data-testid="text-hero-year">{current.year}</span>
             <span>•</span>
-            <span data-testid="text-hero-genres">{current.genres.join(" • ")}</span>
+            <span data-testid="text-hero-genres">{current.genres?.join(" • ")}</span>
+            {current.studio && (
+              <>
+                <span>•</span>
+                <span data-testid="text-hero-studio">{current.studio}</span>
+              </>
+            )}
           </div>
           <p className="text-lg text-muted-foreground mb-6 max-w-lg" data-testid="text-hero-synopsis">
             {current.synopsis}
