@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { getTrendingAnime } from "@/lib/api";
+import { Link } from "wouter";
 
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -64,12 +65,14 @@ export default function HeroCarousel() {
             {current.synopsis?.length > 120 ? `${current.synopsis.slice(0, 120)}...` : current.synopsis}
           </p>
           <div className="flex items-center space-x-4">
-            <Button
-              className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-8 py-3 font-semibold anime-glow hover:opacity-95"
-              data-testid="button-watch-now"
-            >
-              Assistir agora
-            </Button>
+            <Link href={`/animes/${current.id}`}>
+              <Button
+                className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-8 py-3 font-semibold anime-glow hover:opacity-95"
+                data-testid="button-watch-now"
+              >
+                Assistir agora
+              </Button>
+            </Link>
             <Button
               variant="secondary"
               className="border-border rounded-xl px-6 py-3 font-semibold hover:bg-muted"
