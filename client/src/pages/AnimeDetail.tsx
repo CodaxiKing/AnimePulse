@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,9 +12,11 @@ import type { Episode } from "@shared/schema";
 
 export default function AnimeDetail() {
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState("1");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleMarkAsWatched = (episode: Episode) => {
     if (anime) {
@@ -42,6 +44,12 @@ export default function AnimeDetail() {
         );
         console.log(`Marcado episódio ${episode.number} como assistido!`);
       }
+      
+      // Forçar atualização da interface
+      setRefreshKey(prev => prev + 1);
+      
+      // Invalidar queries relacionadas para atualizar seção "Continue assistindo"
+      queryClient.invalidateQueries({ queryKey: ['continue'] });
     }
   };
   
@@ -282,6 +290,7 @@ export default function AnimeDetail() {
             </div>
           ) : (
             <EpisodeGrid 
+              key={refreshKey}
               episodes={episodes || []} 
               animeTitle={anime.title}
               animeId={id}
