@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp, Trophy, Star } from "lucide-react";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
-import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, saveWatchedEpisode, removeWatchedEpisode, isEpisodeWatched, areAllEpisodesWatched } from "@/lib/api";
+import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, removeWatchedEpisode, isEpisodeWatched, areAllEpisodesWatched, calculateAnimePoints } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 export default function AnimeDetail() {
@@ -19,42 +19,40 @@ export default function AnimeDetail() {
   const [selectedSeason, setSelectedSeason] = useState("1");
   const [refreshKey, setRefreshKey] = useState(0);
   const [showCongrats, setShowCongrats] = useState(false);
+  const [earnedPoints, setEarnedPoints] = useState(0);
 
-  const handleMarkAsWatched = (episode: Episode) => {
+  // Listener para evento de conclusão de anime via player
+  useEffect(() => {
+    const handleAnimeCompleted = (event: CustomEvent) => {
+      const { animeTitle, points } = event.detail;
+      if (anime && anime.title === animeTitle) {
+        setEarnedPoints(points);
+        setShowCongrats(true);
+      }
+    };
+
+    window.addEventListener('animeCompleted', handleAnimeCompleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('animeCompleted', handleAnimeCompleted as EventListener);
+    };
+  }, [anime]);
+
+  const handleUnmarkEpisode = (episode: Episode) => {
     if (anime) {
       const isWatched = isEpisodeWatched(anime.id, episode.number);
       
       if (isWatched) {
-        // Se já está assistido, desmarcar apenas este episódio
+        // Apenas desmarcar episódio (não há mais marcação manual)
         removeWatchedEpisode(anime.id, episode.number);
         console.log(`Desmarcado episódio ${episode.number}!`);
-      } else {
-        // Se não está assistido, marcar apenas este episódio
-        saveWatchedEpisode(anime.id, episode.number);
         
-        // Também salvar no sistema de progresso geral se for o episódio mais avançado
-        saveWatchProgress(
-          anime.id,
-          anime.title,
-          anime.image,
-          episode.number,
-          anime.totalEpisodes || 12,
-          (episode.number / (anime.totalEpisodes || 12)) * 100
-        );
-        console.log(`Marcado episódio ${episode.number} como assistido!`);
+        // Forçar atualização da interface
+        setRefreshKey(prev => prev + 1);
         
-        // Verificar se todos os episódios foram completados
-        const totalEpisodes = anime.totalEpisodes || 12;
-        if (areAllEpisodesWatched(anime.id, totalEpisodes)) {
-          setShowCongrats(true);
-        }
+        // Invalidar queries relacionadas para atualizar seção "Continue assistindo"
+        queryClient.invalidateQueries({ queryKey: ['continue'] });
       }
-      
-      // Forçar atualização da interface
-      setRefreshKey(prev => prev + 1);
-      
-      // Invalidar queries relacionadas para atualizar seção "Continue assistindo"
-      queryClient.invalidateQueries({ queryKey: ['continue'] });
     }
   };
   
@@ -299,7 +297,7 @@ export default function AnimeDetail() {
               episodes={episodes || []} 
               animeTitle={anime.title}
               animeId={id}
-              onMarkAsWatched={(episode) => handleMarkAsWatched(episode)}
+              onMarkAsWatched={(episode) => handleUnmarkEpisode(episode)}
             />
           )}
         </div>
@@ -323,8 +321,13 @@ export default function AnimeDetail() {
               <DialogTitle className="text-2xl font-bold text-anime-gradient">
                 Parabéns! 🎉
               </DialogTitle>
-              <DialogDescription className="text-lg mt-2">
-                Você concluiu <span className="font-semibold text-purple-400">{anime?.title}</span>
+              <DialogDescription className="text-lg mt-2 space-y-2">
+                <div>Você concluiu <span className="font-semibold text-purple-400">{anime?.title}</span></div>
+                <div className="flex items-center justify-center gap-2 text-yellow-400 font-bold">
+                  <Star className="w-5 h-5" />
+                  +{earnedPoints} pontos ganhos!
+                  <Star className="w-5 h-5" />
+                </div>
               </DialogDescription>
             </DialogHeader>
             <div className="mt-6">

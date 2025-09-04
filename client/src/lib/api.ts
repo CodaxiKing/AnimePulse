@@ -422,7 +422,7 @@ export function removeEpisodeProgress(animeId: string, episodeNumber: number, an
   }
 }
 
-// Lista de episódios assistidos individualmente
+// Lista de episódios assistidos individualmente (mantida para compatibilidade com localStorage)
 const WATCHED_EPISODES_KEY = 'animepulse_watched_episodes';
 
 interface WatchedEpisode {
@@ -440,25 +440,59 @@ export function getWatchedEpisodesList(): WatchedEpisode[] {
   }
 }
 
-export function saveWatchedEpisode(animeId: string, episodeNumber: number) {
-  const watchedEpisodes = getWatchedEpisodesList();
-  const episodeKey = `${animeId}-${episodeNumber}`;
-  
-  // Verificar se já existe
-  const existingIndex = watchedEpisodes.findIndex(
-    ep => ep.animeId === animeId && ep.episodeNumber === episodeNumber
-  );
-  
-  if (existingIndex === -1) {
-    // Adicionar novo episódio assistido
-    watchedEpisodes.push({
-      animeId,
-      episodeNumber,
-      watchedAt: new Date().toISOString()
-    });
+// Função para marcar episódio como assistido quando termina no player
+export async function markEpisodeWatchedFromPlayer(
+  animeId: string, 
+  episodeNumber: number, 
+  animeTitle: string, 
+  animeImage: string,
+  totalEpisodes: number
+) {
+  try {
+    // Marcar no localStorage temporariamente
+    const watchedEpisodes = getWatchedEpisodesList();
+    const existingIndex = watchedEpisodes.findIndex(
+      ep => ep.animeId === animeId && ep.episodeNumber === episodeNumber
+    );
     
-    localStorage.setItem(WATCHED_EPISODES_KEY, JSON.stringify(watchedEpisodes));
+    if (existingIndex === -1) {
+      watchedEpisodes.push({
+        animeId,
+        episodeNumber,
+        watchedAt: new Date().toISOString()
+      });
+      localStorage.setItem(WATCHED_EPISODES_KEY, JSON.stringify(watchedEpisodes));
+    }
+
+    // Verificar se completou todos os episódios para dar pontos
+    const watchedCount = watchedEpisodes.filter(ep => ep.animeId === animeId).length;
+    
+    if (watchedCount >= totalEpisodes) {
+      console.log(`🎉 Anime completado: ${animeTitle}! Pontos serão calculados.`);
+      return { completed: true, points: calculateAnimePoints(totalEpisodes) };
+    }
+    
+    return { completed: false, points: 0 };
+  } catch (error) {
+    console.error('Erro ao marcar episódio como assistido:', error);
+    return { completed: false, points: 0 };
   }
+}
+
+// Calcular pontos baseado no número de episódios
+export function calculateAnimePoints(totalEpisodes: number): number {
+  const basePoints = 100;
+  const episodeBonus = Math.floor(totalEpisodes / 5) * 10; // 10 pontos extras a cada 5 episódios
+  return basePoints + episodeBonus;
+}
+
+// Função para mostrar modal de parabéns com pontos (será chamada pelo player)
+export function showAnimeCompletionModal(animeTitle: string, points: number) {
+  // Dispatch custom event para notificar a página de detalhes
+  const event = new CustomEvent('animeCompleted', { 
+    detail: { animeTitle, points } 
+  });
+  window.dispatchEvent(event);
 }
 
 export function removeWatchedEpisode(animeId: string, episodeNumber: number) {

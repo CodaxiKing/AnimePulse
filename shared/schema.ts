@@ -81,6 +81,38 @@ export const watchProgress = pgTable("watch_progress", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Sistema de pontos e conquistas
+export const userStats = pgTable("user_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).unique(),
+  totalPoints: integer("total_points").default(0),
+  animesCompleted: integer("animes_completed").default(0),
+  episodesWatched: integer("episodes_watched").default(0),
+  level: integer("level").default(1),
+  streakDays: integer("streak_days").default(0),
+  lastWatchDate: timestamp("last_watch_date"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const completedAnimes = pgTable("completed_animes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  animeId: varchar("anime_id").references(() => animes.id),
+  animeTitle: text("anime_title").notNull(),
+  animeImage: text("anime_image"),
+  totalEpisodes: integer("total_episodes"),
+  pointsEarned: integer("points_earned").default(0),
+  completedAt: timestamp("completed_at").defaultNow(),
+});
+
+export const watchedEpisodes = pgTable("watched_episodes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  animeId: varchar("anime_id").references(() => animes.id),
+  episodeNumber: integer("episode_number").notNull(),
+  watchedAt: timestamp("watched_at").defaultNow(),
+});
+
 // Schema types
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -116,6 +148,21 @@ export const insertWatchProgressSchema = createInsertSchema(watchProgress).omit(
   updatedAt: true,
 });
 
+export const insertUserStatsSchema = createInsertSchema(userStats).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const insertCompletedAnimeSchema = createInsertSchema(completedAnimes).omit({
+  id: true,
+  completedAt: true,
+});
+
+export const insertWatchedEpisodeSchema = createInsertSchema(watchedEpisodes).omit({
+  id: true,
+  watchedAt: true,
+});
+
 // Infer types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -131,6 +178,12 @@ export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type WatchProgress = typeof watchProgress.$inferSelect;
 export type InsertWatchProgress = z.infer<typeof insertWatchProgressSchema>;
+export type UserStats = typeof userStats.$inferSelect;
+export type InsertUserStats = z.infer<typeof insertUserStatsSchema>;
+export type CompletedAnime = typeof completedAnimes.$inferSelect;
+export type InsertCompletedAnime = z.infer<typeof insertCompletedAnimeSchema>;
+export type WatchedEpisode = typeof watchedEpisodes.$inferSelect;
+export type InsertWatchedEpisode = z.infer<typeof insertWatchedEpisodeSchema>;
 
 // Extended types for frontend
 export type AnimeWithProgress = Anime & {
