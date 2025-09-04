@@ -70,11 +70,19 @@ export default function EpisodeModal({
     }
   };
 
-  const handlePlayClick = () => {
+  const handlePlayClick = async () => {
     setIsPlaying(true);
-    if (videoRef.current) {
-      videoRef.current.play();
-    }
+    // Aguarda um pouco para o elemento de vídeo ser criado
+    setTimeout(async () => {
+      if (videoRef.current) {
+        try {
+          await videoRef.current.play();
+          console.log('▶️ Vídeo iniciado automaticamente!');
+        } catch (error) {
+          console.log('ℹ️ Autoplay bloqueado pelo navegador, usuário precisa clicar em play');
+        }
+      }
+    }, 100);
   };
 
   return (
