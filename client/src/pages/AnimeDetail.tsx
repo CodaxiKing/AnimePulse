@@ -30,15 +30,16 @@ export default function AnimeDetail() {
         removeWatchedEpisode(anime.id, episode.number);
         console.log(`Desmarcado episódio ${episode.number}!`);
       } else {
-        // Marcar como assistido quando clicar no botão Assistir
-        await markEpisodeWatchedFromPlayer(
+        // Marcar como "assistindo" (em progresso) quando clicar no botão Assistir
+        saveWatchProgress(
           anime.id, 
-          episode.number, 
           anime.title, 
           anime.image, 
-          anime.totalEpisodes || episodes?.length || 12
+          episode.number, 
+          anime.totalEpisodes || episodes?.length || 12, 
+          0
         );
-        console.log(`✅ Marcado episódio ${episode.number} como assistido!`);
+        console.log(`▶️ Marcado episódio ${episode.number} como assistindo!`);
       }
       
       // Forçar atualização da interface
