@@ -110,43 +110,48 @@ export default function EpisodeModal({
           </button>
         </DialogHeader>
         
-        {/* Controles principais fora do player */}
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={handlePreviousEpisode}
-            disabled={!hasPrevious}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all ${
-              hasPrevious 
-                ? 'bg-blue-600 hover:bg-blue-700' 
-                : 'bg-gray-600 opacity-50 cursor-not-allowed'
-            }`}
-            data-testid="button-prev-main"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Anterior
-          </button>
-          
-          <button
-            onClick={handleVideoEnd}
-            className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg text-white font-medium transition-colors shadow-lg"
-            data-testid="button-mark-watched"
-          >
-            ✅ Marcar Assistido
-          </button>
-          
-          <button
-            onClick={handleNextEpisode}
-            disabled={!hasNext}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all ${
-              hasNext 
-                ? 'bg-blue-600 hover:bg-blue-700' 
-                : 'bg-gray-600 opacity-50 cursor-not-allowed'
-            }`}
-            data-testid="button-next-main"
-          >
-            Próximo
-            <ChevronRight className="w-5 h-5" />
-          </button>
+        {/* Controles principais bem visíveis */}
+        <div className="bg-gray-800 p-4 rounded-lg mb-4">
+          <div className="flex justify-between items-center gap-4">
+            <button
+              onClick={handlePreviousEpisode}
+              disabled={!hasPrevious}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all ${
+                hasPrevious 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : 'bg-gray-600 opacity-50 cursor-not-allowed'
+              }`}
+              data-testid="button-prev-main"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              Ep. Anterior
+            </button>
+            
+            <div className="text-center">
+              <button
+                onClick={handleVideoEnd}
+                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg text-white font-bold transition-colors shadow-lg text-lg"
+                data-testid="button-mark-watched"
+              >
+                ✅ MARCAR ASSISTIDO
+              </button>
+              <p className="text-gray-400 text-xs mt-1">Clique para testar a marcação</p>
+            </div>
+            
+            <button
+              onClick={handleNextEpisode}
+              disabled={!hasNext}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all ${
+                hasNext 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : 'bg-gray-600 opacity-50 cursor-not-allowed'
+              }`}
+              data-testid="button-next-main"
+            >
+              Próx. Ep.
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
         
         <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
