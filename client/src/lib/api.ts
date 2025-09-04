@@ -22,40 +22,11 @@ const JIKAN_API_BASE = "https://api.jikan.moe/v4"; // Fallback
 const ANIME_STREAMING_API = 'https://api-anime-rouge.vercel.app';
 const ANBU_API = 'https://anbuanime.onrender.com';
 
-// Função para buscar anime na API de streaming por título
+// Função removida temporariamente para evitar erros de rede
+// As APIs de streaming externas estão causando problemas de CORS e fetch
+// Futuramente pode ser reimplementada com um proxy backend
 async function searchAnimeInStreamingAPI(title: string): Promise<any> {
-  try {
-    console.log('🔍 Searching for anime in streaming API:', title);
-    
-    // Tentar na API Falcon71181 primeiro (mais confiável)
-    const searchQuery = encodeURIComponent(title.toLowerCase());
-    const searchUrl = `${ANIME_STREAMING_API}/aniwatch/search?q=${searchQuery}`;
-    
-    console.log('🌐 Trying streaming API search:', searchUrl);
-    const response = await fetch(searchUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data.animes && data.animes.length > 0) {
-        const firstResult = data.animes[0];
-        console.log('✅ Found anime via search:', firstResult.name);
-        return { anime: { info: firstResult } };
-      }
-    } else {
-      console.warn('⚠️ Streaming API returned status:', response.status);
-    }
-    
-  } catch (error) {
-    console.warn('❌ Error searching streaming API:', error instanceof Error ? error.message : 'Unknown error');
-  }
-  
-  console.log('📭 No streaming data found for:', title);
+  // Retornar null para evitar erros
   return null;
 }
 
@@ -615,9 +586,9 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
         const animeData = await seasonResponse.json();
         const anime = animeData.data;
         
-        // Tentar buscar este anime nas APIs de streaming
-        console.log("🔍 Searching for streaming data for:", anime.title);
-        streamingAnimeData = await searchAnimeInStreamingAPI(anime.title);
+        // Remover tentativas de buscar APIs externas que estão causando erros
+        // streamingAnimeData = await searchAnimeInStreamingAPI(anime.title);
+        console.log("📺 Using local episode generation for:", anime.title);
         
         // Buscar temporadas relacionadas
         const relatedResponse = await fetch(`${JIKAN_API_BASE}/anime/${animeId}/relations`);
@@ -681,9 +652,8 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
       "Para Sempre"
     ];
 
-        // Simplificar para não causar mais erros - focar na funcionalidade básica
-        // As APIs de streaming externa estão causando problemas CORS/fetch
-        console.log("📺 Using fallback episode generation due to API limitations");
+        // Gerar episódios baseados nos dados reais da API Jikan
+        console.log("📺 Generating episodes for", anime.title, "with", totalEpisodes, "episodes");
 
         // Gerar episódios realistas para esta temporada específica
         const episodes: Episode[] = [];
