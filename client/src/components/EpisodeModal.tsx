@@ -96,7 +96,7 @@ export default function EpisodeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl bg-card border-border" data-testid="modal-episode">
+      <DialogContent className="max-w-5xl max-h-[90vh] bg-card border-border overflow-y-auto" data-testid="modal-episode">
         <DialogHeader className="border-b border-border pb-4">
           <DialogTitle className="text-lg font-semibold" data-testid="text-episode-title">
             Episódio {episode.number} - {episode.title}
@@ -154,7 +154,10 @@ export default function EpisodeModal({
           </div>
         </div>
         
-        <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
+        {/* Espaçamento adicional */}
+        <div className="py-2"></div>
+        
+        <div className="w-full h-96 bg-muted flex items-center justify-center relative rounded-lg overflow-hidden border-2 border-gray-600">
           {!isPlaying ? (
             <>
               <img
