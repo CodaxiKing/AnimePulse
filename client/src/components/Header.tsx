@@ -99,10 +99,9 @@ export default function Header() {
                 align="end" 
                 className="w-44 z-[100]" 
                 sideOffset={8}
-                avoidCollisions={false}
+                avoidCollisions={true}
                 collisionPadding={30}
                 side="bottom"
-                alignOffset={-80}
               >
                 {isLoading ? (
                   <DropdownMenuItem disabled>
