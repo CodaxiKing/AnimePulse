@@ -7,6 +7,8 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  displayName: text("display_name").notNull().default('UsuarioAnonimo'),
+  lastNameChange: timestamp("last_name_change").defaultNow(),
   avatar: text("avatar"),
   online: boolean("online").default(false),
   lastActivity: timestamp("last_activity").defaultNow(),
@@ -117,8 +119,9 @@ export const watchedEpisodes = pgTable("watched_episodes", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  displayName: true,
   avatar: true,
-});
+}).partial({ displayName: true, avatar: true });
 
 export const insertAnimeSchema = createInsertSchema(animes).omit({
   id: true,

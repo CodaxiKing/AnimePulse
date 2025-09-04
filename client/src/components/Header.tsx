@@ -114,7 +114,7 @@ export default function Header() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-foreground">{user.username}</p>
+                          <p className="text-sm font-medium text-foreground">{user.displayName}</p>
                           <p className="text-xs text-muted-foreground">Online</p>
                         </div>
                       </div>

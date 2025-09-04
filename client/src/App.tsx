@@ -12,6 +12,7 @@ import News from "./pages/News";
 import Community from "./pages/Community";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import SettingsPage from "./pages/Settings";
 import Header from "./components/Header";
 
 function Router() {
@@ -33,6 +34,7 @@ function Router() {
               <Route path="/mangas" component={Mangas} />
               <Route path="/noticias" component={News} />
               <Route path="/comunidade" component={Community} />
+              <Route path="/configuracoes" component={SettingsPage} />
               <Route component={NotFound} />
             </Switch>
           </main>

@@ -2,6 +2,7 @@ import { type User, type InsertUser, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { generateRandomDisplayName, canChangeDisplayName } from "./nameGenerator";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -11,6 +12,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   authenticateUser(username: string, password: string): Promise<User | null>;
+  updateDisplayName(userId: string, newDisplayName: string): Promise<User | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -28,11 +30,16 @@ export class DatabaseStorage implements IStorage {
     // Hash da senha antes de salvar
     const hashedPassword = await bcrypt.hash(insertUser.password, 12);
     
+    // Gerar nome de exibição aleatório se não fornecido
+    const displayName = insertUser.displayName || generateRandomDisplayName();
+    
     const [user] = await db
       .insert(users)
       .values({
         ...insertUser,
         password: hashedPassword,
+        displayName,
+        lastNameChange: new Date(),
       })
       .returning();
     return user;
@@ -50,6 +57,29 @@ export class DatabaseStorage implements IStorage {
     }
 
     return user;
+  }
+
+  async updateDisplayName(userId: string, newDisplayName: string): Promise<User | null> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return null;
+    }
+
+    // Verificar se pode alterar o nome (7 dias desde a última alteração)
+    if (!canChangeDisplayName(user.lastNameChange!)) {
+      throw new Error("Você pode alterar o nome apenas uma vez a cada 7 dias");
+    }
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        displayName: newDisplayName,
+        lastNameChange: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return updatedUser || null;
   }
 }
 

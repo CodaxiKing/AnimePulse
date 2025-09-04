@@ -5,6 +5,7 @@ import type { Anime, Episode, Manga, News, InsertUser } from "@shared/schema";
 import { insertUserSchema } from "@shared/schema";
 import session from "express-session";
 import { ZodError } from "zod";
+import { generateRandomDisplayName, getDaysUntilNextChange } from "./nameGenerator";
 
 // Extend Express Session interface
 declare module "express-session" {
@@ -213,12 +214,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Retornar usuário sem senha
+      // Retornar usuário sem senha e com informações extras
       const { password, ...userWithoutPassword } = user;
-      res.json({ user: userWithoutPassword });
+      const daysUntilNextChange = getDaysUntilNextChange(user.lastNameChange!);
+      
+      res.json({ 
+        user: {
+          ...userWithoutPassword,
+          daysUntilNextChange,
+          canChangeName: daysUntilNextChange === 0
+        }
+      });
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ error: "Failed to get user" });
+    }
+  });
+
+  app.put("/api/auth/display-name", requireAuth, async (req, res) => {
+    try {
+      const { displayName } = req.body;
+      
+      if (!displayName || typeof displayName !== 'string') {
+        return res.status(400).json({ error: "Display name is required" });
+      }
+
+      if (displayName.length < 3 || displayName.length > 50) {
+        return res.status(400).json({ error: "Display name must be between 3 and 50 characters" });
+      }
+
+      const updatedUser = await storage.updateDisplayName(req.session.userId!, displayName);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Retornar usuário atualizado sem senha
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json({ user: userWithoutPassword });
+    } catch (error: any) {
+      console.error("Update display name error:", error);
+      if (error.message?.includes("7 dias")) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Failed to update display name" });
+    }
+  });
+
+  app.post("/api/auth/generate-name", requireAuth, async (req, res) => {
+    try {
+      const randomName = generateRandomDisplayName();
+      res.json({ displayName: randomName });
+    } catch (error) {
+      console.error("Generate name error:", error);
+      res.status(500).json({ error: "Failed to generate name" });
     }
   });
 
