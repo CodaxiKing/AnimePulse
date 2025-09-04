@@ -31,16 +31,6 @@ async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
 
 // Anime API functions
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
-  try {
-    const response = await fetch(`${HIANIME_API_BASE}/trending`);
-    if (response.ok) {
-      const data = await response.json();
-      // Adapt API response to our schema
-      return data.results?.map(adaptAnimeFromAPI) || getAnimesByCategory('trending');
-    }
-  } catch (error) {
-    console.warn("Failed to fetch trending anime:", error);
-  }
   return getAnimesByCategory('trending');
 }
 
@@ -50,68 +40,23 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
-  try {
-    const response = await fetch(`${HIANIME_API_BASE}/recent-episodes`);
-    if (response.ok) {
-      const data = await response.json();
-      return data.results?.map(adaptAnimeFromAPI) || getAnimesByCategory('latest');
-    }
-  } catch (error) {
-    console.warn("Failed to fetch latest anime:", error);
-  }
   return getAnimesByCategory('latest');
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
-  try {
-    const response = await fetch(`${HIANIME_API_BASE}/top-airing`);
-    if (response.ok) {
-      const data = await response.json();
-      return data.results?.map(adaptAnimeFromAPI) || getAnimesByCategory('trending');
-    }
-  } catch (error) {
-    console.warn("Failed to fetch top anime:", error);
-  }
   return getAnimesByCategory('trending');
 }
 
 export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress | undefined> {
-  try {
-    const response = await fetch(`${HIANIME_API_BASE}/anime/${id}`);
-    if (response.ok) {
-      const data = await response.json();
-      return adaptAnimeFromAPI(data.anime);
-    }
-  } catch (error) {
-    console.warn(`Failed to fetch anime ${id}:`, error);
-  }
   return getAnimeById(id);
 }
 
 export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[]> {
-  try {
-    const response = await fetch(`${HIANIME_API_BASE}/anime/${animeId}/episodes`);
-    if (response.ok) {
-      const data = await response.json();
-      return data.episodes?.map(adaptEpisodeFromAPI) || getEpisodesByAnimeId(animeId);
-    }
-  } catch (error) {
-    console.warn(`Failed to fetch episodes for anime ${animeId}:`, error);
-  }
   return getEpisodesByAnimeId(animeId);
 }
 
 // Manga API functions
 export async function getLatestManga(): Promise<Manga[]> {
-  try {
-    const response = await fetch(`${ANINEWS_API_BASE}/manga/latest`);
-    if (response.ok) {
-      const data = await response.json();
-      return data.results?.map(adaptMangaFromAPI) || mockMangas;
-    }
-  } catch (error) {
-    console.warn("Failed to fetch latest manga:", error);
-  }
   return mockMangas;
 }
 
@@ -121,28 +66,12 @@ export async function getMangaCategories() {
 
 // News API functions
 export async function getLatestNews(): Promise<News[]> {
-  try {
-    const response = await fetch(`${MANGAHOOK_API_BASE}/news/latest`);
-    if (response.ok) {
-      const data = await response.json();
-      return data.articles?.map(adaptNewsFromAPI) || mockNews;
-    }
-  } catch (error) {
-    console.warn("Failed to fetch latest news:", error);
-  }
+  // Para evitar erros de CORS e manter a aplicação funcionando,
+  // retornamos diretamente os dados mock
   return mockNews;
 }
 
 export async function getNewsByCategory(category: string): Promise<News[]> {
-  try {
-    const response = await fetch(`${MANGAHOOK_API_BASE}/news/category/${category}`);
-    if (response.ok) {
-      const data = await response.json();
-      return data.articles?.map(adaptNewsFromAPI) || mockNews.filter(news => news.category === category);
-    }
-  } catch (error) {
-    console.warn(`Failed to fetch news for category ${category}:`, error);
-  }
   return mockNews.filter(news => news.category === category);
 }
 
