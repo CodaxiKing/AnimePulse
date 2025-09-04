@@ -69,18 +69,9 @@ export default function EpisodeModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl bg-card border-border" data-testid="modal-episode">
         <DialogHeader className="border-b border-border pb-4">
-          <div className="flex items-center justify-between pr-12">
-            <DialogTitle className="text-lg font-semibold" data-testid="text-episode-title">
-              Episódio {episode.number} - {episode.title}
-            </DialogTitle>
-            <button
-              onClick={handleVideoEnd}
-              className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded-lg text-white text-sm font-medium transition-colors"
-              data-testid="button-test-header"
-            >
-              ✅ Marcar Assistido
-            </button>
-          </div>
+          <DialogTitle className="text-lg font-semibold" data-testid="text-episode-title">
+            Episódio {episode.number} - {episode.title}
+          </DialogTitle>
           <button
             onClick={onClose}
             className="absolute right-4 top-4 p-2 hover:bg-muted rounded-lg transition-colors"
@@ -89,6 +80,17 @@ export default function EpisodeModal({
             <X className="w-5 h-5" />
           </button>
         </DialogHeader>
+        
+        {/* Botão de teste bem visível */}
+        <div className="flex justify-center mb-4">
+          <button
+            onClick={handleVideoEnd}
+            className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg text-white font-medium transition-colors shadow-lg"
+            data-testid="button-test-visible"
+          >
+            ✅ TESTE: Marcar Episódio como Assistido
+          </button>
+        </div>
         
         <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
           {!isPlaying ? (
