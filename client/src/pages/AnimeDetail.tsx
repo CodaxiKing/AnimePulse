@@ -31,7 +31,7 @@ export default function AnimeDetail() {
         console.log(`Desmarcado episódio ${episode.number}!`);
       } else {
         // Marcar como assistido quando clicar no botão Assistir
-        await markEpisodeWatchedFromPlayer(
+        const result = await markEpisodeWatchedFromPlayer(
           anime.id, 
           episode.number, 
           anime.title, 
@@ -48,6 +48,13 @@ export default function AnimeDetail() {
           anime.totalEpisodes || episodes?.length || 12, 
           100 // 100% assistido
         );
+        
+        // Verificar se completou o anime e mostrar modal de parabéns
+        if (result.completed) {
+          setEarnedPoints(result.points);
+          setShowCongrats(true);
+          console.log(`🎉 Anime completado: ${anime.title}! Mostrando modal com ${result.points} pontos!`);
+        }
         
         console.log(`✅ Marcado episódio ${episode.number} como assistido E adicionado ao Continue Assistindo!`);
       }
@@ -347,34 +354,59 @@ export default function AnimeDetail() {
           onEpisodeChange={setSelectedEpisode}
         />
 
-        {/* Modal de Parabéns */}
+        {/* Modal de Parabéns Animado */}
         <Dialog open={showCongrats} onOpenChange={setShowCongrats}>
-          <DialogContent className="max-w-md text-center">
+          <DialogContent className="max-w-md text-center bg-gradient-to-b from-purple-900/20 to-pink-900/20 border-purple-500/30">
             <DialogHeader>
-              <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <Trophy className="w-16 h-16 text-yellow-500" />
-                  <Star className="w-6 h-6 text-yellow-400 absolute -top-2 -right-2 animate-pulse" />
+              {/* Troféu animado com brilhos */}
+              <div className="flex justify-center mb-6 relative">
+                <div className="relative animate-bounce">
+                  <Trophy className="w-20 h-20 text-yellow-400 drop-shadow-lg animate-pulse" />
+                  <Star className="w-6 h-6 text-yellow-300 absolute -top-2 -right-2 animate-spin" />
+                  <Star className="w-4 h-4 text-yellow-500 absolute -bottom-1 -left-2 animate-ping" />
+                  <Star className="w-5 h-5 text-yellow-200 absolute top-0 left-0 animate-pulse" />
                 </div>
+                
+                {/* Partículas flutuantes */}
+                <div className="absolute -top-4 left-4 w-2 h-2 bg-yellow-400 rounded-full animate-ping" />
+                <div className="absolute -top-2 right-6 w-1 h-1 bg-purple-400 rounded-full animate-bounce" />
+                <div className="absolute top-8 -right-4 w-3 h-3 bg-pink-400 rounded-full animate-pulse" />
               </div>
-              <DialogTitle className="text-2xl font-bold text-anime-gradient">
-                Parabéns! 🎉
+              
+              <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
+                🎉 PARABÉNS! 🎉
               </DialogTitle>
-              <DialogDescription className="text-lg mt-2 space-y-2">
-                <div>Você concluiu <span className="font-semibold text-purple-400">{anime?.title}</span></div>
-                <div className="flex items-center justify-center gap-2 text-yellow-400 font-bold">
-                  <Star className="w-5 h-5" />
-                  +{earnedPoints} pontos ganhos!
-                  <Star className="w-5 h-5" />
+              
+              <DialogDescription className="text-lg mt-4 space-y-4">
+                <div className="text-white">
+                  Você concluiu <span className="font-bold text-purple-300 text-xl">{anime?.title}</span>!
+                </div>
+                
+                {/* Pontos animados */}
+                <div className="relative bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-400/30">
+                  <div className="flex items-center justify-center gap-3">
+                    <Star className="w-8 h-8 text-yellow-400 animate-spin" />
+                    <div className="text-3xl font-black text-yellow-300 animate-bounce">
+                      +{earnedPoints}
+                    </div>
+                    <Star className="w-8 h-8 text-yellow-400 animate-spin" style={{ animationDirection: 'reverse' }} />
+                  </div>
+                  <div className="text-yellow-200 font-bold mt-2 animate-pulse">
+                    PONTOS GANHOS!
+                  </div>
+                  
+                  {/* Efeito de brilho */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-400/10 to-transparent animate-pulse rounded-xl" />
                 </div>
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-6">
+            
+            <div className="mt-8">
               <Button 
                 onClick={() => setShowCongrats(false)}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 text-lg transition-all transform hover:scale-105 animate-pulse"
               >
-                Continuar Explorando
+                ✨ Continuar Explorando ✨
               </Button>
             </div>
           </DialogContent>
