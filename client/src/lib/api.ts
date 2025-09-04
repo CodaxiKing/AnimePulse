@@ -248,7 +248,7 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
       isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
     );
     console.log("✅ Returning", trendingAnimes.length, "trending animes from API cache");
-    return trendingAnimes;
+    return getAnimesWithProgress(trendingAnimes);
   }
   
   return getAnimesByCategory('trending');
@@ -259,25 +259,13 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
   
   const apiData = await getAnimeDataFromAPI();
   if (apiData.length > 0) {
-    const continueAnimes = apiData.slice(8, 12).map((anime: any) => {
-      // Verificar se os dados são do Jikan API ou Otakudesu
-      const isJikanData = anime?.mal_id !== undefined;
-      const adaptedAnime = {
-        ...(isJikanData ? adaptAnimeFromJikanAPI(anime) : anime),
-        progress: {
-          id: Math.random().toString(),
-          userId: "1",
-          animeId: anime.mal_id?.toString() || anime.id?.toString() || Math.random().toString(),
-          episodeNumber: Math.floor(Math.random() * 12) + 1,
-          progressPercent: Math.floor(Math.random() * 80) + 20,
-          updatedAt: new Date()
-        }
-      };
-      console.log("🎯 Continue watching:", adaptedAnime.title, "Image:", adaptedAnime.image?.substring(0, 50) + "...");
-      return adaptedAnime;
-    });
+    // Verificar se os dados são do Jikan API ou Otakudesu
+    const isJikanData = apiData[0]?.mal_id !== undefined;
+    const continueAnimes = apiData.slice(8, 12).map(anime => 
+      isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
+    );
     console.log("✅ Returning", continueAnimes.length, "continue watching animes from API cache");
-    return continueAnimes;
+    return getAnimesWithProgress(continueAnimes);
   }
   
   return getAnimesByCategory('continue');
@@ -294,7 +282,7 @@ export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
       isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
     );
     console.log("✅ Returning", latestAnimes.length, "latest animes from API cache");
-    return latestAnimes;
+    return getAnimesWithProgress(latestAnimes);
   }
   
   return getAnimesByCategory('latest');
