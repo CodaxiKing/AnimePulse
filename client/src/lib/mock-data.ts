@@ -382,8 +382,9 @@ export const mockMangaCategories = [
 ];
 
 // Helper functions to get data with progress
-export function getAnimesWithProgress(): AnimeWithProgress[] {
-  return mockAnimes.map(anime => ({
+export function getAnimesWithProgress(animes?: Anime[]): AnimeWithProgress[] {
+  const animesToUse = animes || mockAnimes;
+  return animesToUse.map(anime => ({
     ...anime,
     progress: mockWatchProgress.find(progress => progress.animeId === anime.id),
   }));
