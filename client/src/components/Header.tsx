@@ -84,7 +84,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <SearchBar />
             
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button 
                   className="w-8 h-8 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5 hover:opacity-80 transition-opacity" 
@@ -95,7 +95,13 @@ export default function Header() {
                   </div>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 z-[100] relative">
+              <DropdownMenuContent 
+                align="end" 
+                className="w-56 z-[100]" 
+                sideOffset={5}
+                avoidCollisions={true}
+                sticky="always"
+              >
                 {isLoading ? (
                   <DropdownMenuItem disabled>
                     <div className="flex items-center gap-2">

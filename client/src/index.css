@@ -29,16 +29,30 @@ main {
 /* Ensure dropdowns always appear on top */
 [data-radix-popper-content-wrapper] {
   z-index: 999 !important;
+  position: fixed !important;
 }
 
 [role="menu"] {
   z-index: 999 !important;
+  position: fixed !important;
 }
 
 /* Dropdown menu specific fix */
 .dropdown-content {
   z-index: 999 !important;
-  position: relative;
+  position: fixed !important;
+}
+
+/* Prevent layout shift when dropdown opens */
+[data-radix-dropdown-menu-content] {
+  position: fixed !important;
+  z-index: 999 !important;
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin) !important;
+}
+
+/* Ensure carousel doesn't shift */
+body:has([data-radix-dropdown-menu-content]) {
+  overflow-x: hidden !important;
 }
 
 /* Utility classes para truncar texto */
