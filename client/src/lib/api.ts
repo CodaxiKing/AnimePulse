@@ -13,10 +13,10 @@ import {
 } from "./mock-data";
 
 // API configuration
-const HIANIME_API_BASE = import.meta.env.VITE_HIANIME_API || "https://hianime-api-pi.vercel.app/api/v2";
-const ANINEWS_API_BASE = import.meta.env.VITE_ANINEWS_API || "https://api.jikan.moe/v4";
+const KITSU_API_BASE = "https://kitsu.io/api/edge";
+const ANIME_TV_API_BASE = "https://appanimeplus.tk/api-achance.php";
 const OTAKUDESU_API_BASE = import.meta.env.VITE_OTAKUDESU_API || "https://unofficial-otakudesu-api-ruang-kreatif.vercel.app/api";
-const MANGAHOOK_API_BASE = import.meta.env.VITE_MANGAHOOK_API || "https://api.jikan.moe/v4";
+const JIKAN_API_BASE = "https://api.jikan.moe/v4"; // Fallback
 
 // Dicionário de traduções comuns de sinopses de anime
 const synopsisTranslations: Record<string, string> = {
@@ -87,6 +87,73 @@ function improveSynopsisInPortuguese(synopsis: string | null | undefined): strin
   return improved;
 }
 
+// Função para buscar animes via Kitsu API
+export async function getAnimesFromKitsuAPI(endpoint: string, limit: number = 25): Promise<Anime[]> {
+  const kitsuUrl = `${KITSU_API_BASE}/${endpoint}?page[limit]=${limit}`;
+  console.log('🌐 Trying Kitsu endpoint:', kitsuUrl);
+  
+  try {
+    const response = await fetch(kitsuUrl, {
+      headers: {
+        'Accept': 'application/vnd.api+json',
+        'Content-Type': 'application/vnd.api+json'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('📡 Kitsu API Response status:', response.status);
+      
+      if (data.data && Array.isArray(data.data)) {
+        const animes = data.data.map(adaptAnimeFromKitsuAPI);
+        console.log(`✅ Retrieved ${animes.length} animes from Kitsu API`);
+        return animes;
+      }
+    }
+  } catch (error) {
+    console.error('❌ Kitsu API Error:', error);
+  }
+  
+  return [];
+}
+
+// Função para buscar episódios com streaming do Anime TV API
+export async function getEpisodesWithStreamingAPI(animeId: string): Promise<Episode[]> {
+  try {
+    console.log('🎬 Getting episodes with streaming for anime:', animeId);
+    
+    // Busca informações do anime no Anime TV API
+    const searchUrl = `${ANIME_TV_API_BASE}?search=${encodeURIComponent(animeId)}`;
+    const response = await fetch(searchUrl);
+    
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const animeData = data[0]; // Pega o primeiro resultado
+        
+        // Busca episódios
+        const episodesUrl = `${ANIME_TV_API_BASE}?episodios=${animeData.id}`;
+        const episodesResponse = await fetch(episodesUrl);
+        
+        if (episodesResponse.ok) {
+          const episodesData = await episodesResponse.json();
+          const episodes = episodesData.map(adaptEpisodeFromAnimeTVAPI);
+          
+          console.log(`✅ Retrieved ${episodes.length} episodes with streaming`);
+          return episodes;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Anime TV API Error:', error);
+  }
+  
+  // Fallback para dados mock
+  console.log('⚠️ Using fallback episodes for anime:', animeId);
+  return getEpisodesByAnimeId(animeId);
+}
+
 // Generic fetch with error handling
 async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
   try {
@@ -117,9 +184,9 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
   
   // Tentar múltiplas APIs em ordem de prioridade
   const apiEndpoints = [
-    `${ANINEWS_API_BASE}/top/anime?limit=25`,
-    `${ANINEWS_API_BASE}/seasons/now?limit=25`,
-    `${ANINEWS_API_BASE}/anime?order_by=popularity&limit=25`
+    `${JIKAN_API_BASE}/top/anime?limit=25`,
+    `${JIKAN_API_BASE}/seasons/now?limit=25`,
+    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25`
   ];
   
   for (const endpoint of apiEndpoints) {
@@ -285,7 +352,7 @@ export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress | u
     
     // Fallback para Jikan API se o ID for numérico (MAL ID)
     if (!isNaN(Number(id))) {
-      const jikanResponse = await fetch(`${ANINEWS_API_BASE}/anime/${id}`);
+      const jikanResponse = await fetch(`${JIKAN_API_BASE}/anime/${id}`);
       if (jikanResponse.ok) {
         const jikanData = await jikanResponse.json();
         console.log("✅ Found anime details from Jikan API");
@@ -351,7 +418,7 @@ export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[
 // Manga API functions
 export async function getLatestManga(): Promise<Manga[]> {
   try {
-    const response = await fetch(`${ANINEWS_API_BASE}/top/manga?limit=12`);
+    const response = await fetch(`${JIKAN_API_BASE}/top/manga?limit=12`);
     if (response.ok) {
       const data = await response.json();
       const adaptedMangas = data.data?.slice(0, 12).map(adaptMangaFromJikanAPI) || [];
@@ -370,7 +437,7 @@ export async function getMangaCategories() {
 // News API functions
 export async function getLatestNews(): Promise<News[]> {
   try {
-    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=4`);
+    const response = await fetch(`${JIKAN_API_BASE}/top/anime?limit=4`);
     if (response.ok) {
       const data = await response.json();
       const adaptedNews = data.data?.slice(0, 4).map(adaptNewsFromJikanAPI) || [];
@@ -598,5 +665,38 @@ function adaptNewsFromJikanAPI(jikanAnime: any): News {
     content: jikanAnime.synopsis || "Conteúdo completo da notícia...",
     source: "AnimePulse",
     publishedAt: new Date(jikanAnime.aired?.from || Date.now()),
+  };
+}
+
+// Adapter para dados da Kitsu API
+function adaptAnimeFromKitsuAPI(kitsuAnime: any): Anime {
+  const attributes = kitsuAnime.attributes || {};
+  return {
+    id: kitsuAnime.id || Math.random().toString(),
+    title: attributes.titles?.en || attributes.titles?.en_jp || attributes.canonicalTitle || "Sem título",
+    image: attributes.posterImage?.large || attributes.posterImage?.medium || "https://via.placeholder.com/400x600",
+    studio: "Estúdios Diversos", // Kitsu não tem campo direto para estúdio
+    year: attributes.startDate ? new Date(attributes.startDate).getFullYear() : new Date().getFullYear(),
+    genres: attributes.categories?.data?.map((cat: any) => cat.attributes?.title) || [],
+    synopsis: improveSynopsisInPortuguese(attributes.synopsis),
+    releaseDate: attributes.startDate || "",
+    status: attributes.status?.toLowerCase() || "unknown",
+    totalEpisodes: attributes.episodeCount || 0,
+    rating: attributes.averageRating || "0",
+  };
+}
+
+// Adapter para episódios da Anime TV API
+function adaptEpisodeFromAnimeTVAPI(episodeData: any): Episode {
+  return {
+    id: episodeData.id?.toString() || Math.random().toString(),
+    animeId: episodeData.anime_id?.toString() || "1",
+    episodeNumber: parseInt(episodeData.episode_number) || 1,
+    title: episodeData.title || `Episódio ${episodeData.episode_number || 1}`,
+    image: episodeData.image || "https://via.placeholder.com/400x225",
+    duration: episodeData.duration || "24 min",
+    releaseDate: episodeData.release_date || new Date().toISOString().split('T')[0],
+    videoUrl: episodeData.video_url || episodeData.stream_url || "",
+    synopsis: episodeData.synopsis || "Sinopse do episódio não disponível",
   };
 }

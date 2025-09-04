@@ -5,6 +5,7 @@ import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import EpisodeModal from "@/components/EpisodeModal";
+import EpisodeGrid from "@/components/EpisodeGrid";
 import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
@@ -209,55 +210,29 @@ export default function AnimeDetail() {
 
         {/* Seção de Episódios */}
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-          <h2 className="text-xl font-semibold mb-4" data-testid="text-episodes-title">
-            Episódios
-          </h2>
-          
           {loadingEpisodes ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-video rounded-2xl" />
-              ))}
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Episódios</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-video rounded-xl" />
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {episodes?.map((episode) => (
-                <div
-                  key={episode.id}
-                  className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group relative"
-                  onClick={() => setSelectedEpisode(episode)}
-                  data-testid={`card-episode-${episode.number}`}
-                >
-                  <div className="relative">
-                    <img
-                      src={episode.thumbnail || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop"}
-                      alt={episode.title}
-                      className="w-full h-40 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                      <Play className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold mb-1" data-testid={`text-episode-title-${episode.number}`}>
-                      Episódio {episode.number}
-                    </h3>
-                    <p className="text-sm text-muted-foreground" data-testid={`text-episode-subtitle-${episode.number}`}>
-                      {episode.title}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <EpisodeGrid 
+              episodes={episodes || []} 
+              animeTitle={anime.title}
+            />
           )}
         </div>
-      </div>
-
+      )}
+      
       <EpisodeModal
         episode={selectedEpisode}
         isOpen={!!selectedEpisode}
         onClose={() => setSelectedEpisode(null)}
       />
-    </>
+    </div>
   );
 }
