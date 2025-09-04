@@ -478,6 +478,22 @@ export function isEpisodeWatched(animeId: string, episodeNumber: number): boolea
   );
 }
 
+// Função para verificar se todos os episódios de um anime foram assistidos
+export function areAllEpisodesWatched(animeId: string, totalEpisodes: number): boolean {
+  const watchedEpisodes = getWatchedEpisodesList();
+  const animeWatchedEpisodes = watchedEpisodes.filter(ep => ep.animeId === animeId);
+  
+  // Verificar se temos todos os episódios de 1 até totalEpisodes
+  for (let i = 1; i <= totalEpisodes; i++) {
+    const episodeWatched = animeWatchedEpisodes.some(ep => ep.episodeNumber === i);
+    if (!episodeWatched) {
+      return false;
+    }
+  }
+  
+  return totalEpisodes > 0 && animeWatchedEpisodes.length >= totalEpisodes;
+}
+
 // Função para obter lista de episódios assistidos de um anime
 export function getWatchedEpisodes(animeId: string): number[] {
   const progress = getLocalWatchProgress();

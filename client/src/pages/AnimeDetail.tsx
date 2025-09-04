@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp, Trophy, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
-import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, saveWatchedEpisode, removeWatchedEpisode, isEpisodeWatched } from "@/lib/api";
+import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, saveWatchedEpisode, removeWatchedEpisode, isEpisodeWatched, areAllEpisodesWatched } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 export default function AnimeDetail() {
@@ -17,6 +18,7 @@ export default function AnimeDetail() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState("1");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showCongrats, setShowCongrats] = useState(false);
 
   const handleMarkAsWatched = (episode: Episode) => {
     if (anime) {
@@ -40,6 +42,12 @@ export default function AnimeDetail() {
           (episode.number / (anime.totalEpisodes || 12)) * 100
         );
         console.log(`Marcado episódio ${episode.number} como assistido!`);
+        
+        // Verificar se todos os episódios foram completados
+        const totalEpisodes = anime.totalEpisodes || 12;
+        if (areAllEpisodesWatched(anime.id, totalEpisodes)) {
+          setShowCongrats(true);
+        }
       }
       
       // Forçar atualização da interface
@@ -301,6 +309,34 @@ export default function AnimeDetail() {
           isOpen={!!selectedEpisode}
           onClose={() => setSelectedEpisode(null)}
         />
+
+        {/* Modal de Parabéns */}
+        <Dialog open={showCongrats} onOpenChange={setShowCongrats}>
+          <DialogContent className="max-w-md text-center">
+            <DialogHeader>
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  <Trophy className="w-16 h-16 text-yellow-500" />
+                  <Star className="w-6 h-6 text-yellow-400 absolute -top-2 -right-2 animate-pulse" />
+                </div>
+              </div>
+              <DialogTitle className="text-2xl font-bold text-anime-gradient">
+                Parabéns! 🎉
+              </DialogTitle>
+              <DialogDescription className="text-lg mt-2">
+                Você concluiu <span className="font-semibold text-purple-400">{anime?.title}</span>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-6">
+              <Button 
+                onClick={() => setShowCongrats(false)}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                Continuar Explorando
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
   );
 }
