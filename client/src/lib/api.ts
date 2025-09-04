@@ -15,6 +15,7 @@ import {
 // API configuration
 const HIANIME_API_BASE = import.meta.env.VITE_HIANIME_API || "https://hianime-api-pi.vercel.app/api/v2";
 const ANINEWS_API_BASE = import.meta.env.VITE_ANINEWS_API || "https://api.jikan.moe/v4";
+const OTAKU_API_BASE = import.meta.env.VITE_OTAKU_API || "https://api.otakudesu.com/v1";
 const MANGAHOOK_API_BASE = import.meta.env.VITE_MANGAHOOK_API || "https://api.jikan.moe/v4";
 
 // Generic fetch with error handling
@@ -35,6 +36,7 @@ let apiCache: any[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 60000; // 1 minuto
 
+// Função para buscar animes com múltiplas fontes
 async function getAnimeDataFromAPI(): Promise<any[]> {
   const now = Date.now();
   
@@ -44,24 +46,37 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
     return apiCache;
   }
   
-  try {
-    console.log("🌐 Fetching fresh anime data from API...");
-    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=25`);
-    console.log("📡 API Response status:", response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data?.data && data.data.length > 0) {
-        apiCache = data.data;
-        cacheTimestamp = now;
-        console.log("✅ Cached", apiCache.length, "animes from API");
-        return apiCache;
+  // Tentar múltiplas APIs em ordem de prioridade
+  const apiEndpoints = [
+    `${ANINEWS_API_BASE}/top/anime?limit=25`,
+    `${ANINEWS_API_BASE}/seasons/now?limit=25`,
+    `${ANINEWS_API_BASE}/anime?order_by=popularity&limit=25`
+  ];
+  
+  for (const endpoint of apiEndpoints) {
+    try {
+      console.log("🌐 Trying endpoint:", endpoint);
+      const response = await fetch(endpoint);
+      console.log("📡 API Response status:", response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.data && data.data.length > 0) {
+          apiCache = data.data;
+          cacheTimestamp = now;
+          console.log("✅ Cached", apiCache.length, "animes from", endpoint);
+          return apiCache;
+        }
       }
+      
+      // Aguardar um pouco antes da próxima tentativa para evitar rate limit
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.warn("❌ Failed endpoint:", endpoint, error);
     }
-  } catch (error) {
-    console.warn("❌ Failed to fetch anime data:", error);
   }
   
+  console.log("⚠️ All API endpoints failed, using fallback");
   return [];
 }
 
