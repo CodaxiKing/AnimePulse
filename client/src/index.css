@@ -65,8 +65,9 @@ body:has([data-radix-dropdown-menu-content]) {
 
 /* Header dropdown specific positioning */
 header [data-radix-dropdown-menu-content] {
-  transform: translateX(-30px) !important;
-  max-width: 180px !important;
+  transform: translateX(-50px) !important;
+  max-width: 160px !important;
+  min-width: 160px !important;
 }
 
 /* Utility classes para truncar texto */

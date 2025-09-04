@@ -96,7 +96,7 @@ export default function Header() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
-                align="end" 
+                align="center" 
                 className="w-44 z-[100]" 
                 sideOffset={8}
                 avoidCollisions={true}
