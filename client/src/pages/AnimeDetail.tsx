@@ -386,18 +386,8 @@ export default function AnimeDetail() {
                 <div className="relative bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-400/30 text-center">
                   <div className="flex items-center justify-center gap-3">
                     <Star className="w-8 h-8 text-yellow-400 animate-spin" />
-                    <div className="relative">
-                      <div className="text-4xl font-black text-yellow-300 animate-pulse transform hover:scale-110 transition-all duration-300 drop-shadow-2xl">
-                        +{earnedPoints}
-                      </div>
-                      {/* Efeito de brilho atrás do número */}
-                      <div className="absolute inset-0 text-4xl font-black text-yellow-200 animate-ping opacity-75">
-                        +{earnedPoints}
-                      </div>
-                      {/* Segundo efeito de brilho */}
-                      <div className="absolute inset-0 text-4xl font-black text-orange-300 animate-bounce opacity-50">
-                        +{earnedPoints}
-                      </div>
+                    <div className="text-5xl font-black text-yellow-300 transform animate-bounce hover:animate-pulse transition-all duration-500 drop-shadow-lg bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent animate-pulse">
+                      +{earnedPoints}
                     </div>
                     <Star className="w-8 h-8 text-yellow-400 animate-spin" style={{ animationDirection: 'reverse' }} />
                   </div>
