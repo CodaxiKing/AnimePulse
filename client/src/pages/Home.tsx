@@ -45,8 +45,8 @@ function AnimeSection({ title, queryKey, showProgress = false, showRank = false,
         <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
           {isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex-none w-48">
-                <Skeleton className="w-full h-72 rounded-2xl mb-4" />
+              <div key={i} className="flex-none w-48 aspect-[3/4.5]">
+                <Skeleton className="w-full h-[70%] rounded-2xl mb-3" />
                 <Skeleton className="h-4 w-32 mb-2" />
                 <Skeleton className="h-3 w-24" />
               </div>
@@ -59,6 +59,7 @@ function AnimeSection({ title, queryKey, showProgress = false, showRank = false,
                 showProgress={showProgress}
                 rank={showRank ? index + 1 : undefined}
                 isNew={isNew}
+                variant="horizontal"
               />
             ))
           )}

@@ -6,12 +6,15 @@ interface AnimeCardProps {
   showProgress?: boolean;
   rank?: number;
   isNew?: boolean;
+  variant?: 'grid' | 'horizontal';
 }
 
-export default function AnimeCard({ anime, showProgress = false, rank, isNew = false }: AnimeCardProps) {
+export default function AnimeCard({ anime, showProgress = false, rank, isNew = false, variant = 'grid' }: AnimeCardProps) {
   return (
     <Link href={`/animes/${anime.id}`}>
-      <div className="flex-none w-48 h-80 group cursor-pointer" data-testid={`card-anime-${anime.id}`}>
+      <div className={`group cursor-pointer ${
+        variant === 'horizontal' ? 'flex-none w-48 aspect-[3/4.5]' : 'w-full aspect-[3/4.5]'
+      }`} data-testid={`card-anime-${anime.id}`}>
         <div className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative h-full flex flex-col">
           {rank && (
             <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
@@ -27,7 +30,7 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
           <img
             src={anime.image || "https://via.placeholder.com/400x600?text=" + encodeURIComponent(anime.title)}
             alt={anime.title}
-            className="w-full h-72 object-cover"
+            className="w-full h-[70%] object-cover"
             data-testid={`img-anime-${anime.id}`}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -35,13 +38,13 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
             }}
           />
           
-          <div className="p-4 flex-1 flex flex-col">
-            <h4 className="font-semibold text-sm mb-1 line-clamp-2 min-h-[2.5rem]" data-testid={`text-anime-title-${anime.id}`} title={anime.title}>
-              {anime.title.length > 35 ? anime.title.slice(0, 32) + '...' : anime.title}
+          <div className="p-3 h-[30%] flex flex-col justify-between">
+            <h4 className="font-semibold text-sm line-clamp-2 leading-tight" data-testid={`text-anime-title-${anime.id}`} title={anime.title}>
+              {anime.title}
             </h4>
             
             {showProgress && anime.progress ? (
-              <>
+              <div className="mt-auto">
                 <p className="text-xs text-muted-foreground mb-2" data-testid={`text-progress-${anime.id}`}>
                   Episódio {anime.progress.episodeNumber} de {anime.totalEpisodes}
                 </p>
@@ -52,9 +55,9 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
                     data-testid={`progress-bar-${anime.id}`}
                   />
                 </div>
-              </>
+              </div>
             ) : (
-              <p className="text-xs text-muted-foreground line-clamp-1" data-testid={`text-anime-info-${anime.id}`}>
+              <p className="text-xs text-muted-foreground line-clamp-1 mt-auto" data-testid={`text-anime-info-${anime.id}`}>
                 {anime.genres?.slice(0, 2).join(" • ")} • {anime.totalEpisodes} eps
               </p>
             )}
