@@ -126,7 +126,7 @@ export default function EpisodeModal({
               data-testid="video-player"
             >
               <source 
-                src="https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4" 
+                src="https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4" 
                 type="video/mp4" 
               />
               Seu navegador não suporta reprodução de vídeo.
