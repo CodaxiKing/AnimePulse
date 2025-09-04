@@ -96,14 +96,14 @@ export default function Header() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
-                align="start" 
+                align="end" 
                 className="w-44 z-[9999] profile-dropdown" 
                 sideOffset={8}
                 avoidCollisions={false}
                 collisionPadding={0}
                 side="bottom"
-                alignOffset={-140}
-                style={{ transform: 'translateX(-140px)' }}
+                alignOffset={-60}
+                style={{ transform: 'translateX(-60px)' }}
               >
                 {isLoading ? (
                   <DropdownMenuItem disabled>
