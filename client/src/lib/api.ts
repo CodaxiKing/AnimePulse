@@ -30,70 +30,78 @@ async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
 }
 
 // Anime API functions
-export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🔍 Fetching trending anime...");
+// Cache global para evitar múltiplas chamadas de API
+let apiCache: any[] | null = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 60000; // 1 minuto
+
+async function getAnimeDataFromAPI(): Promise<any[]> {
+  const now = Date.now();
+  
+  // Se o cache ainda é válido, usar ele
+  if (apiCache && (now - cacheTimestamp) < CACHE_DURATION) {
+    console.log("📦 Using cached API data");
+    return apiCache;
+  }
   
   try {
-    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=8`);
+    console.log("🌐 Fetching fresh anime data from API...");
+    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=25`);
     console.log("📡 API Response status:", response.status);
     
     if (response.ok) {
       const data = await response.json();
-      console.log("📊 API Data received:", data?.data?.length, "animes");
-      
       if (data?.data && data.data.length > 0) {
-        const adaptedAnimes = data.data.slice(0, 8).map(adaptAnimeFromJikanAPI);
-        console.log("✅ Returning", adaptedAnimes.length, "trending animes from API");
-        return adaptedAnimes;
+        apiCache = data.data;
+        cacheTimestamp = now;
+        console.log("✅ Cached", apiCache.length, "animes from API");
+        return apiCache;
       }
     }
   } catch (error) {
-    console.warn("❌ Failed to fetch trending anime:", error);
+    console.warn("❌ Failed to fetch anime data:", error);
   }
   
-  console.log("🔄 Using mock data as fallback");
+  return [];
+}
+
+export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
+  console.log("🔍 Getting trending anime...");
+  
+  const apiData = await getAnimeDataFromAPI();
+  if (apiData.length > 0) {
+    const trendingAnimes = apiData.slice(0, 8).map(adaptAnimeFromJikanAPI);
+    console.log("✅ Returning", trendingAnimes.length, "trending animes from API cache");
+    return trendingAnimes;
+  }
+  
   return getAnimesByCategory('trending');
 }
 
 export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
-  console.log("🔄 Fetching continue watching anime...");
+  console.log("🔄 Getting continue watching anime...");
   
-  // Usar delay para evitar rate limit
-  await new Promise(resolve => setTimeout(resolve, 200));
-  
-  try {
-    const response = await fetch(`${ANINEWS_API_BASE}/anime?order_by=score&limit=4`);
-    console.log("📡 Continue watching API Response status:", response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log("📊 Continue watching API Data received:", data?.data?.length, "animes");
-      
-      if (data?.data && data.data.length > 0) {
-        const adaptedAnimes = data.data.slice(0, 4).map((anime: any) => {
-          const adaptedAnime = {
-            ...adaptAnimeFromJikanAPI(anime),
-            progress: {
-              id: Math.random().toString(),
-              userId: "1",
-              animeId: anime.mal_id?.toString(),
-              episodeNumber: Math.floor(Math.random() * 12) + 1,
-              progressPercent: Math.floor(Math.random() * 80) + 20,
-              updatedAt: new Date()
-            }
-          };
-          console.log("🎯 Continue watching anime:", adaptedAnime.title, "Image:", adaptedAnime.image);
-          return adaptedAnime;
-        });
-        console.log("✅ Returning", adaptedAnimes.length, "continue watching animes from API");
-        return adaptedAnimes;
-      }
-    }
-  } catch (error) {
-    console.warn("❌ Failed to fetch continue watching:", error);
+  const apiData = await getAnimeDataFromAPI();
+  if (apiData.length > 0) {
+    const continueAnimes = apiData.slice(8, 12).map((anime: any) => {
+      const adaptedAnime = {
+        ...adaptAnimeFromJikanAPI(anime),
+        progress: {
+          id: Math.random().toString(),
+          userId: "1",
+          animeId: anime.mal_id?.toString(),
+          episodeNumber: Math.floor(Math.random() * 12) + 1,
+          progressPercent: Math.floor(Math.random() * 80) + 20,
+          updatedAt: new Date()
+        }
+      };
+      console.log("🎯 Continue watching:", adaptedAnime.title, "Image:", adaptedAnime.image?.substring(0, 50) + "...");
+      return adaptedAnime;
+    });
+    console.log("✅ Returning", continueAnimes.length, "continue watching animes from API cache");
+    return continueAnimes;
   }
   
-  console.log("🔄 Using mock data as fallback for continue watching");
   return getAnimesByCategory('continue');
 }
 
@@ -112,30 +120,15 @@ export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🏆 Fetching top 10 anime...");
+  console.log("🏆 Getting top 10 anime...");
   
-  // Usar delay pequeno para evitar rate limit
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
-  try {
-    const response = await fetch(`${ANINEWS_API_BASE}/top/anime?limit=10&page=3`);
-    console.log("📡 Top API Response status:", response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log("📊 Top API Data received:", data?.data?.length, "animes");
-      
-      if (data?.data && data.data.length > 0) {
-        const adaptedAnimes = data.data.slice(0, 10).map(adaptAnimeFromJikanAPI);
-        console.log("✅ Returning", adaptedAnimes.length, "top animes from API");
-        return adaptedAnimes;
-      }
-    }
-  } catch (error) {
-    console.warn("❌ Failed to fetch top anime:", error);
+  const apiData = await getAnimeDataFromAPI();
+  if (apiData.length > 0) {
+    const topAnimes = apiData.slice(12, 22).map(adaptAnimeFromJikanAPI);
+    console.log("✅ Returning", topAnimes.length, "top animes from API cache");
+    return topAnimes;
   }
   
-  console.log("🔄 Using mock data as fallback for top anime");
   return getAnimesByCategory('trending');
 }
 
