@@ -377,13 +377,13 @@ export default function AnimeDetail() {
                 🎉 PARABÉNS! 🎉
               </DialogTitle>
               
-              <DialogDescription className="text-lg mt-4 space-y-4">
-                <div className="text-white">
+              <DialogDescription className="text-lg mt-4 space-y-4 text-center">
+                <div className="text-white text-center">
                   Você concluiu <span className="font-bold text-purple-300 text-xl">{anime?.title}</span>!
                 </div>
                 
                 {/* Pontos animados */}
-                <div className="relative bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-400/30">
+                <div className="relative bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl p-4 border border-yellow-400/30 text-center">
                   <div className="flex items-center justify-center gap-3">
                     <Star className="w-8 h-8 text-yellow-400 animate-spin" />
                     <div className="text-3xl font-black text-yellow-300 animate-bounce">
@@ -391,7 +391,7 @@ export default function AnimeDetail() {
                     </div>
                     <Star className="w-8 h-8 text-yellow-400 animate-spin" style={{ animationDirection: 'reverse' }} />
                   </div>
-                  <div className="text-yellow-200 font-bold mt-2 animate-pulse">
+                  <div className="text-yellow-200 font-bold mt-2 animate-pulse text-center">
                     PONTOS GANHOS!
                   </div>
                   
