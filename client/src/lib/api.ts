@@ -324,14 +324,22 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
   if (apiData.length > 0) {
     // Verificar se os dados são do Jikan API ou Otakudesu
     const isJikanData = apiData[0]?.mal_id !== undefined;
-    const topAnimes = apiData.slice(12, 22).map(anime => 
+    const allAnimes = apiData.map(anime => 
       isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
     );
-    console.log("✅ Returning", topAnimes.length, "top animes from API cache");
+    
+    // Ordenar por viewCount em ordem decrescente e pegar apenas os top 10
+    const topAnimes = allAnimes
+      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+      .slice(0, 10);
+    
+    console.log("✅ Returning top 10 animes ordered by viewCount");
     return topAnimes;
   }
   
-  return getAnimesByCategory('trending');
+  // Fallback: ordenar dados mock por viewCount
+  const mockData = getAnimesByCategory('trending');
+  return mockData.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)).slice(0, 10);
 }
 
 export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
