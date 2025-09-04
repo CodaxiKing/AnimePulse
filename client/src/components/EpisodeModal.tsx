@@ -110,14 +110,42 @@ export default function EpisodeModal({
           </button>
         </DialogHeader>
         
-        {/* Botão de teste bem visível */}
-        <div className="flex justify-center mb-4">
+        {/* Controles principais fora do player */}
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={handlePreviousEpisode}
+            disabled={!hasPrevious}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all ${
+              hasPrevious 
+                ? 'bg-blue-600 hover:bg-blue-700' 
+                : 'bg-gray-600 opacity-50 cursor-not-allowed'
+            }`}
+            data-testid="button-prev-main"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            Anterior
+          </button>
+          
           <button
             onClick={handleVideoEnd}
             className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg text-white font-medium transition-colors shadow-lg"
-            data-testid="button-test-visible"
+            data-testid="button-mark-watched"
           >
-            ✅ TESTE: Marcar Episódio como Assistido
+            ✅ Marcar Assistido
+          </button>
+          
+          <button
+            onClick={handleNextEpisode}
+            disabled={!hasNext}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-all ${
+              hasNext 
+                ? 'bg-blue-600 hover:bg-blue-700' 
+                : 'bg-gray-600 opacity-50 cursor-not-allowed'
+            }`}
+            data-testid="button-next-main"
+          >
+            Próximo
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
         
@@ -144,64 +172,20 @@ export default function EpisodeModal({
               </div>
             </>
           ) : (
-            <div className="relative w-full h-full group">
-              <video
-                ref={videoRef}
-                className="w-full h-full"
-                controls
-                autoPlay
-                onEnded={handleVideoEnd}
-                data-testid="video-player"
-              >
-                <source 
-                  src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
-                  type="video/mp4" 
-                />
-                Seu navegador não suporta reprodução de vídeo.
-              </video>
-              
-              {/* Controles de navegação de episódios */}
-              <div className="absolute inset-y-0 left-4 flex items-center">
-                <button
-                  onClick={handlePreviousEpisode}
-                  disabled={!hasPrevious}
-                  className={`p-3 rounded-full bg-black/60 text-white transition-all ${
-                    hasPrevious 
-                      ? 'hover:bg-black/80 cursor-pointer' 
-                      : 'opacity-40 cursor-not-allowed'
-                  }`}
-                  data-testid="button-previous-episode"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-              </div>
-              
-              <div className="absolute inset-y-0 right-4 flex items-center">
-                <button
-                  onClick={handleNextEpisode}
-                  disabled={!hasNext}
-                  className={`p-3 rounded-full bg-black/60 text-white transition-all ${
-                    hasNext 
-                      ? 'hover:bg-black/80 cursor-pointer' 
-                      : 'opacity-40 cursor-not-allowed'
-                  }`}
-                  data-testid="button-next-episode"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* Botão de teste para simular fim do episódio */}
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
-                <button
-                  onClick={handleVideoEnd}
-                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm font-medium transition-all shadow-lg"
-                  data-testid="button-simulate-end"
-                >
-                  ✅ Marcar Assistido
-                </button>
-              </div>
-            </div>
+            <video
+              ref={videoRef}
+              className="w-full h-full rounded-lg"
+              controls
+              autoPlay
+              onEnded={handleVideoEnd}
+              data-testid="video-player"
+            >
+              <source 
+                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+                type="video/mp4" 
+              />
+              Seu navegador não suporta reprodução de vídeo.
+            </video>
           )}
         </div>
       </DialogContent>
