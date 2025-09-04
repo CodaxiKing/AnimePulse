@@ -102,7 +102,7 @@ export default function Home() {
           
           <AnimeSection
             title="Continue assistindo"
-            queryKey="latest"
+            queryKey="continue"
             showProgress={true}
           />
           
