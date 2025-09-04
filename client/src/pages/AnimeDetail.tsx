@@ -66,8 +66,7 @@ export default function AnimeDetail() {
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
         {/* Header com botão voltar */}
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6">
           <Link
@@ -226,13 +225,12 @@ export default function AnimeDetail() {
             />
           )}
         </div>
-      )}
-      
-      <EpisodeModal
-        episode={selectedEpisode}
-        isOpen={!!selectedEpisode}
-        onClose={() => setSelectedEpisode(null)}
-      />
-    </div>
+        
+        <EpisodeModal
+          episode={selectedEpisode}
+          isOpen={!!selectedEpisode}
+          onClose={() => setSelectedEpisode(null)}
+        />
+      </div>
   );
 }
