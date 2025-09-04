@@ -1,7 +1,14 @@
 import { Link, useLocation } from "wouter";
 import Logo from "./Logo";
 import SearchBar from "./SearchBar";
-import { User } from "lucide-react";
+import { User, LogIn, UserPlus, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Header() {
   const [location] = useLocation();
@@ -43,11 +50,32 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <SearchBar />
             
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5" data-testid="avatar-user">
-              <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
-                <User className="w-4 h-4 text-foreground" />
-              </div>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  className="w-8 h-8 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5 hover:opacity-80 transition-opacity" 
+                  data-testid="button-profile-menu"
+                >
+                  <div className="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                    <User className="w-4 h-4 text-foreground" />
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link href="/login" className="flex items-center gap-2 w-full" data-testid="link-login">
+                    <LogIn className="w-4 h-4" />
+                    Entrar
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/register" className="flex items-center gap-2 w-full" data-testid="link-register">
+                    <UserPlus className="w-4 h-4" />
+                    Criar Conta
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
