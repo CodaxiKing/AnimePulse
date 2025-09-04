@@ -70,6 +70,20 @@ header [data-radix-dropdown-menu-content] {
   min-width: 160px !important;
 }
 
+/* Fix all dropdown and select positioning issues */
+[data-radix-select-content],
+[data-radix-dropdown-menu-content],
+[data-radix-popover-content] {
+  max-width: calc(100vw - 40px) !important;
+  transform: translateX(-50px) !important;
+}
+
+/* Specific fix for select components that might be too far right */
+[data-radix-select-content] {
+  transform: translateX(-30px) !important;
+  max-width: 200px !important;
+}
+
 /* Login and Register pages responsive centering */
 .min-h-screen {
   margin: 0 auto;
