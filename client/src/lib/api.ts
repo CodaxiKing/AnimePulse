@@ -304,14 +304,17 @@ export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
   if (apiData.length > 0) {
     // Verificar se os dados são do Jikan API ou Otakudesu
     const isJikanData = apiData[0]?.mal_id !== undefined;
-    const latestAnimes = apiData.slice(4, 12).map(anime => 
+    const latestAnimes = apiData.slice(16, 24).map(anime => 
       isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
     );
-    console.log("✅ Returning", latestAnimes.length, "latest animes from API cache");
+    console.log("✅ Returning", latestAnimes.length, "latest animes from API cache with images");
     return getAnimesWithProgress(latestAnimes);
   }
   
-  return getAnimesByCategory('latest');
+  console.log("⚠️ No API data found, using trending data as fallback for latest");
+  // Se não tiver dados da API, usar os mesmos dados do trending
+  const trendingData = await getTrendingAnime();
+  return getAnimesWithProgress(trendingData.slice(4, 8));
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
