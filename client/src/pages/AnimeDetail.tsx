@@ -36,12 +36,17 @@ export default function AnimeDetail() {
     enabled: !!id,
   });
 
-  // Gerar lista de temporadas baseada no anime
+  // Gerar lista de temporadas baseada no anime (máximo 3 temporadas por simplicidade)
   const getAvailableSeasons = () => {
     if (!anime) return [];
     const totalEpisodes = anime.totalEpisodes || 12;
-    const seasonsCount = Math.ceil(totalEpisodes / 12);
-    return Array.from({ length: Math.min(seasonsCount, 4) }, (_, i) => ({
+    
+    // Assumir que animes com mais episódios têm mais temporadas
+    let seasonsCount = 1;
+    if (totalEpisodes > 25) seasonsCount = 3;
+    else if (totalEpisodes > 12) seasonsCount = 2;
+    
+    return Array.from({ length: seasonsCount }, (_, i) => ({
       value: String(i + 1),
       label: `Temporada ${i + 1}`
     }));

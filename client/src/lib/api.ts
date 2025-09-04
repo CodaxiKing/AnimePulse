@@ -411,9 +411,46 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
   try {
     console.log("🎬 Getting episodes for anime ID:", animeId, "Season:", season);
     
-    // Primeiro, buscar dados do anime para obter informações como número total de episódios
-    const anime = await getAnimeByIdAPI(animeId);
-    const totalEpisodes = anime.totalEpisodes || 12;
+    // Buscar informações da temporada específica da API Jikan
+    try {
+      const seasonResponse = await fetch(`${JIKAN_API_BASE}/anime/${animeId}`);
+      if (seasonResponse.ok) {
+        const animeData = await seasonResponse.json();
+        const anime = animeData.data;
+        
+        // Buscar temporadas relacionadas
+        const relatedResponse = await fetch(`${JIKAN_API_BASE}/anime/${animeId}/relations`);
+        let seasonInfo = { episodes: anime.episodes || 12, title: anime.title };
+        
+        if (relatedResponse.ok) {
+          const relatedData = await relatedResponse.json();
+          const sequels = relatedData.data?.filter((rel: any) => 
+            rel.relation === 'Sequel' || rel.relation === 'Prequel' || rel.relation === 'Side story'
+          ) || [];
+          
+          // Se é temporada 1, usar anime principal
+          if (season === "1") {
+            seasonInfo = { episodes: anime.episodes || 12, title: anime.title };
+          } else {
+            // Para outras temporadas, tentar encontrar nas relações
+            const seasonIndex = parseInt(season) - 2; // -2 porque começamos do 0 para a segunda temporada
+            if (sequels[seasonIndex]) {
+              const relatedAnimeId = sequels[seasonIndex].entry[0]?.mal_id;
+              if (relatedAnimeId) {
+                const relatedAnimeResponse = await fetch(`${JIKAN_API_BASE}/anime/${relatedAnimeId}`);
+                if (relatedAnimeResponse.ok) {
+                  const relatedAnime = await relatedAnimeResponse.json();
+                  seasonInfo = { 
+                    episodes: relatedAnime.data.episodes || 12, 
+                    title: relatedAnime.data.title 
+                  };
+                }
+              }
+            }
+          }
+        }
+        
+        const totalEpisodes = seasonInfo.episodes;
     
     // Lista de títulos realistas para episódios
     const episodeTitles = [
@@ -443,18 +480,50 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
       "Para Sempre"
     ];
 
-    // Calcular episódios para esta temporada
-    const episodesPerSeason = 12;
-    const seasonNumber = parseInt(season);
-    const startEpisode = (seasonNumber - 1) * episodesPerSeason + 1;
-    const endEpisode = Math.min(seasonNumber * episodesPerSeason, totalEpisodes);
+        // Gerar episódios realistas para esta temporada específica
+        const episodes: Episode[] = [];
+        
+        for (let i = 1; i <= totalEpisodes; i++) {
+          const episodeIndex = (i - 1) % episodeTitles.length;
+          const episodeTitle = episodeTitles[episodeIndex] || `Aventura Continua`;
+          episodes.push({
+            id: `${animeId}-s${season}-ep-${i}`,
+            animeId: animeId,
+            number: i,
+            title: `Episódio ${i} - ${episodeTitle}`,
+            thumbnail: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
+            duration: "24 min",
+            releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
+            // URLs de vídeo de demonstração (Big Buck Bunny - vídeo de teste público)
+            streamingUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${i}.mp4`,
+          });
+        }
+        
+        console.log("✅ Generated", episodes.length, "episodes for season", season, "based on real anime data");
+        return episodes;
+      }
+    } catch (apiError) {
+      console.warn("Failed to fetch season-specific data, using fallback");
+    }
     
-    // Gerar episódios realistas com base nos dados do anime
+    // Fallback: usar dados do anime principal
+    const anime = await getAnimeByIdAPI(animeId);
+    const totalEpisodes = Math.min(anime.totalEpisodes || 12, 25); // Máximo 25 episódios por temporada
+    
+    // Lista de títulos para fallback
+    const fallbackTitles = [
+      "O Início da Jornada", "Primeiros Passos", "O Despertar do Poder", "Encontro Fatídico", "Revelações",
+      "Batalha Decisiva", "Novos Aliados", "O Segredo Revelado", "Confronto Final", "Uma Nova Esperança",
+      "Lágrimas e Sorrisos", "O Verdadeiro Inimigo", "Força Interior", "Sacrifício", "O Passado Revelado"
+    ];
+    
+    // Gerar episódios com base no fallback
     const episodes: Episode[] = [];
     
-    for (let i = startEpisode; i <= endEpisode; i++) {
-      const episodeIndex = (i - 1) % episodeTitles.length;
-      const episodeTitle = episodeTitles[episodeIndex] || `Aventura Continua`;
+    for (let i = 1; i <= totalEpisodes; i++) {
+      const episodeIndex = (i - 1) % fallbackTitles.length;
+      const episodeTitle = fallbackTitles[episodeIndex] || `Aventura Continua`;
       episodes.push({
         id: `${animeId}-s${season}-ep-${i}`,
         animeId: animeId,
@@ -463,7 +532,6 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
         thumbnail: anime.image || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
         duration: "24 min",
         releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        // URLs de vídeo de demonstração (Big Buck Bunny - vídeo de teste público)
         streamingUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
         downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${i}.mp4`,
       });
