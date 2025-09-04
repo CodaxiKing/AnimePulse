@@ -15,7 +15,7 @@ import {
 // API configuration
 const HIANIME_API_BASE = import.meta.env.VITE_HIANIME_API || "https://hianime-api-pi.vercel.app/api/v2";
 const ANINEWS_API_BASE = import.meta.env.VITE_ANINEWS_API || "https://api.jikan.moe/v4";
-const OTAKU_API_BASE = import.meta.env.VITE_OTAKU_API || "https://api.otakudesu.com/v1";
+const OTAKUDESU_API_BASE = import.meta.env.VITE_OTAKUDESU_API || "https://anime.kaedenoki.net/api";
 const MANGAHOOK_API_BASE = import.meta.env.VITE_MANGAHOOK_API || "https://api.jikan.moe/v4";
 
 // Generic fetch with error handling
@@ -64,8 +64,8 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
         if (data?.data && data.data.length > 0) {
           apiCache = data.data;
           cacheTimestamp = now;
-          console.log("✅ Cached", apiCache.length, "animes from", endpoint);
-          return apiCache;
+          console.log("✅ Cached", apiCache?.length || 0, "animes from", endpoint);
+          return apiCache || [];
         }
       }
       
@@ -76,7 +76,24 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
     }
   }
   
-  console.log("⚠️ All API endpoints failed, using fallback");
+  console.log("⚠️ All API endpoints failed, trying Otakudesu API...");
+  
+  // Tentar API do Otakudesu como último recurso
+  try {
+    const otakuData = await getOtakudesuData();
+    if (otakuData.length > 0) {
+      // Adaptar dados do Otakudesu para o formato esperado
+      const adaptedData = otakuData.map(adaptAnimeFromOtakudesuAPI);
+      apiCache = adaptedData;
+      cacheTimestamp = now;
+      console.log("✅ Using Otakudesu API data:", adaptedData.length, "animes");
+      return adaptedData;
+    }
+  } catch (error) {
+    console.warn("❌ Otakudesu API also failed:", error);
+  }
+  
+  console.log("⚠️ All APIs failed, using fallback data");
   return [];
 }
 
@@ -85,7 +102,11 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
   
   const apiData = await getAnimeDataFromAPI();
   if (apiData.length > 0) {
-    const trendingAnimes = apiData.slice(0, 8).map(adaptAnimeFromJikanAPI);
+    // Verificar se os dados são do Jikan API ou Otakudesu
+    const isJikanData = apiData[0]?.mal_id !== undefined;
+    const trendingAnimes = apiData.slice(0, 8).map(anime => 
+      isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
+    );
     console.log("✅ Returning", trendingAnimes.length, "trending animes from API cache");
     return trendingAnimes;
   }
@@ -99,12 +120,14 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
   const apiData = await getAnimeDataFromAPI();
   if (apiData.length > 0) {
     const continueAnimes = apiData.slice(8, 12).map((anime: any) => {
+      // Verificar se os dados são do Jikan API ou Otakudesu
+      const isJikanData = anime?.mal_id !== undefined;
       const adaptedAnime = {
-        ...adaptAnimeFromJikanAPI(anime),
+        ...(isJikanData ? adaptAnimeFromJikanAPI(anime) : anime),
         progress: {
           id: Math.random().toString(),
           userId: "1",
-          animeId: anime.mal_id?.toString(),
+          animeId: anime.mal_id?.toString() || anime.id?.toString() || Math.random().toString(),
           episodeNumber: Math.floor(Math.random() * 12) + 1,
           progressPercent: Math.floor(Math.random() * 80) + 20,
           updatedAt: new Date()
@@ -121,16 +144,19 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
 }
 
 export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
-  try {
-    const response = await fetch(`${ANINEWS_API_BASE}/seasons/now`);
-    if (response.ok) {
-      const data = await response.json();
-      const adaptedAnimes = data.data?.slice(0, 8).map(adaptAnimeFromJikanAPI) || [];
-      return adaptedAnimes.length > 0 ? adaptedAnimes : getAnimesByCategory('latest');
-    }
-  } catch (error) {
-    console.warn("Failed to fetch latest anime:", error);
+  console.log("🆕 Getting latest anime...");
+  
+  const apiData = await getAnimeDataFromAPI();
+  if (apiData.length > 0) {
+    // Verificar se os dados são do Jikan API ou Otakudesu
+    const isJikanData = apiData[0]?.mal_id !== undefined;
+    const latestAnimes = apiData.slice(4, 12).map(anime => 
+      isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
+    );
+    console.log("✅ Returning", latestAnimes.length, "latest animes from API cache");
+    return latestAnimes;
   }
+  
   return getAnimesByCategory('latest');
 }
 
@@ -139,7 +165,11 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
   
   const apiData = await getAnimeDataFromAPI();
   if (apiData.length > 0) {
-    const topAnimes = apiData.slice(12, 22).map(adaptAnimeFromJikanAPI);
+    // Verificar se os dados são do Jikan API ou Otakudesu
+    const isJikanData = apiData[0]?.mal_id !== undefined;
+    const topAnimes = apiData.slice(12, 22).map(anime => 
+      isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
+    );
     console.log("✅ Returning", topAnimes.length, "top animes from API cache");
     return topAnimes;
   }
@@ -246,6 +276,57 @@ function adaptAnimeFromAPI(apiAnime: any): AnimeWithProgress {
 }
 
 // Adapter for Jikan API anime data
+// Função para buscar dados da API do Otakudesu
+async function getOtakudesuData(): Promise<any[]> {
+  try {
+    console.log("🌐 Trying Otakudesu API...");
+    
+    // Buscar animes em progresso (ongoing)
+    const ongoingResponse = await fetch(`${OTAKUDESU_API_BASE}/ongoing`);
+    if (ongoingResponse.ok) {
+      const ongoingData = await ongoingResponse.json();
+      console.log("📡 Otakudesu ongoing response:", ongoingData);
+      
+      if (ongoingData.results?.length > 0) {
+        return ongoingData.results;
+      }
+    }
+    
+    // Se não encontrar ongoing, tentar animes completos
+    const completeResponse = await fetch(`${OTAKUDESU_API_BASE}/complete`);
+    if (completeResponse.ok) {
+      const completeData = await completeResponse.json();
+      console.log("📡 Otakudesu complete response:", completeData);
+      
+      if (completeData.results?.length > 0) {
+        return completeData.results;
+      }
+    }
+    
+    return [];
+  } catch (error) {
+    console.warn("❌ Otakudesu API error:", error);
+    return [];
+  }
+}
+
+// Função para adaptar dados da API do Otakudesu
+function adaptAnimeFromOtakudesuAPI(otakuAnime: any): AnimeWithProgress {
+  return {
+    id: otakuAnime.id || Math.random().toString(),
+    title: otakuAnime.title || "Sem título",
+    image: otakuAnime.thumb || "https://via.placeholder.com/400x600",
+    studio: otakuAnime.studio || "Estúdio desconhecido",
+    year: new Date().getFullYear(), // Otakudesu não tem ano específico
+    genres: otakuAnime.genres || [],
+    synopsis: otakuAnime.synopsis || "Sinopse não disponível",
+    releaseDate: otakuAnime.release_date || "",
+    status: otakuAnime.status?.toLowerCase() || "ongoing",
+    totalEpisodes: parseInt(otakuAnime.total_episode) || 0,
+    rating: otakuAnime.rating || "0",
+  };
+}
+
 function adaptAnimeFromJikanAPI(jikanAnime: any): AnimeWithProgress {
   return {
     id: jikanAnime.mal_id?.toString() || Math.random().toString(),
