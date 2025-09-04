@@ -73,10 +73,10 @@ export default function AnimeDetail() {
         {/* Card com detalhes do anime */}
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
           <div className="bg-card rounded-3xl overflow-hidden shadow-xl border border-border">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-8">
+            <div className="flex flex-col md:flex-row gap-6 p-6">
               {/* Imagem do anime */}
-              <div className="lg:col-span-1">
-                <div className="aspect-[3/4] rounded-2xl overflow-hidden">
+              <div className="flex-shrink-0">
+                <div className="w-48 h-64 rounded-2xl overflow-hidden">
                   <img
                     src={anime.image || "https://via.placeholder.com/400x600"}
                     alt={anime.title}
@@ -86,66 +86,90 @@ export default function AnimeDetail() {
               </div>
               
               {/* Informações do anime */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="flex-1 space-y-4">
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-anime-title">
+                  <h1 className="text-2xl md:text-3xl font-bold mb-3" data-testid="text-anime-title">
                     {anime.title}
                   </h1>
                   
-                  <div className="flex flex-wrap items-center gap-4 mb-6 text-sm text-muted-foreground">
-                    <span data-testid="text-anime-year">{anime.year}</span>
-                    <span>•</span>
-                    <span data-testid="text-anime-studio">{anime.studio}</span>
-                    <span>•</span>
-                    <span data-testid="text-anime-rating">⭐ {anime.rating}/10</span>
-                    <span>•</span>
-                    <span data-testid="text-anime-episodes">{anime.totalEpisodes} episódios</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-sm">
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <span className="font-medium text-muted-foreground w-24">Ano:</span>
+                        <span data-testid="text-anime-year">{anime.year}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="font-medium text-muted-foreground w-24">Estúdio:</span>
+                        <span data-testid="text-anime-studio">{anime.studio}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="font-medium text-muted-foreground w-24">Avaliação:</span>
+                        <span data-testid="text-anime-rating">⭐ {anime.rating}/10</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <span className="font-medium text-muted-foreground w-24">Episódios:</span>
+                        <span data-testid="text-anime-episodes">{anime.totalEpisodes}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="font-medium text-muted-foreground w-24">Status:</span>
+                        <span className="capitalize">{anime.status}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="font-medium text-muted-foreground w-24">Lançamento:</span>
+                        <span data-testid="text-anime-release">{anime.releaseDate || 'N/A'}</span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {anime.genres?.map((genre, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
-                      >
-                        {genre}
-                      </span>
-                    ))}
+                  <div className="mb-4">
+                    <span className="font-medium text-muted-foreground text-sm mb-2 block">Gêneros:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {anime.genres?.map((genre, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-primary/10 text-primary rounded-lg text-xs"
+                        >
+                          {genre}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 
                 <div>
-                  <h3 className="text-lg font-semibold mb-3">Sinopse</h3>
-                  <p className="text-muted-foreground leading-relaxed" data-testid="text-anime-synopsis">
+                  <h3 className="font-semibold mb-2 text-sm text-muted-foreground">SINOPSE</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-anime-synopsis">
                     {anime.synopsis}
                   </p>
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-4 pt-4">
+                <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Button
-                    className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-8 py-3 font-semibold anime-glow hover:opacity-95"
+                    className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-6 py-2 font-semibold anime-glow hover:opacity-95 text-sm"
                     data-testid="button-watch-anime"
                   >
-                    <Play className="w-5 h-5 mr-2" />
+                    <Play className="w-4 h-4 mr-2" />
                     Assistir agora
                   </Button>
                   
                   <Button
                     variant="secondary"
-                    className="border-border rounded-xl px-6 py-3 font-semibold hover:bg-muted"
+                    className="border-border rounded-xl px-4 py-2 font-semibold hover:bg-muted text-sm"
                     data-testid="button-add-to-list-detail"
                   >
-                    <Plus className="w-5 h-5 mr-2" />
+                    <Plus className="w-4 h-4 mr-2" />
                     Adicionar à fila
                   </Button>
                   
                   <Button
                     variant="outline"
                     size="icon"
-                    className="p-3 rounded-xl border-border hover:bg-muted"
+                    className="p-2 rounded-xl border-border hover:bg-muted"
                     data-testid="button-favorite-detail"
                   >
-                    <Heart className="w-5 h-5" />
+                    <Heart className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -155,7 +179,7 @@ export default function AnimeDetail() {
 
         {/* Seção de Episódios */}
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-          <h2 className="text-2xl font-semibold mb-6" data-testid="text-episodes-title">
+          <h2 className="text-xl font-semibold mb-4" data-testid="text-episodes-title">
             Episódios
           </h2>
           

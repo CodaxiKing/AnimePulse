@@ -468,8 +468,10 @@ function adaptEpisodeFromAPI(apiEpisode: any): Episode {
     number: apiEpisode.number || apiEpisode.episode,
     title: apiEpisode.title || apiEpisode.name,
     thumbnail: apiEpisode.thumbnail || apiEpisode.image,
-    url: apiEpisode.url || apiEpisode.video_url,
-    duration: apiEpisode.duration || 24,
+    duration: apiEpisode.duration ? `${apiEpisode.duration} min` : "24 min",
+    releaseDate: apiEpisode.releaseDate || null,
+    streamingUrl: apiEpisode.url || apiEpisode.video_url || null,
+    downloadUrl: apiEpisode.download_url || null,
   };
 }
 
