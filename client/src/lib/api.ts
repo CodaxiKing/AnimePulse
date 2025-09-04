@@ -448,37 +448,52 @@ export async function markEpisodeWatchedFromPlayer(
   animeImage: string,
   totalEpisodes: number
 ) {
+  console.log('🎯 markEpisodeWatchedFromPlayer chamado com:', {
+    animeId, episodeNumber, animeTitle, totalEpisodes
+  });
+  
   try {
     // Marcar no localStorage temporariamente
     const watchedEpisodes = getWatchedEpisodesList();
+    console.log('📋 Episódios assistidos antes:', watchedEpisodes);
+    
     const existingIndex = watchedEpisodes.findIndex(
       ep => ep.animeId === animeId && ep.episodeNumber === episodeNumber
     );
     
     if (existingIndex === -1) {
-      watchedEpisodes.push({
+      const newEpisode = {
         animeId,
         episodeNumber,
         watchedAt: new Date().toISOString()
-      });
+      };
+      watchedEpisodes.push(newEpisode);
       localStorage.setItem(WATCHED_EPISODES_KEY, JSON.stringify(watchedEpisodes));
+      console.log('✅ Episódio adicionado:', newEpisode);
+    } else {
+      console.log('ℹ️ Episódio já estava marcado como assistido');
     }
 
     // Verificar se completou todos os episódios para dar pontos
-    const watchedCount = watchedEpisodes.filter(ep => ep.animeId === animeId).length;
+    const animeWatchedEpisodes = watchedEpisodes.filter(ep => ep.animeId === animeId);
+    const watchedCount = animeWatchedEpisodes.length;
+    
+    console.log(`📊 Progresso: ${watchedCount}/${totalEpisodes} episódios assistidos`);
     
     // Notificar que um episódio foi assistido
     const episodeEvent = new CustomEvent('episodeWatched');
     window.dispatchEvent(episodeEvent);
+    console.log('📡 Evento episodeWatched disparado');
 
     if (watchedCount >= totalEpisodes) {
-      console.log(`🎉 Anime completado: ${animeTitle}! Pontos serão calculados.`);
-      return { completed: true, points: calculateAnimePoints(totalEpisodes) };
+      const points = calculateAnimePoints(totalEpisodes);
+      console.log(`🎉 Anime completado: ${animeTitle}! Pontos calculados: ${points}`);
+      return { completed: true, points };
     }
     
     return { completed: false, points: 0 };
   } catch (error) {
-    console.error('Erro ao marcar episódio como assistido:', error);
+    console.error('❌ Erro ao marcar episódio como assistido:', error);
     return { completed: false, points: 0 };
   }
 }

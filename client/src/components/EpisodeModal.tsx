@@ -29,9 +29,14 @@ export default function EpisodeModal({
   if (!episode) return null;
 
   const handleVideoEnd = async () => {
-    if (!animeId || !animeTitle) return;
+    console.log(`🎬 Video terminou! Dados:`, { animeId, animeTitle, episode: episode.number });
     
-    console.log(`📺 Episódio ${episode.number} de ${animeTitle} terminou!`);
+    if (!animeId || !animeTitle) {
+      console.error('❌ Dados do anime não encontrados:', { animeId, animeTitle });
+      return;
+    }
+    
+    console.log(`📺 Marcando episódio ${episode.number} de ${animeTitle} como assistido...`);
     
     try {
       const result = await markEpisodeWatchedFromPlayer(
@@ -42,11 +47,14 @@ export default function EpisodeModal({
         totalEpisodes
       );
       
+      console.log('✅ Resultado da marcação:', result);
+      
       if (result.completed) {
+        console.log('🎉 Anime completado! Mostrando modal de parabéns...');
         showAnimeCompletionModal(animeTitle, result.points);
       }
     } catch (error) {
-      console.error('Erro ao marcar episódio:', error);
+      console.error('❌ Erro ao marcar episódio:', error);
     }
   };
 
@@ -96,20 +104,31 @@ export default function EpisodeModal({
               </div>
             </>
           ) : (
-            <video
-              ref={videoRef}
-              className="w-full h-full"
-              controls
-              autoPlay
-              onEnded={handleVideoEnd}
-              data-testid="video-player"
-            >
-              <source 
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
-                type="video/mp4" 
-              />
-              Seu navegador não suporta reprodução de vídeo.
-            </video>
+            <div className="relative w-full h-full">
+              <video
+                ref={videoRef}
+                className="w-full h-full"
+                controls
+                autoPlay
+                onEnded={handleVideoEnd}
+                data-testid="video-player"
+              >
+                <source 
+                  src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+                  type="video/mp4" 
+                />
+                Seu navegador não suporta reprodução de vídeo.
+              </video>
+              
+              {/* Botão de teste para simular fim do episódio */}
+              <button
+                onClick={handleVideoEnd}
+                className="absolute bottom-4 right-4 bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] px-4 py-2 rounded-lg text-white text-sm hover:opacity-90 transition-opacity"
+                data-testid="button-simulate-end"
+              >
+                🎯 Simular Fim do Episódio
+              </button>
+            </div>
           )}
         </div>
       </DialogContent>
