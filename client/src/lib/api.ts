@@ -438,17 +438,51 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
   return continueWatching;
 }
 
+// Função para obter temporadas disponíveis
+export function getAvailableSeasons() {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // Mês atual (1-12)
+  
+  // Determinar temporada atual baseada no mês
+  let currentSeason: string;
+  if (currentMonth >= 1 && currentMonth <= 3) currentSeason = 'winter';
+  else if (currentMonth >= 4 && currentMonth <= 6) currentSeason = 'spring';
+  else if (currentMonth >= 7 && currentMonth <= 9) currentSeason = 'summer';
+  else currentSeason = 'fall';
+  
+  const seasons = [
+    { value: 'now', label: 'Temporada Atual', year: currentYear, season: currentSeason },
+    { value: `${currentYear}/fall`, label: 'Outono 2024', year: currentYear, season: 'fall' },
+    { value: `${currentYear}/summer`, label: 'Verão 2024', year: currentYear, season: 'summer' },
+    { value: `${currentYear}/spring`, label: 'Primavera 2024', year: currentYear, season: 'spring' },
+    { value: `${currentYear}/winter`, label: 'Inverno 2024', year: currentYear, season: 'winter' },
+    { value: `${currentYear - 1}/fall`, label: 'Outono 2023', year: currentYear - 1, season: 'fall' },
+    { value: `${currentYear - 1}/summer`, label: 'Verão 2023', year: currentYear - 1, season: 'summer' },
+  ];
+  
+  return seasons;
+}
+
 export async function getLatestAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🆕 Getting latest anime from current season...");
+  return getAnimesBySeason('now');
+}
+
+export async function getAnimesBySeason(season: string = 'now'): Promise<AnimeWithProgress[]> {
+  console.log(`🆕 Getting latest anime from season: ${season}...`);
   
   try {
-    // Buscar diretamente da API de temporada atual (season now) para ter mais lançamentos
-    const seasonResponse = await fetch(`${JIKAN_API_BASE}/seasons/now?limit=25`);
+    // Construir URL baseado na temporada selecionada
+    let apiUrl = `${JIKAN_API_BASE}/seasons/now?limit=25`;
+    if (season !== 'now') {
+      apiUrl = `${JIKAN_API_BASE}/seasons/${season}?limit=25`;
+    }
+    
+    const seasonResponse = await fetch(apiUrl);
     if (seasonResponse.ok) {
       const seasonData = await seasonResponse.json();
       if (seasonData?.data && seasonData.data.length > 0) {
         const seasonAnimes = seasonData.data.map(adaptAnimeFromJikanAPI);
-        console.log("✅ Returning", seasonAnimes.length, "season animes from Jikan API");
+        console.log("✅ Returning", seasonAnimes.length, `season animes from ${season}`);
         return getAnimesWithProgress(seasonAnimes);
       }
     }

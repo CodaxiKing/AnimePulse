@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import HeroCarousel from "@/components/HeroCarousel";
 import AnimeCard from "@/components/AnimeCard";
 import MangaCard from "@/components/MangaCard";
@@ -8,12 +8,15 @@ import SocialPost from "@/components/SocialPost";
 import ActiveUsers from "@/components/ActiveUsers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import {
   getContinueWatching,
   getTrendingAnime,
   getLatestAnime,
+  getAnimesBySeason,
+  getAvailableSeasons,
   getTopAnime,
   getLatestManga,
   getLatestNews,
@@ -65,6 +68,99 @@ function ContinueWatchingSection() {
               variant="horizontal"
             />
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente específico para a seção de Lançamentos com seletor de temporada
+function LaunchesSection() {
+  const [selectedSeason, setSelectedSeason] = useState('now');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const availableSeasons = getAvailableSeasons();
+  
+  const { data: animes, isLoading } = useQuery({
+    queryKey: ['latest', selectedSeason],
+    queryFn: () => getAnimesBySeason(selectedSeason),
+  });
+
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-semibold" data-testid="text-section-launches">Lançamentos</h3>
+        <div className="flex items-center gap-4">
+          <Select value={selectedSeason} onValueChange={setSelectedSeason}>
+            <SelectTrigger className="w-48" data-testid="select-season">
+              <SelectValue placeholder="Selecione a temporada" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSeasons.map((season) => (
+                <SelectItem key={season.value} value={season.value}>
+                  {season.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!isLoading && animes && animes.length > 4 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={scrollLeft}
+                className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
+                data-testid="button-scroll-left-launches"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={scrollRight}
+                className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
+                data-testid="button-scroll-right-launches"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="relative">
+        <div 
+          ref={scrollRef}
+          className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r"
+        >
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex-none w-48 aspect-[3/4.5]">
+                <Skeleton className="w-full h-[70%] rounded-2xl mb-3" />
+                <Skeleton className="h-4 w-32 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ))
+          ) : (
+            animes?.map((anime) => (
+              <AnimeCard
+                key={anime.id}
+                anime={anime}
+                isNew={true}
+                variant="horizontal"
+              />
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -206,11 +302,7 @@ export default function Home() {
             queryKey="trending"
           />
           
-          <AnimeSection
-            title="Lançamentos"
-            queryKey="latest"
-            isNew={true}
-          />
+          <LaunchesSection />
           
           <AnimeSection
             title="Top 10 mais assistidos"
