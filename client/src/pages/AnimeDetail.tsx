@@ -373,7 +373,7 @@ export default function AnimeDetail() {
                 <div className="absolute top-8 -right-4 w-3 h-3 bg-pink-400 rounded-full animate-pulse" />
               </div>
               
-              <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
+              <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse text-center">
                 🎉 PARABÉNS! 🎉
               </DialogTitle>
               
