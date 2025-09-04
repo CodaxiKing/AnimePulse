@@ -1,9 +1,38 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import type { Anime, Episode, Manga, News } from "@shared/schema";
+import type { Anime, Episode, Manga, News, InsertUser } from "@shared/schema";
+import { insertUserSchema } from "@shared/schema";
+import session from "express-session";
+import { ZodError } from "zod";
+
+// Extend Express Session interface
+declare module "express-session" {
+  interface SessionData {
+    userId?: string;
+  }
+}
+
+// Middleware para verificar autenticação
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configurar sessão
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'anime-pulse-secret-key-development',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+    }
+  }));
   // Anime routes
   app.get("/api/animes/trending", async (req, res) => {
     try {
@@ -108,6 +137,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json([]);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch active users" });
+    }
+  });
+
+  // Authentication routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Verificar se usuário já existe
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
+      // Criar novo usuário
+      const user = await storage.createUser(userData);
+      
+      // Criar sessão
+      req.session.userId = user.id;
+      
+      // Retornar usuário sem senha
+      const { password, ...userWithoutPassword } = user;
+      res.status(201).json({ user: userWithoutPassword });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Failed to register user" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username and password required" });
+      }
+
+      // Autenticar usuário
+      const user = await storage.authenticateUser(username, password);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Criar sessão
+      req.session.userId = user.id;
+      
+      // Retornar usuário sem senha
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ error: "Failed to logout" });
+      }
+      res.clearCookie('connect.sid'); // Nome padrão do cookie de sessão
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/auth/me", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Retornar usuário sem senha
+      const { password, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Get user error:", error);
+      res.status(500).json({ error: "Failed to get user" });
     }
   });
 
