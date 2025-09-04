@@ -89,7 +89,11 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
         {/* Overlay com botão de play */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <Button
-            onClick={onClick}
+            onClick={() => {
+              onClick();
+              // Marcar automaticamente como assistido quando clicar no play
+              handleMarkAsWatched?.(episode);
+            }}
             size="lg"
             className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-full p-4 anime-glow"
             data-testid={`button-play-episode-${episode.number}`}
@@ -133,7 +137,11 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
         
         <div className="flex gap-2 mt-3">
           <Button
-            onClick={onClick}
+            onClick={() => {
+              onClick();
+              // Marcar automaticamente como assistido quando clicar em Assistir
+              handleMarkAsWatched?.(episode);
+            }}
             variant="outline"
             size="sm"
             className="flex-1 text-xs"
