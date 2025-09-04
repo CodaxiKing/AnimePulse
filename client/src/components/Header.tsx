@@ -95,7 +95,7 @@ export default function Header() {
                   </div>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 z-[100] relative">
                 {isLoading ? (
                   <DropdownMenuItem disabled>
                     <div className="flex items-center gap-2">

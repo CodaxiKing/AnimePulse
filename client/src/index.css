@@ -26,6 +26,21 @@ main {
   position: fixed !important;
 }
 
+/* Ensure dropdowns always appear on top */
+[data-radix-popper-content-wrapper] {
+  z-index: 999 !important;
+}
+
+[role="menu"] {
+  z-index: 999 !important;
+}
+
+/* Dropdown menu specific fix */
+.dropdown-content {
+  z-index: 999 !important;
+  position: relative;
+}
+
 /* Utility classes para truncar texto */
 .line-clamp-1 {
   display: -webkit-box;

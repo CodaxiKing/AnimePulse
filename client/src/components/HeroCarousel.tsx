@@ -36,8 +36,8 @@ export default function HeroCarousel() {
   };
 
   return (
-    <section className="relative h-[80vh] overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10" />
+    <section className="relative h-[80vh] overflow-hidden z-10">
+      <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-20" />
       
       <img
         src={current.image}
