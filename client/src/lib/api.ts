@@ -415,15 +415,44 @@ export async function getEpisodesByAnimeIdAPI(animeId: string): Promise<Episode[
     const anime = await getAnimeByIdAPI(animeId);
     const totalEpisodes = anime.totalEpisodes || 12;
     
+    // Lista de títulos realistas para episódios
+    const episodeTitles = [
+      "O Início da Jornada",
+      "Primeiros Passos",
+      "O Despertar do Poder",
+      "Encontro Fatídico",
+      "Revelações",
+      "Batalha Decisiva",
+      "Novos Aliados",
+      "O Segredo Revelado",
+      "Confronto Final",
+      "Uma Nova Esperança",
+      "Lágrimas e Sorrisos",
+      "O Verdadeiro Inimigo",
+      "Força Interior",
+      "Sacrifício",
+      "O Passado Revelado",
+      "Coração Partido",
+      "Renascimento",
+      "A Verdade Oculta",
+      "Última Chance",
+      "Destino Selado",
+      "Luz na Escuridão",
+      "Farewell",
+      "Novo Começo",
+      "Para Sempre"
+    ];
+
     // Gerar episódios realistas com base nos dados do anime
     const episodes: Episode[] = [];
     
     for (let i = 1; i <= Math.min(totalEpisodes, 24); i++) {
+      const episodeTitle = episodeTitles[i - 1] || `Aventura Continua`;
       episodes.push({
         id: `${animeId}-ep-${i}`,
         animeId: animeId,
         number: i,
-        title: `Episódio ${i}`,
+        title: `Episódio ${i} - ${episodeTitle}`,
         thumbnail: anime.image || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
         duration: "24 min",
         releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
