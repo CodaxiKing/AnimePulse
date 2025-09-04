@@ -18,6 +18,106 @@ const ANIME_TV_API_BASE = "https://appanimeplus.tk/api-achance.php";
 const OTAKUDESU_API_BASE = import.meta.env.VITE_OTAKUDESU_API || "https://unofficial-otakudesu-api-ruang-kreatif.vercel.app/api";
 const JIKAN_API_BASE = "https://api.jikan.moe/v4"; // Fallback
 
+// APIs de streaming real
+const ANIME_STREAMING_API = 'https://api-anime-rouge.vercel.app';
+const ANBU_API = 'https://anbuanime.onrender.com';
+
+// Função para buscar anime na API de streaming por título
+async function searchAnimeInStreamingAPI(title: string): Promise<any> {
+  try {
+    console.log('🔍 Searching for anime in streaming API:', title);
+    
+    // Tentar na API Falcon71181 primeiro (mais confiável)
+    const searchQuery = encodeURIComponent(title.toLowerCase());
+    const searchUrl = `${ANIME_STREAMING_API}/aniwatch/anime/${searchQuery}`;
+    
+    console.log('🌐 Trying streaming API search:', searchUrl);
+    const response = await fetch(searchUrl);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Found anime in streaming API:', data.anime?.info?.name || 'Unknown');
+      return data;
+    }
+    
+    // Fallback para busca por query
+    const fallbackUrl = `${ANIME_STREAMING_API}/aniwatch/search?q=${searchQuery}`;
+    console.log('🌐 Trying fallback search:', fallbackUrl);
+    const fallbackResponse = await fetch(fallbackUrl);
+    
+    if (fallbackResponse.ok) {
+      const fallbackData = await fallbackResponse.json();
+      if (fallbackData.animes && fallbackData.animes.length > 0) {
+        const firstResult = fallbackData.animes[0];
+        console.log('✅ Found anime via search:', firstResult.name);
+        return { anime: { info: firstResult } };
+      }
+    }
+    
+  } catch (error) {
+    console.warn('❌ Error searching streaming API:', error);
+  }
+  
+  return null;
+}
+
+// Função para buscar episódios reais com streaming
+async function getStreamingEpisodes(animeId: string, streamingAnimeId?: string): Promise<any[]> {
+  if (!streamingAnimeId) return [];
+  
+  try {
+    console.log('🎬 Getting streaming episodes for:', streamingAnimeId);
+    
+    const episodesUrl = `${ANIME_STREAMING_API}/aniwatch/episodes/${streamingAnimeId}`;
+    console.log('🌐 Fetching episodes from:', episodesUrl);
+    
+    const response = await fetch(episodesUrl);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Found', data.episodes?.length || 0, 'streaming episodes');
+      return data.episodes || [];
+    }
+    
+  } catch (error) {
+    console.warn('❌ Error fetching streaming episodes:', error);
+  }
+  
+  return [];
+}
+
+// Função para buscar link de streaming de um episódio
+async function getEpisodeStreamingLink(episodeId: string): Promise<string | null> {
+  try {
+    console.log('🔗 Getting streaming link for episode:', episodeId);
+    
+    const streamUrl = `${ANIME_STREAMING_API}/aniwatch/episode-srcs?id=${episodeId}&server=vidstreaming&category=sub`;
+    console.log('🌐 Fetching stream from:', streamUrl);
+    
+    const response = await fetch(streamUrl);
+    
+    if (response.ok) {
+      const data = await response.json();
+      const sources = data.sources || [];
+      
+      // Buscar a melhor qualidade disponível
+      const bestSource = sources.find((s: any) => s.quality === '1080p') || 
+                          sources.find((s: any) => s.quality === '720p') || 
+                          sources[0];
+      
+      if (bestSource) {
+        console.log('✅ Found streaming link:', bestSource.quality);
+        return bestSource.url;
+      }
+    }
+    
+  } catch (error) {
+    console.warn('❌ Error fetching streaming link:', error);
+  }
+  
+  return null;
+}
+
 // Dicionário de traduções comuns de sinopses de anime
 const synopsisTranslations: Record<string, string> = {
   "Humanity fights for survival against giant humanoid Titans": "A humanidade luta pela sobrevivência contra Titãs humanoides gigantes que ameaçam a existência da civilização.",
@@ -491,11 +591,16 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
     console.log("🎬 Getting episodes for anime ID:", animeId, "Season:", season);
     
     // Buscar informações da temporada específica da API Jikan
+    let streamingAnimeData: any = null;
     try {
       const seasonResponse = await fetch(`${JIKAN_API_BASE}/anime/${animeId}`);
       if (seasonResponse.ok) {
         const animeData = await seasonResponse.json();
         const anime = animeData.data;
+        
+        // Tentar buscar este anime nas APIs de streaming
+        console.log("🔍 Searching for streaming data for:", anime.title);
+        streamingAnimeData = await searchAnimeInStreamingAPI(anime.title);
         
         // Buscar temporadas relacionadas
         const relatedResponse = await fetch(`${JIKAN_API_BASE}/anime/${animeId}/relations`);
@@ -559,22 +664,41 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
       "Para Sempre"
     ];
 
+        // Buscar episódios reais da API de streaming, se disponível
+        let streamingEpisodes: any[] = [];
+        if (streamingAnimeData?.anime?.info?.id) {
+          streamingEpisodes = await getStreamingEpisodes(animeId, streamingAnimeData.anime.info.id);
+        }
+
         // Gerar episódios realistas para esta temporada específica
         const episodes: Episode[] = [];
         
         for (let i = 1; i <= totalEpisodes; i++) {
           const episodeIndex = (i - 1) % episodeTitles.length;
           const episodeTitle = episodeTitles[episodeIndex] || `Aventura Continua`;
+          
+          // Verificar se temos episódio real da API de streaming
+          const streamingEp = streamingEpisodes.find((ep: any) => ep.number === i);
+          let streamingUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+          
+          // Se encontrou episódio real, tentar buscar link de streaming
+          if (streamingEp?.episodeId) {
+            const realStreamingUrl = await getEpisodeStreamingLink(streamingEp.episodeId);
+            if (realStreamingUrl) {
+              streamingUrl = realStreamingUrl;
+              console.log("🎥 Found real streaming URL for episode", i);
+            }
+          }
+          
           episodes.push({
             id: `${animeId}-s${season}-ep-${i}`,
             animeId: animeId,
             number: i,
-            title: `Episódio ${i} - ${episodeTitle}`,
+            title: streamingEp?.title || `Episódio ${i} - ${episodeTitle}`,
             thumbnail: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
             duration: "24 min",
             releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
-            // URLs de vídeo de demonstração (Big Buck Bunny - vídeo de teste público)
-            streamingUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            streamingUrl: streamingUrl,
             downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${i}.mp4`,
           });
         }
