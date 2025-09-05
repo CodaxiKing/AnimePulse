@@ -184,23 +184,41 @@ export default function EpisodeModal({
               </div>
             </>
           ) : (
-            <video
-              ref={videoRef}
-              className="w-full h-full rounded-lg"
-              controls
-              autoPlay
-              onEnded={handleVideoEnd}
-              data-testid="video-player"
-              key={videoUrl} // Force reload when URL changes
-            >
-              {videoUrl && (
-                <source 
-                  src={videoUrl} 
-                  type="video/mp4" 
+            <>
+              {videoUrl?.includes('youtube.com/embed') ? (
+                // Player do YouTube para trailers oficiais
+                <iframe
+                  src={videoUrl}
+                  className="w-full h-full rounded-lg"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={`${episode.title} - Trailer Oficial`}
+                  data-testid="youtube-player"
+                  onLoad={() => {
+                    console.log('✅ Trailer oficial do YouTube carregado!');
+                  }}
                 />
+              ) : (
+                // Player HTML5 padrão para outros vídeos
+                <video
+                  ref={videoRef}
+                  className="w-full h-full rounded-lg"
+                  controls
+                  autoPlay
+                  onEnded={handleVideoEnd}
+                  data-testid="video-player"
+                  key={videoUrl} // Force reload when URL changes
+                >
+                  {videoUrl && (
+                    <source 
+                      src={videoUrl} 
+                      type="video/mp4" 
+                    />
+                  )}
+                  Seu navegador não suporta reprodução de vídeo.
+                </video>
               )}
-              Seu navegador não suporta reprodução de vídeo.
-            </video>
+            </>
           )}
         </div>
       </DialogContent>
