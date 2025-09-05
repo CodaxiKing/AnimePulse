@@ -105,32 +105,32 @@ export default function Header() {
             </div>
 
             {/* Right side - Desktop */}
-            <div className="hidden lg:flex items-center space-x-3">
+            <div className="hidden lg:flex items-center justify-end flex-1 max-w-xs">
               {/* Profile Dropdown */}
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="relative w-10 h-10 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5 hover:scale-105 transition-all duration-200"
-                    data-testid="button-profile-menu"
+              <div className="mr-8">
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="relative w-10 h-10 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5 hover:scale-105 transition-all duration-200"
+                      data-testid="button-profile-menu"
+                    >
+                      <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                        <User className="w-5 h-5 text-foreground" />
+                      </div>
+                      {isAuthenticated && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-background rounded-full"></div>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    align="end" 
+                    className="w-56 p-2 bg-background/95 backdrop-blur-sm border border-border/50" 
+                    sideOffset={8}
+                    avoidCollisions={true}
+                    collisionPadding={20}
                   >
-                    <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-                      <User className="w-5 h-5 text-foreground" />
-                    </div>
-                    {isAuthenticated && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-background rounded-full"></div>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="start" 
-                  className="w-56 p-2 bg-background/95 backdrop-blur-sm border border-border/50" 
-                  sideOffset={8}
-                  avoidCollisions={true}
-                  collisionPadding={20}
-                  alignOffset={-320}
-                >
                   {isLoading ? (
                     <DropdownMenuItem disabled>
                       <div className="flex items-center gap-2">
@@ -218,8 +218,9 @@ export default function Header() {
                     </>
                   )}
                 </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                  </DropdownMenu>
+                </div>
+              </div>
           </div>
         </div>
       </header>
