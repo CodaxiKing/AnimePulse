@@ -35,16 +35,18 @@ interface CompletedAnime {
 }
 
 interface WatchProgress {
-  animeId: string;
-  episodeNumber: number;
-  progressPercent: number;
+  animeId: number;
+  episodesWatched: number;
+  totalEpisodes: number;
+  status: string;
+  progressPercent?: number;
   updatedAt: string;
 }
 
 export default function Profile() {
   const { user, stats, isLoading } = useAuth();
   const [progressPage, setProgressPage] = useState(0);
-  const progressPerPage = 3;
+  const progressPerPage = 2; // Reduzido para 2 para mostrar as setinhas mais facilmente
 
   // Buscar animes completados
   const { data: completedAnimes = [] } = useQuery<CompletedAnime[]>({
@@ -53,10 +55,15 @@ export default function Profile() {
   });
 
   // Buscar progresso atual de assistir
-  const { data: watchProgress = [] } = useQuery<WatchProgress[]>({
+  const { data: allProgress = [] } = useQuery<WatchProgress[]>({
     queryKey: ["/api/user/progress"],
     enabled: !!user,
   });
+
+  // Filtrar apenas animes em progresso (não completados)
+  const watchProgress = allProgress.filter(progress => 
+    progress.status === 'watching' && progress.episodesWatched < progress.totalEpisodes
+  );
 
   if (isLoading) {
     return (
@@ -241,9 +248,9 @@ export default function Profile() {
                         <div className="flex-1">
                           <h4 className="font-medium">Anime #{progress.animeId}</h4>
                           <p className="text-sm text-muted-foreground">
-                            Episódio {progress.episodeNumber} • {progress.progressPercent}% assistido
+                            Episódio {progress.episodesWatched} de {progress.totalEpisodes} • {Math.round((progress.episodesWatched / progress.totalEpisodes) * 100)}% assistido
                           </p>
-                          <Progress value={progress.progressPercent} className="h-1 mt-2" />
+                          <Progress value={(progress.episodesWatched / progress.totalEpisodes) * 100} className="h-1 mt-2" />
                         </div>
                         <Button variant="outline" size="sm" data-testid={`button-continue-${progress.animeId}`}>
                           Continuar

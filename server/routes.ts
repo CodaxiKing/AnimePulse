@@ -60,9 +60,10 @@ const mockUserProgress = [
   },
   {
     animeId: 16498, // Attack on Titan
-    episodesWatched: 0,
+    episodesWatched: 12,
     totalEpisodes: 25,
-    status: 'plan_to_watch',
+    status: 'watching',
+    score: 8,
     updatedAt: '2024-12-05'
   },
   {
@@ -80,6 +81,30 @@ const mockUserProgress = [
     status: 'completed',
     score: 10,
     updatedAt: '2024-10-25'
+  },
+  {
+    animeId: 11061, // Hunter x Hunter
+    episodesWatched: 45,
+    totalEpisodes: 148,
+    status: 'watching',
+    score: 9,
+    updatedAt: '2024-12-13'
+  },
+  {
+    animeId: 1535, // Death Note
+    episodesWatched: 20,
+    totalEpisodes: 37,
+    status: 'watching',
+    score: 8,
+    updatedAt: '2024-12-14'
+  },
+  {
+    animeId: 22319, // Tokyo Ghoul
+    episodesWatched: 8,
+    totalEpisodes: 12,
+    status: 'watching',
+    score: 7,
+    updatedAt: '2024-12-11'
   }
 ];
 
