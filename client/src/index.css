@@ -90,16 +90,19 @@ body:has([data-radix-dropdown-menu-content]) {
 }
 
 /* Header dropdown specific positioning - Force left positioning */
-header [data-radix-dropdown-menu-content] {
-  position: fixed !important;
-  top: 60px !important;
-  right: 20px !important;
+header [data-radix-dropdown-menu-content],
+[data-radix-dropdown-menu-content],
+.header [data-radix-dropdown-menu-content] {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0px !important;
   left: auto !important;
-  transform: translateX(-100%) !important;
+  transform: translateX(-100%) translateY(8px) !important;
   max-width: 200px !important;
   min-width: 180px !important;
   z-index: 9999 !important;
   box-shadow: 0 10px 38px -10px rgba(22, 23, 24, 0.35), 0 10px 20px -15px rgba(22, 23, 24, 0.2) !important;
+  margin-right: 0px !important;
 }
 
 /* Fix all dropdown and select positioning issues */
