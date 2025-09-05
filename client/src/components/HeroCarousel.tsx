@@ -10,6 +10,7 @@ import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const [trailerModalOpen, setTrailerModalOpen] = useState(false);
   const [selectedTrailer, setSelectedTrailer] = useState<{ animeTitle: string; trailerUrl: string } | null>(null);
   
@@ -34,16 +35,24 @@ export default function HeroCarousel() {
 
   const nextSlide = () => {
     if (isTransitioning) return;
+    setSlideDirection('right');
     setIsTransitioning(true);
     setCurrentSlide((prev) => (prev + 1) % heroAnimes.length);
-    setTimeout(() => setIsTransitioning(false), 600);
+    setTimeout(() => {
+      setIsTransitioning(false);
+      setSlideDirection(null);
+    }, 600);
   };
 
   const prevSlide = () => {
     if (isTransitioning) return;
+    setSlideDirection('left');
     setIsTransitioning(true);
     setCurrentSlide((prev) => (prev - 1 + heroAnimes.length) % heroAnimes.length);
-    setTimeout(() => setIsTransitioning(false), 600);
+    setTimeout(() => {
+      setIsTransitioning(false);
+      setSlideDirection(null);
+    }, 600);
   };
 
   const handleWatchTrailer = () => {
@@ -74,13 +83,21 @@ export default function HeroCarousel() {
         src={current.image}
         alt={current.title}
         className={`absolute inset-0 w-full h-full object-cover transition-all duration-600 ease-in-out ${
-          isTransitioning ? 'scale-110 opacity-80' : 'scale-100 opacity-100'
+          isTransitioning 
+            ? slideDirection === 'right' 
+              ? 'scale-110 opacity-80 translate-x-4' 
+              : 'scale-110 opacity-80 -translate-x-4'
+            : 'scale-100 opacity-100 translate-x-0'
         }`}
       />
       
       <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center">
         <div className={`max-w-2xl transition-all duration-600 ease-in-out ${
-          isTransitioning ? 'translate-x-4 opacity-0' : 'translate-x-0 opacity-100'
+          isTransitioning 
+            ? slideDirection === 'right'
+              ? 'translate-x-8 opacity-0'
+              : '-translate-x-8 opacity-0'
+            : 'translate-x-0 opacity-100'
         }`}>
           <h2 className="text-4xl md:text-6xl font-bold mb-4 transition-all duration-700 ease-out" data-testid="text-hero-title">
             {current.title}
@@ -144,10 +161,16 @@ export default function HeroCarousel() {
         disabled={isTransitioning}
         className={`absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-border hover:bg-background/40 transition-all duration-200 hover:scale-110 active:scale-95 ${
           isTransitioning ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
+        } ${slideDirection === 'left' && isTransitioning ? 'animate-bounce' : ''}`}
         data-testid="button-carousel-prev"
       >
-        <ChevronLeft className={`w-6 h-6 transition-transform duration-200 ${isTransitioning ? '-translate-x-1' : ''}`} />
+        <ChevronLeft className={`w-6 h-6 transition-transform duration-200 ${
+          isTransitioning && slideDirection === 'left' 
+            ? '-translate-x-2 animate-pulse' 
+            : isTransitioning 
+              ? '-translate-x-1' 
+              : ''
+        }`} />
       </button>
       
       <button
@@ -155,10 +178,16 @@ export default function HeroCarousel() {
         disabled={isTransitioning}
         className={`absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-border hover:bg-background/40 transition-all duration-200 hover:scale-110 active:scale-95 ${
           isTransitioning ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
+        } ${slideDirection === 'right' && isTransitioning ? 'animate-bounce' : ''}`}
         data-testid="button-carousel-next"
       >
-        <ChevronRight className={`w-6 h-6 transition-transform duration-200 ${isTransitioning ? 'translate-x-1' : ''}`} />
+        <ChevronRight className={`w-6 h-6 transition-transform duration-200 ${
+          isTransitioning && slideDirection === 'right'
+            ? 'translate-x-2 animate-pulse'
+            : isTransitioning
+              ? 'translate-x-1'
+              : ''
+        }`} />
       </button>
 
       {/* Modal de Trailer */}
