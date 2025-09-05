@@ -92,12 +92,14 @@ body:has([data-radix-dropdown-menu-content]) {
 /* Header dropdown specific positioning - Force left positioning */
 header [data-radix-dropdown-menu-content] {
   position: fixed !important;
-  right: auto !important;
+  top: 60px !important;
+  right: 20px !important;
   left: auto !important;
-  transform: translateX(-180px) translateY(8px) !important;
+  transform: translateX(-100%) !important;
   max-width: 200px !important;
   min-width: 180px !important;
   z-index: 9999 !important;
+  box-shadow: 0 10px 38px -10px rgba(22, 23, 24, 0.35), 0 10px 20px -15px rgba(22, 23, 24, 0.2) !important;
 }
 
 /* Fix all dropdown and select positioning issues */
