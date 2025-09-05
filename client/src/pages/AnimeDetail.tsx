@@ -349,7 +349,7 @@ export default function AnimeDetail() {
           animeTitle={anime?.title}
           animeImage={anime?.image}
           animeId={anime?.id}
-          totalEpisodes={anime?.totalEpisodes}
+          totalEpisodes={anime?.totalEpisodes || undefined}
           episodes={episodes || []}
           onEpisodeChange={setSelectedEpisode}
         />

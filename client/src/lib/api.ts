@@ -828,7 +828,21 @@ export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
   try {
     console.log("📺 Getting anime details for ID:", id);
     
-    // Primeiro tentar buscar da API do Otakudesu
+    // Se o ID for numérico, tentar primeiro no MyAnimeList
+    if (!isNaN(Number(id))) {
+      try {
+        const { getMALAnimeDetails } = await import('./malApi');
+        const malAnime = await getMALAnimeDetails(id);
+        if (malAnime) {
+          console.log("✅ Found anime details from MyAnimeList API");
+          return malAnime;
+        }
+      } catch (error) {
+        console.warn("⚠️ MyAnimeList API failed, trying fallback APIs");
+      }
+    }
+    
+    // Tentar buscar da API do Otakudesu
     const otakuResponse = await fetch(`${OTAKUDESU_API_BASE}/anime/${id}`, {
       method: 'GET',
       headers: {

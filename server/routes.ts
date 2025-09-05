@@ -36,6 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
   // MyAnimeList Proxy Endpoints
+
   app.get("/api/mal/anime/trending", async (req, res) => {
     try {
       const { limit = 25 } = req.query;
@@ -135,6 +136,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching from MAL:', error);
       res.status(500).json({ error: "Failed to fetch top manga from MAL" });
+    }
+  });
+
+  // Detalhes de anime individual (deve vir após os endpoints específicos)
+  app.get('/api/mal/anime/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { fields } = req.query;
+      
+      // Verificar se o ID é numérico (MAL ID válido)
+      if (isNaN(Number(id))) {
+        return res.status(400).json({ error: 'Invalid anime ID' });
+      }
+      
+      const fieldsParam = fields || 'id,title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,num_episodes,status,genres,studios,source,rating,statistics';
+      
+      const response = await fetch(
+        `https://api.myanimelist.net/v2/anime/${id}?fields=${fieldsParam}`,
+        {
+          headers: {
+            'X-MAL-CLIENT-ID': '8c655cb39b399536ed320693e1074910',
+            'User-Agent': 'AnimePulse/1.0',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        console.error('MAL API Error for anime ID:', id, response.status);
+        return res.status(response.status).json({ error: `MAL API error: ${response.status}` });
+      }
+
+      const data = await response.json();
+      res.json({ node: data });
+    } catch (error) {
+      console.error('Error fetching MAL anime details:', error);
+      res.status(500).json({ error: 'Failed to fetch anime details' });
     }
   });
 

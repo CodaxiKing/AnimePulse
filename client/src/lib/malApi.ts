@@ -115,6 +115,31 @@ function convertMALAnimeToLocal(malAnime: MALAnime): Anime {
   const year = malAnime.start_date ? new Date(malAnime.start_date).getFullYear() : undefined;
   const genres = malAnime.genres?.map(g => g.name) || [];
   
+  // Melhor formatação da data de lançamento
+  const formatReleaseDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('pt-BR', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+  
+  // Melhor formatação do status
+  const formatStatus = (status?: string) => {
+    switch (status) {
+      case 'finished_airing': return 'Finalizado';
+      case 'currently_airing': return 'Em Exibição';
+      case 'not_yet_aired': return 'Não Estreou';
+      default: return 'Desconhecido';
+    }
+  };
+  
   return {
     id: malAnime.id.toString(),
     title: malAnime.title,
@@ -122,13 +147,11 @@ function convertMALAnimeToLocal(malAnime: MALAnime): Anime {
     studio: firstStudio,
     year: year ?? null,
     genres,
-    synopsis: malAnime.synopsis || '',
-    releaseDate: malAnime.start_date || '',
-    status: malAnime.status === 'finished_airing' ? 'completed' : 
-             malAnime.status === 'currently_airing' ? 'ongoing' : 
-             malAnime.status || 'unknown',
+    synopsis: malAnime.synopsis || 'Sinopse não disponível',
+    releaseDate: formatReleaseDate(malAnime.start_date || ''),
+    status: formatStatus(malAnime.status),
     totalEpisodes: malAnime.num_episodes || 0,
-    rating: malAnime.rating || '',
+    rating: malAnime.mean ? malAnime.mean.toFixed(1) : '0.0',
     viewCount: malAnime.popularity ? Math.max(5000, 200000 - malAnime.popularity * 50) : (malAnime.rank ? Math.max(2000, 15000 - malAnime.rank * 100) : Math.floor(Math.random() * 80000) + 20000),
   };
 }
@@ -158,8 +181,8 @@ function convertMALMangaToLocal(malManga: MALManga): Manga {
 
 export async function getMALTrendingAnime(limit: number = 25): Promise<Anime[]> {
   const cacheKey = `trending_anime_${limit}`;
-  // Limpar cache temporariamente para forçar atualização
-  clearCache();
+  // Remover limpeza de cache após teste
+  // clearCache();
   const cached = getCachedData(cacheKey);
   if (cached) {
     console.log('📋 Using cached trending anime data');
@@ -410,6 +433,46 @@ export async function searchMALAnime(query: string, limit: number = 10): Promise
   } catch (error) {
     console.error(`❌ Error searching anime: ${query}`, error);
     return [];
+  }
+}
+
+// Função para buscar detalhes completos de um anime específico
+export async function getMALAnimeDetails(id: string): Promise<Anime | null> {
+  const cacheKey = `anime_details_${id}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) {
+    console.log(`📋 Using cached anime details for ID: ${id}`);
+    return cached;
+  }
+
+  try {
+    console.log(`🔍 Fetching anime details from MAL for ID: ${id}`);
+    
+    const fields = [
+      'id', 'title', 'main_picture', 'alternative_titles',
+      'start_date', 'end_date', 'synopsis', 'mean', 'rank',
+      'popularity', 'num_episodes', 'status', 'genres',
+      'studios', 'source', 'rating', 'statistics'
+    ].join(',');
+
+    const response = await fetch(`/api/mal/anime/${id}?fields=${fields}`);
+
+    if (!response.ok) {
+      throw new Error(`MAL API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data.node) {
+      const anime = convertMALAnimeToLocal(data.node);
+      setCachedData(cacheKey, anime);
+      console.log(`✅ Found anime details for: ${anime.title}`);
+      return anime;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`❌ Error fetching anime details for ID: ${id}`, error);
+    return null;
   }
 }
 
