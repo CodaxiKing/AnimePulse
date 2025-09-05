@@ -288,15 +288,15 @@ export default function Profile() {
                                   {anime.title}
                                 </h4>
                                 <p className="text-sm text-muted-foreground">
-                                  Ep. {anime.episodeNumber}/{anime.totalEpisodes}
+                                  Ep. {anime.progress?.episodeNumber || anime.episodeNumber}/{anime.totalEpisodes}
                                 </p>
                                 <div className="mt-2">
                                   <Progress 
-                                    value={Math.round((anime.episodeNumber / anime.totalEpisodes) * 100)} 
+                                    value={anime.progress?.progressPercent || anime.progressPercent || 0} 
                                     className="h-1.5" 
                                   />
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    {Math.round((anime.episodeNumber / anime.totalEpisodes) * 100)}% concluído
+                                    {anime.progress?.progressPercent || anime.progressPercent || 0}% concluído
                                   </p>
                                 </div>
                               </div>
