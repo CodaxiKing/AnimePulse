@@ -94,7 +94,20 @@ export default function EpisodeModal({
       const yearMatch = animeTitle.match(/\b(19|20)\d{2}\b/);
       const year = yearMatch ? parseInt(yearMatch[0]) : undefined;
       
-      const url = await getEpisodeVideoUrl(animeTitle, episode.number, year);
+      // Criar uma promise com timeout para evitar travamento
+      const videoPromise = getEpisodeVideoUrl(animeTitle, episode.number, year);
+      const timeoutPromise = new Promise<string>((_, reject) => {
+        setTimeout(() => reject(new Error('Video search timeout')), 5000);
+      });
+      
+      let url: string | null = null;
+      
+      try {
+        url = await Promise.race([videoPromise, timeoutPromise]);
+      } catch (timeoutError) {
+        console.log('⏰ Video search timed out, using demo video');
+        url = null;
+      }
       
       if (url) {
         setVideoUrl(url);
@@ -102,12 +115,12 @@ export default function EpisodeModal({
       } else {
         console.warn('⚠️ Nenhuma URL de vídeo encontrada, usando placeholder');
         setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
-        setVideoError('API de streaming temporariamente indisponível');
+        setVideoError('Usando vídeo de demonstração - APIs de streaming temporariamente indisponíveis');
       }
     } catch (error) {
       console.error('❌ Erro ao buscar vídeo:', error);
       setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
-      setVideoError('API de streaming indisponível, usando vídeo de demonstração');
+      setVideoError('Usando vídeo de demonstração');
     } finally {
       setIsLoadingVideo(false);
     }
