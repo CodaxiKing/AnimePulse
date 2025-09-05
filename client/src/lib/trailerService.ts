@@ -68,6 +68,18 @@ const OFFICIAL_TRAILERS: Record<string, AnimeTrailer> = {
     title: 'Chainsaw Man - Official Trailer',
     duration: '1:48',
     quality: '1080p HD'
+  },
+  'Kaoru Hana wa Rin to Saku': {
+    trailerUrl: 'https://www.youtube.com/embed/3qhKBiC3aDU',
+    title: 'Kaoru Hana wa Rin to Saku - Official Trailer',
+    duration: '1:30',
+    quality: '1080p HD'
+  },
+  'Romance': {
+    trailerUrl: 'https://www.youtube.com/embed/3qhKBiC3aDU',
+    title: 'Romance Anime - Official Trailer',
+    duration: '1:30',
+    quality: '1080p HD'
   }
 };
 
