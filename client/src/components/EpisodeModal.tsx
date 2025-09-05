@@ -93,23 +93,7 @@ export default function EpisodeModal({
       // 🔍 PRIMEIRA TENTATIVA: Usar endpoint direto se temos o ID do episódio
       if (episode.id && episode.id !== episode.number.toString()) {
         console.log(`🎯 Tentando buscar streaming direto para episódio ID: ${episode.id}`);
-        try {
-          const API_BASE = import.meta.env.DEV ? 'http://localhost:5000' : '';
-          const directResponse = await fetch(`${API_BASE}/api/episodes/${episode.id}/stream`);
-          
-          if (directResponse.ok) {
-            const streamResult = await directResponse.json().catch(() => null);
-            if (streamResult?.streamingUrl) {
-              console.log('🎊 URL de streaming direto obtida!');
-              setVideoUrl(streamResult.streamingUrl);
-              console.log(`✅ URL do vídeo encontrada: ${streamResult.streamingUrl.substring(0, 50)}...`);
-              console.log(`📺 VideoUrl state atualizado para: ${streamResult.streamingUrl}`);
-              return;
-            }
-          }
-        } catch (error) {
-          console.warn('⚠️ Falha no streaming direto, tentando busca por nome...', error instanceof Error ? error.message : 'Erro desconhecido');
-        }
+        // Endpoint ainda não implementado, pulando para busca por nome
       }
       
       // 🔍 SEGUNDA TENTATIVA: Buscar por nome do anime
