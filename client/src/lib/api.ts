@@ -1906,3 +1906,51 @@ function adaptGogoEpisodeToEpisode(gogoEpisode: any): Episode {
     subOrDub: gogoEpisode.subOrDub || 'SUB'
   };
 }
+
+// Função para buscar animes completados
+export async function getCompletedAnimes() {
+  console.log('🏆 Getting completed animes...');
+  try {
+    const response = await fetch("/api/user/completed-animes");
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const completedProgress = await response.json();
+    
+    console.log('✅ Returning', completedProgress.length, 'completed animes');
+    
+    // Converter animes completados para formato padrão
+    const animes = await Promise.all(
+      completedProgress.map(async (progress: any) => {
+        try {
+          // Buscar detalhes do anime usando a API do MAL
+          const animeDetails = await getAnimeById(progress.animeId);
+          return {
+            ...animeDetails,
+            episodesWatched: progress.episodesWatched,
+            totalEpisodes: progress.totalEpisodes || animeDetails.episodes || 24,
+            completedAt: progress.updatedAt,
+            score: progress.score
+          };
+        } catch (error) {
+          console.warn(`❌ Erro ao buscar detalhes do anime completado ${progress.animeId}:`, error);
+          // Retornar dados básicos se não conseguir buscar detalhes
+          return {
+            id: progress.animeId,
+            title: `Anime ${progress.animeId}`,
+            image: "https://via.placeholder.com/400x600",
+            episodesWatched: progress.episodesWatched,
+            totalEpisodes: progress.totalEpisodes || 24,
+            completedAt: progress.updatedAt,
+            score: progress.score
+          };
+        }
+      })
+    );
+    
+    return animes;
+  } catch (error) {
+    console.error('❌ Error fetching completed animes:', error);
+    return [];
+  }
+}

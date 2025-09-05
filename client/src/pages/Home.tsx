@@ -25,6 +25,7 @@ import {
 } from "@/lib/api";
 
 function ContinueWatchingSection() {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const { data: continueAnimes, isLoading } = useQuery({
     queryKey: ['continue'],
     queryFn: async () => {
@@ -32,6 +33,18 @@ function ContinueWatchingSection() {
       return getContinueWatching();
     },
   });
+
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
 
   // Não renderizar a seção se não houver animes para continuar assistindo
   if (isLoading) {
@@ -57,9 +70,36 @@ function ContinueWatchingSection() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-xl font-semibold" data-testid="text-section-continue">Continue assistindo</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-semibold" data-testid="text-section-continue">Continue assistindo</h3>
+        {continueAnimes && continueAnimes.length > 4 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={scrollLeft}
+              className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
+              data-testid="button-scroll-left-continue"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={scrollRight}
+              className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
+              data-testid="button-scroll-right-continue"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
       <div className="relative">
-        <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
+        <div 
+          ref={scrollRef}
+          className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r"
+        >
           {continueAnimes.map((anime) => (
             <AnimeCard
               key={anime.id}

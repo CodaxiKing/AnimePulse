@@ -27,6 +27,7 @@ import {
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { getCompletedAnimes } from "@/lib/api";
 
 interface CompletedAnime {
   id: string;
@@ -52,9 +53,10 @@ export default function Profile() {
   const progressPerPage = 3; // Cards visíveis no carrossel horizontal
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Buscar animes completados
-  const { data: completedAnimes = [] } = useQuery<CompletedAnime[]>({
+  // Buscar animes completados usando a nova API
+  const { data: completedAnimes = [] } = useQuery({
     queryKey: ["/api/user/completed-animes"],
+    queryFn: getCompletedAnimes,
     enabled: !!user,
   });
 

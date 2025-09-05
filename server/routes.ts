@@ -704,9 +704,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.session.userId!;
       
-      // 🔧 FORÇAR DADOS MOCK para testar as setinhas
-      console.log('📊 Retornando dados mock de progresso para testar setinhas:', mockUserProgress.length, 'itens');
-      res.json(mockUserProgress);
+      // Filtrar apenas animes que não estão completados (para "Continue Assistindo")
+      const activeProgress = mockUserProgress.filter(p => p.status === 'watching');
+      
+      console.log('📊 Retornando dados de progresso ativo (não completados):', activeProgress.length, 'itens');
+      res.json(activeProgress);
       return;
       
       // Tentar buscar progresso real do banco de dados
@@ -763,10 +765,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mockUserProgress.push(progressData);
       }
       
+      // Se o anime foi marcado como completado, verificar conquistas
+      if (status === 'completed' && req.session.userId) {
+        try {
+          await storage.checkAndUnlockAchievements(req.session.userId);
+        } catch (error) {
+          console.error('Erro ao verificar conquistas:', error);
+        }
+      }
+      
       res.json(progressData);
     } catch (error) {
       console.error("Error updating user progress:", error);
       res.status(500).json({ error: "Failed to update user progress" });
+    }
+  });
+
+  // Endpoint para buscar animes completados (para o perfil)
+  app.get("/api/user/completed-animes", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      
+      // Filtrar apenas animes completados
+      const completedAnimes = mockUserProgress.filter(p => p.status === 'completed');
+      
+      console.log('📊 Retornando animes completados:', completedAnimes.length, 'itens');
+      res.json(completedAnimes);
+    } catch (error) {
+      console.error("Error fetching completed animes:", error);
+      res.status(500).json({ error: "Failed to fetch completed animes" });
     }
   });
 
