@@ -17,6 +17,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import SettingsPage from "./pages/Settings";
 import Profile from "./pages/Profile";
+import Statistics from "./pages/Statistics";
+import Achievements from "./pages/Achievements";
 import Header from "./components/Header";
 
 function Router() {
@@ -42,6 +44,8 @@ function Router() {
               <Route path="/noticias" component={News} />
               <Route path="/comunidade" component={Community} />
               <Route path="/perfil" component={Profile} />
+              <Route path="/estatisticas" component={Statistics} />
+              <Route path="/conquistas" component={Achievements} />
               <Route path="/configuracoes" component={SettingsPage} />
               <Route component={NotFound} />
             </Switch>
