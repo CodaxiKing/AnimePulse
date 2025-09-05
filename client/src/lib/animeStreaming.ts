@@ -236,37 +236,49 @@ class AnimeStreamingService {
     try {
       console.log(`🎌 Searching in AnimeIndo API: ${query}`);
       
-      // Tentar buscar anime recente primeiro
-      const recentResponse = await fetch(`${this.animeIndoAPI}/luckyanime/recent`, {
-        headers: {
-          'User-Agent': 'AnimePulse/1.0',
-          'Accept': 'application/json',
-        },
-        signal: AbortSignal.timeout(8000)
-      });
+      // Timeout mais curto para evitar travamentos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      if (!recentResponse.ok) {
-        throw new Error(`AnimeIndo API failed: ${recentResponse.status}`);
+      try {
+        // Tentar buscar anime recente primeiro
+        const recentResponse = await fetch(`${this.animeIndoAPI}/luckyanime/recent`, {
+          headers: {
+            'User-Agent': 'AnimePulse/1.0',
+            'Accept': 'application/json',
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!recentResponse.ok) {
+          throw new Error(`AnimeIndo API failed: ${recentResponse.status}`);
+        }
+        
+        const recentData = await recentResponse.json();
+        const recentAnimes = recentData.data || [];
+        
+        // Filtrar por similaridade de título
+        const filteredAnimes = recentAnimes.filter((anime: any) => {
+          const title = anime.title?.toLowerCase() || '';
+          const searchQuery = query.toLowerCase();
+          
+          // Buscar match parcial ou palavras-chave
+          return title.includes(searchQuery) || 
+                 searchQuery.split(' ').some(word => title.includes(word.toLowerCase()));
+        });
+        
+        console.log(`✅ Found ${filteredAnimes.length} matches in AnimeIndo API`);
+        return filteredAnimes;
+        
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
       }
       
-      const recentData = await recentResponse.json();
-      const recentAnimes = recentData.data || [];
-      
-      // Filtrar por similaridade de título
-      const filteredAnimes = recentAnimes.filter((anime: any) => {
-        const title = anime.title?.toLowerCase() || '';
-        const searchQuery = query.toLowerCase();
-        
-        // Buscar match parcial ou palavras-chave
-        return title.includes(searchQuery) || 
-               searchQuery.split(' ').some(word => title.includes(word.toLowerCase()));
-      });
-      
-      console.log(`✅ Found ${filteredAnimes.length} matches in AnimeIndo API`);
-      return filteredAnimes;
-      
     } catch (error) {
-      console.error('❌ Error searching AnimeIndo API:', error);
+      console.warn('⚠️ AnimeIndo API unavailable (timeout/error):', error instanceof Error ? error.name : 'Unknown error');
       return [];
     }
   }
@@ -295,7 +307,7 @@ class AnimeStreamingService {
       return data.data?.[0] || null;
       
     } catch (error) {
-      console.error('❌ Error getting AnimeIndo details:', error);
+      console.error('❌ Error getting AnimeIndo details:', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
   }
@@ -352,7 +364,7 @@ class AnimeStreamingService {
       return null;
       
     } catch (error) {
-      console.error('❌ Error getting AnimeIndo episode stream:', error);
+      console.error('❌ Error getting AnimeIndo episode stream:', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
   }
@@ -383,40 +395,51 @@ class AnimeStreamingService {
       
       console.log(`🎬 Using demo video for ${animeTitle} episode ${episodeNumber}: ${selectedVideo}`);
       
-      // 1. Tentar AnimeIndo API primeiro (melhor para streaming real)
-      try {
-        console.log(`🎌 Trying AnimeIndo API for ${animeTitle}`);
-        const animeIndoResults = await this.searchAnimeIndo(animeTitle);
+      // 1. Tentar APIs de streaming reais com timeout curto
+      const tryRealStreaming = async (): Promise<StreamingData | null> => {
+        const streamingPromises = [
+          // AnimeIndo API
+          this.searchAnimeIndo(animeTitle).then(async (results) => {
+            if (results.length > 0) {
+              return await this.getAnimeIndoEpisodeStream(results[0].animeId, episodeNumber);
+            }
+            return null;
+          }),
+          // Outras APIs como fallback
+          this.getStreamingFromExternalAPIs(animeTitle, episodeNumber, year)
+        ];
         
-        if (animeIndoResults.length > 0) {
-          const firstMatch = animeIndoResults[0];
-          const streamData = await this.getAnimeIndoEpisodeStream(firstMatch.animeId, episodeNumber);
+        // Corrida entre as APIs com timeout
+        try {
+          const result = await Promise.race([
+            Promise.allSettled(streamingPromises).then(results => {
+              for (const result of results) {
+                if (result.status === 'fulfilled' && result.value) {
+                  return result.value;
+                }
+              }
+              return null;
+            }),
+            new Promise<null>((_, reject) => 
+              setTimeout(() => reject(new Error('All APIs timeout')), 4000)
+            )
+          ]);
           
-          if (streamData) {
-            console.log(`✅ Got real streaming data from AnimeIndo API`);
-            return streamData;
-          }
+          return result;
+        } catch {
+          return null;
         }
-      } catch (error) {
-        console.log(`ℹ️ AnimeIndo API not available: ${error}`);
+      };
+      
+      const realStream = await tryRealStreaming();
+      if (realStream) {
+        console.log(`✅ Got real streaming data from APIs`);
+        return realStream;
       }
 
-      // 2. Tentar outras APIs externas como fallback
-      try {
-        const quickTimeout = new Promise<null>((_, reject) => {
-          setTimeout(() => reject(new Error('Quick timeout')), 3000);
-        });
-        
-        const streamingPromise = this.getStreamingFromExternalAPIs(animeTitle, episodeNumber, year);
-        const result = await Promise.race([streamingPromise, quickTimeout]);
-        
-        if (result) {
-          console.log(`✅ Got real streaming data from fallback API`);
-          return result;
-        }
-      } catch (error) {
-        console.log(`ℹ️ Fallback APIs not available, using demo video`);
-      }
+      console.log(`ℹ️ APIs de streaming indisponíveis, usando vídeo de demonstração`);
+      
+      // Se chegou até aqui, as APIs falharam - usar vídeo demo
       
       // Retornar dados de demonstração estruturados
       return {
