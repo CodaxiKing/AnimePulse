@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { ObjectStorageService } from "./objectStorage";
 import type { Anime, Episode, Manga, News, InsertUser } from "@shared/schema";
 import fetch from 'node-fetch';
 import { insertUserSchema } from "@shared/schema";
@@ -818,6 +819,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Generate name error:", error);
       res.status(500).json({ error: "Failed to generate name" });
+    }
+  });
+
+  // Upload de foto de perfil
+  app.post("/api/profile/upload-url", requireAuth, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  app.put("/api/profile/avatar", requireAuth, async (req, res) => {
+    try {
+      const { avatarUrl } = req.body;
+      const userId = req.session.userId!;
+      
+      if (!avatarUrl) {
+        return res.status(400).json({ error: "Avatar URL is required" });
+      }
+
+      const updatedUser = await storage.updateUserAvatar(userId, avatarUrl);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Update avatar error:", error);
+      res.status(500).json({ error: "Failed to update avatar" });
+    }
+  });
+
+  // Sistema de auto-conclusão de animes
+  app.post("/api/anime/complete", requireAuth, async (req, res) => {
+    try {
+      const { animeId, animeTitle, animeImage, totalEpisodes } = req.body;
+      const userId = req.session.userId!;
+      
+      if (!animeId || !animeTitle) {
+        return res.status(400).json({ error: "Anime ID and title are required" });
+      }
+
+      // Marcar anime como completado
+      const completedAnime = await storage.markAnimeAsCompleted(userId, {
+        animeId,
+        animeTitle,
+        animeImage,
+        totalEpisodes: totalEpisodes || 0,
+        pointsEarned: (totalEpisodes || 0) * 10, // 10 pontos por episódio
+      });
+
+      // Atualizar estatísticas do usuário
+      const currentStats = await storage.getUserStats(userId);
+      if (currentStats) {
+        await storage.updateUserStats(userId, {
+          animesCompleted: (currentStats.animesCompleted || 0) + 1,
+          totalPoints: (currentStats.totalPoints || 0) + ((totalEpisodes || 0) * 10),
+        });
+      }
+
+      res.json({ completedAnime });
+    } catch (error) {
+      console.error("Complete anime error:", error);
+      res.status(500).json({ error: "Failed to complete anime" });
+    }
+  });
+
+  // Buscar animes completados
+  app.get("/api/user/completed-animes", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const completedAnimes = await storage.getCompletedAnimes(userId);
+      res.json(completedAnimes);
+    } catch (error) {
+      console.error("Get completed animes error:", error);
+      res.status(500).json({ error: "Failed to get completed animes" });
     }
   });
 

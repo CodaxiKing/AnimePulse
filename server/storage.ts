@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type UserStats, type InsertUserStats, users, userStats } from "@shared/schema";
+import { type User, type InsertUser, type UserStats, type InsertUserStats, type CompletedAnime, type InsertCompletedAnime, users, userStats, completedAnimes } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -13,9 +13,13 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   authenticateUser(username: string, password: string): Promise<User | null>;
   updateDisplayName(userId: string, newDisplayName: string): Promise<User | null>;
+  updateUserAvatar(userId: string, avatarUrl: string): Promise<User | null>;
   getUserStats(userId: string): Promise<UserStats | undefined>;
   createUserStats(userId: string): Promise<UserStats>;
   updateUserStats(userId: string, updates: Partial<UserStats>): Promise<UserStats | null>;
+  markAnimeAsCompleted(userId: string, animeData: Omit<InsertCompletedAnime, 'userId'>): Promise<CompletedAnime>;
+  getCompletedAnimes(userId: string): Promise<CompletedAnime[]>;
+  removeFromWatchProgress(userId: string, animeId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -116,6 +120,44 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updatedStats || null;
+  }
+
+  async updateUserAvatar(userId: string, avatarUrl: string): Promise<User | null> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        avatar: avatarUrl,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return updatedUser || null;
+  }
+
+  async markAnimeAsCompleted(userId: string, animeData: Omit<InsertCompletedAnime, 'userId'>): Promise<CompletedAnime> {
+    const [completedAnime] = await db
+      .insert(completedAnimes)
+      .values({
+        ...animeData,
+        userId,
+      })
+      .returning();
+    return completedAnime;
+  }
+
+  async getCompletedAnimes(userId: string): Promise<CompletedAnime[]> {
+    const completed = await db
+      .select()
+      .from(completedAnimes)
+      .where(eq(completedAnimes.userId, userId))
+      .orderBy(completedAnimes.completedAt);
+    return completed;
+  }
+
+  async removeFromWatchProgress(userId: string, animeId: string): Promise<void> {
+    // Esta função seria implementada quando tivermos a tabela de progresso de watching
+    // Por enquanto é um placeholder
+    console.log(`Removing ${animeId} from watch progress for user ${userId}`);
   }
 }
 

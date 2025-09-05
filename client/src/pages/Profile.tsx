@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import ProfileImageUpload from "@/components/ProfileImageUpload";
 import { 
   User, 
   Trophy, 
@@ -94,11 +95,11 @@ export default function Profile() {
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               {/* Avatar e Info Básica */}
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-1">
-                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-                    <User className="w-10 h-10 text-foreground" />
-                  </div>
-                </div>
+                <ProfileImageUpload 
+                  currentImage={user.avatar || undefined}
+                  userName={user.displayName}
+                  size="lg"
+                />
                 <div>
                   <h1 className="text-2xl font-bold mb-1">{user.displayName}</h1>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -107,6 +108,7 @@ export default function Profile() {
                     <span>•</span>
                     <span>Membro desde {user.lastActivity ? new Date(user.lastActivity).toLocaleDateString('pt-BR') : 'Recente'}</span>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">Clique na foto para alterar</p>
                 </div>
               </div>
 
