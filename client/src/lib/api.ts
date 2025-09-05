@@ -885,8 +885,17 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
     return [];
   }
   
+  // Filtrar apenas animes que NÃO foram completados (não assistiu todos os episódios)
+  const uncompletedProgress = localProgress.filter(progress => {
+    const isCompleted = progress.episodeNumber >= progress.totalEpisodes;
+    if (isCompleted) {
+      console.log(`🏁 Anime completado removido de "Continue Assistindo": ${progress.animeTitle} (${progress.episodeNumber}/${progress.totalEpisodes})`);
+    }
+    return !isCompleted;
+  });
+  
   // Converter progresso local para formato AnimeWithProgress
-  const continueWatching: AnimeWithProgress[] = localProgress.map(progress => {
+  const continueWatching: AnimeWithProgress[] = uncompletedProgress.map(progress => {
     const calculatedPercent = Math.round((progress.episodeNumber / progress.totalEpisodes) * 100);
     
     return {
