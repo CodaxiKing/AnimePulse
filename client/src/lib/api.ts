@@ -1177,6 +1177,53 @@ export async function getLatestManga(): Promise<Manga[]> {
   return allMockMangas;
 }
 
+export async function getMangaByIdAPI(id: string): Promise<Manga> {
+  try {
+    console.log("📚 Getting manga details for ID:", id);
+    
+    // Tentar buscar da API do Jikan se for ID numérico
+    if (!isNaN(Number(id))) {
+      const jikanResponse = await fetch(`${JIKAN_API_BASE}/manga/${id}`);
+      if (jikanResponse.ok) {
+        const jikanData = await jikanResponse.json();
+        console.log("✅ Found manga details from Jikan API");
+        
+        if (jikanData?.data) {
+          return adaptMangaFromJikanAPI(jikanData.data);
+        }
+      }
+    }
+    
+    console.log("⚠️ No manga found in APIs, using mock data fallback");
+  } catch (error) {
+    console.warn("❌ Error fetching manga details:", error instanceof Error ? error.message : String(error));
+  }
+  
+  // Fallback para dados mock - buscar primeiro por ID exato
+  const mockManga = mockMangas.find(manga => manga.id === id);
+  if (mockManga) {
+    return mockManga;
+  }
+  
+  // Se não encontrar por ID, retornar o primeiro manga mock como fallback
+  if (mockMangas.length > 0) {
+    return mockMangas[0];
+  }
+  
+  // Se nem os dados mock existem, retorna um manga padrão
+  return {
+    id: id,
+    title: "Mangá não encontrado",
+    image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=600&fit=crop",
+    rating: "0",
+    status: "unknown",
+    genres: ["Desconhecido"],
+    latestChapter: 0,
+    author: "Desconhecido",
+    synopsis: "Detalhes do mangá não disponíveis no momento."
+  };
+}
+
 export async function getMangaCategories() {
   return mockMangaCategories;
 }
