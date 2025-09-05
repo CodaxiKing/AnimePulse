@@ -9,6 +9,7 @@ import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
 
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [previousSlide, setPreviousSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const [trailerModalOpen, setTrailerModalOpen] = useState(false);
@@ -32,11 +33,13 @@ export default function HeroCarousel() {
   ];
 
   const current = heroAnimes[currentSlide];
+  const previous = heroAnimes[previousSlide];
 
   const nextSlide = () => {
     if (isTransitioning) return;
     setSlideDirection('right');
     setIsTransitioning(true);
+    setPreviousSlide(currentSlide);
     setCurrentSlide((prev) => (prev + 1) % heroAnimes.length);
     setTimeout(() => {
       setIsTransitioning(false);
@@ -48,6 +51,7 @@ export default function HeroCarousel() {
     if (isTransitioning) return;
     setSlideDirection('left');
     setIsTransitioning(true);
+    setPreviousSlide(currentSlide);
     setCurrentSlide((prev) => (prev - 1 + heroAnimes.length) % heroAnimes.length);
     setTimeout(() => {
       setIsTransitioning(false);
@@ -78,16 +82,29 @@ export default function HeroCarousel() {
     <section className="relative h-[80vh] overflow-hidden z-10">
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-20" />
       
+      {/* Previous image layer - fades out */}
+      {isTransitioning && (
+        <img
+          src={previous.image}
+          alt={previous.title}
+          className={`absolute inset-0 w-full h-full object-cover ${
+            slideDirection === 'right' 
+              ? 'carousel-crossfade-out-right' 
+              : 'carousel-crossfade-out-left'
+          }`}
+        />
+      )}
+      
+      {/* Current image layer - fades in */}
       <img
-        key={currentSlide}
         src={current.image}
         alt={current.title}
-        className={`absolute inset-0 w-full h-full object-cover transition-all duration-600 ease-in-out ${
+        className={`absolute inset-0 w-full h-full object-cover ${
           isTransitioning 
             ? slideDirection === 'right' 
-              ? 'scale-110 opacity-80 translate-x-4' 
-              : 'scale-110 opacity-80 -translate-x-4'
-            : 'scale-100 opacity-100 translate-x-0'
+              ? 'carousel-crossfade-in-right' 
+              : 'carousel-crossfade-in-left'
+            : 'opacity-100 scale-100'
         }`}
       />
       
