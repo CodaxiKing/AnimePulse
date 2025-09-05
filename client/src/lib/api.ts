@@ -765,29 +765,38 @@ export async function markEpisodeWatchedFromPlayer(
       const points = calculateAnimePoints(totalEpisodes);
       console.log(`🎉 Anime completado: ${animeTitle}! Pontos calculados: ${points}`);
       
-      // Atualizar pontos do usuário para anime completo
+      // Marcar anime como completado no backend
       try {
         const response = await fetch('/api/auth/me', { credentials: 'include' });
         if (response.ok) {
-          // Usuário está logado, dar pontos por completar anime
-          await fetch('/api/auth/update-stats', {
+          // Usuário está logado, marcar anime como completado
+          const completeResponse = await fetch('/api/anime/complete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
-              animesCompleted: 1,
-              totalPoints: points
+              animeId,
+              animeTitle,
+              animeImage,
+              totalEpisodes
             })
           });
-          console.log(`💰 ${points} pontos adicionados por completar anime!`);
           
-          // Invalidar cache das estatísticas - importar o queryClient corretamente
-          const { queryClient } = await import('@/lib/queryClient');
-          queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
-          console.log('🔄 Cache de estatísticas invalidado após completar anime');
+          if (completeResponse.ok) {
+            console.log(`✅ Anime ${animeTitle} marcado como completado no backend!`);
+            
+            // Invalidar caches relacionados
+            const { queryClient } = await import('@/lib/queryClient');
+            queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/user/completed-animes'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/user/progress'] });
+            console.log('🔄 Caches invalidados após completar anime');
+          } else {
+            console.error('❌ Erro ao marcar anime como completado no backend');
+          }
         }
       } catch (error) {
-        console.warn('⚠️ Erro ao dar pontos por anime completo:', error);
+        console.warn('⚠️ Erro ao completar anime no backend:', error);
       }
       
       // Disparar evento de anime completado

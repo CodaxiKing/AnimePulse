@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type UserStats, type InsertUserStats, type CompletedAnime, type InsertCompletedAnime, users, userStats, completedAnimes } from "@shared/schema";
+import { type User, type InsertUser, type UserStats, type InsertUserStats, type CompletedAnime, type InsertCompletedAnime, type WatchProgress, users, userStats, completedAnimes, watchProgress } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -20,6 +20,8 @@ export interface IStorage {
   markAnimeAsCompleted(userId: string, animeData: Omit<InsertCompletedAnime, 'userId'>): Promise<CompletedAnime>;
   getCompletedAnimes(userId: string): Promise<CompletedAnime[]>;
   removeFromWatchProgress(userId: string, animeId: string): Promise<void>;
+  getWatchProgress(userId: string): Promise<WatchProgress[]>;
+  updateWatchProgress(userId: string, animeId: string, episodeNumber: number): Promise<WatchProgress>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -155,9 +157,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async removeFromWatchProgress(userId: string, animeId: string): Promise<void> {
-    // Esta função seria implementada quando tivermos a tabela de progresso de watching
-    // Por enquanto é um placeholder
-    console.log(`Removing ${animeId} from watch progress for user ${userId}`);
+    await db
+      .delete(watchProgress)
+      .where(eq(watchProgress.userId, userId));
+    console.log(`✅ Removed ${animeId} from watch progress for user ${userId}`);
+  }
+
+  async getWatchProgress(userId: string): Promise<WatchProgress[]> {
+    const progress = await db
+      .select()
+      .from(watchProgress)
+      .where(eq(watchProgress.userId, userId))
+      .orderBy(watchProgress.updatedAt);
+    return progress;
+  }
+
+  async updateWatchProgress(userId: string, animeId: string, episodeNumber: number): Promise<WatchProgress> {
+    // Verificar se já existe progresso para este anime
+    const [existingProgress] = await db
+      .select()
+      .from(watchProgress)
+      .where(eq(watchProgress.userId, userId) && eq(watchProgress.animeId, animeId));
+
+    if (existingProgress) {
+      // Atualizar progresso existente
+      const [updatedProgress] = await db
+        .update(watchProgress)
+        .set({
+          episodeNumber,
+          updatedAt: new Date(),
+        })
+        .where(eq(watchProgress.userId, userId) && eq(watchProgress.animeId, animeId))
+        .returning();
+      return updatedProgress;
+    } else {
+      // Criar novo progresso
+      const [newProgress] = await db
+        .insert(watchProgress)
+        .values({
+          userId,
+          animeId,
+          episodeNumber,
+        })
+        .returning();
+      return newProgress;
+    }
   }
 }
 

@@ -675,10 +675,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Progress Endpoints for Timeline
-  app.get("/api/user/progress", async (req, res) => {
+  app.get("/api/user/progress", requireAuth, async (req, res) => {
     try {
-      // In a real app, this would filter by user session
-      // For now, return all mock data to demonstrate functionality
+      const userId = req.session.userId!;
+      
+      // Tentar buscar progresso real do banco de dados
+      try {
+        const progress = await storage.getWatchProgress(userId);
+        if (progress.length > 0) {
+          // Converter para formato esperado pelo frontend
+          const formattedProgress = progress.map(p => ({
+            animeId: parseInt(p.animeId),
+            episodesWatched: p.episodeNumber,
+            totalEpisodes: 24, // Valor padrão, poderia ser buscado da API
+            status: 'watching',
+            updatedAt: p.updatedAt?.toISOString().split('T')[0]
+          }));
+          return res.json(formattedProgress);
+        }
+      } catch (dbError) {
+        console.warn('⚠️ Erro ao buscar progresso do banco, usando dados mock:', dbError);
+      }
+      
+      // Fallback para dados mock se não houver progresso no banco
       res.json(mockUserProgress);
     } catch (error) {
       console.error("Error fetching user progress:", error);
@@ -875,6 +894,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pointsEarned: (totalEpisodes || 0) * 10, // 10 pontos por episódio
       });
 
+      // Remover da lista de progresso (Continue Assistindo)
+      await storage.removeFromWatchProgress(userId, animeId);
+      console.log(`✅ Anime ${animeTitle} removido da lista de progresso`);
+
       // Atualizar estatísticas do usuário
       const currentStats = await storage.getUserStats(userId);
       if (currentStats) {
@@ -900,6 +923,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get completed animes error:", error);
       res.status(500).json({ error: "Failed to get completed animes" });
+    }
+  });
+
+  // Atualizar progresso de anime
+  app.post("/api/user/progress", requireAuth, async (req, res) => {
+    try {
+      const { animeId, episodeNumber } = req.body;
+      const userId = req.session.userId!;
+      
+      if (!animeId || episodeNumber === undefined) {
+        return res.status(400).json({ error: "Anime ID and episode number are required" });
+      }
+
+      const progress = await storage.updateWatchProgress(userId, animeId, episodeNumber);
+      res.json({ progress });
+    } catch (error) {
+      console.error("Update progress error:", error);
+      res.status(500).json({ error: "Failed to update progress" });
     }
   });
 
