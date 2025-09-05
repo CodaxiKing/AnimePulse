@@ -69,40 +69,24 @@ main {
   position: fixed !important;
 }
 
-/* Prevent layout shift when dropdown opens */
-[data-radix-dropdown-menu-content] {
+/* Profile dropdown in header - specific positioning */
+header [data-testid="button-profile-menu"] + [data-radix-dropdown-menu-content] {
   position: fixed !important;
-  z-index: 999 !important;
-  transform-origin: var(--radix-dropdown-menu-content-transform-origin) !important;
-  max-width: calc(100vw - 20px) !important;
-  right: 10px !important;
-}
-
-/* Ensure carousel doesn't shift */
-body:has([data-radix-dropdown-menu-content]) {
-  overflow-x: hidden !important;
-}
-
-/* Force dropdown to stay within viewport */
-[data-radix-popper-content-wrapper] {
-  max-width: calc(100vw - 20px) !important;
-  box-sizing: border-box !important;
-}
-
-/* Header dropdown specific positioning - Force left positioning */
-header [data-radix-dropdown-menu-content],
-[data-radix-dropdown-menu-content],
-.header [data-radix-dropdown-menu-content] {
-  position: absolute !important;
-  top: 100% !important;
-  right: 0px !important;
+  top: 60px !important;
+  right: 200px !important;
   left: auto !important;
-  transform: translateX(-180px) translateY(8px) !important;
+  transform: none !important;
   max-width: 200px !important;
   min-width: 180px !important;
   z-index: 9999 !important;
   box-shadow: 0 10px 38px -10px rgba(22, 23, 24, 0.35), 0 10px 20px -15px rgba(22, 23, 24, 0.2) !important;
-  margin-right: 0px !important;
+}
+
+/* Other dropdowns - general positioning */
+[data-radix-dropdown-menu-content]:not(header [data-testid="button-profile-menu"] + *) {
+  position: fixed !important;
+  z-index: 999 !important;
+  max-width: calc(100vw - 20px) !important;
 }
 
 /* Fix all dropdown and select positioning issues - EXCEPT header dropdowns */
