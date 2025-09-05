@@ -704,6 +704,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.session.userId!;
       
+      // 🔧 FORÇAR DADOS MOCK para testar as setinhas
+      console.log('📊 Retornando dados mock de progresso para testar setinhas:', mockUserProgress.length, 'itens');
+      res.json(mockUserProgress);
+      return;
+      
       // Tentar buscar progresso real do banco de dados
       try {
         const progress = await storage.getWatchProgress(userId);

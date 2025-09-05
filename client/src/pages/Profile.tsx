@@ -65,6 +65,14 @@ export default function Profile() {
     progress.status === 'watching' && progress.episodesWatched < progress.totalEpisodes
   );
 
+  // Debug: verificar quantos animes em progresso temos
+  console.log('🔍 Debug watchProgress:', {
+    total: allProgress.length,
+    watching: watchProgress.length,
+    progressPerPage,
+    shouldShowArrows: watchProgress.length > progressPerPage
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
