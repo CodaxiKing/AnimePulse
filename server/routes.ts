@@ -176,21 +176,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Anime routes
+  // Anime routes with real streaming API integration
   app.get("/api/animes/trending", async (req, res) => {
     try {
-      // In a real implementation, this would fetch from external API
-      // For now, return empty array to use mock data fallback
-      res.json([]);
+      const page = parseInt(req.query.page as string) || 1;
+      
+      const { animeStreamingService } = await import('./lib/animeService');
+      const animes = await animeStreamingService.getTrendingAnime(page);
+      
+      res.json({ data: animes });
     } catch (error) {
+      console.error("Error fetching trending animes:", error);
       res.status(500).json({ error: "Failed to fetch trending animes" });
+    }
+  });
+
+  app.get("/api/animes/recent", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const type = parseInt(req.query.type as string) || 1;
+      
+      const { animeStreamingService } = await import('./lib/animeService');
+      const episodes = await animeStreamingService.getRecentEpisodes(page, type);
+      
+      res.json({ data: episodes });
+    } catch (error) {
+      console.error("Error fetching recent episodes:", error);
+      res.status(500).json({ error: "Failed to fetch recent episodes" });
+    }
+  });
+
+  app.get("/api/animes/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      const page = parseInt(req.query.page as string) || 1;
+      
+      if (!query) {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+      
+      const { animeStreamingService } = await import('./lib/animeService');
+      const results = await animeStreamingService.searchAnime(query, page);
+      
+      res.json({ data: results });
+    } catch (error) {
+      console.error("Error searching animes:", error);
+      res.status(500).json({ error: "Failed to search animes" });
     }
   });
 
   app.get("/api/animes/latest", async (req, res) => {
     try {
-      res.json([]);
+      const { animeStreamingService } = await import('./lib/animeService');
+      const episodes = await animeStreamingService.getRecentEpisodes(1, 1);
+      
+      res.json({ data: episodes });
     } catch (error) {
+      console.error("Error fetching latest animes:", error);
       res.status(500).json({ error: "Failed to fetch latest animes" });
     }
   });
@@ -198,16 +240,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/animes/continue", async (req, res) => {
     try {
       // This would require user authentication in real implementation
-      res.json([]);
+      // For now, return recent episodes as continue watching
+      const { animeStreamingService } = await import('./lib/animeService');
+      const episodes = await animeStreamingService.getRecentEpisodes(1, 1);
+      
+      res.json({ data: episodes.slice(0, 5) });
     } catch (error) {
+      console.error("Error fetching continue watching:", error);
       res.status(500).json({ error: "Failed to fetch continue watching" });
     }
   });
 
   app.get("/api/animes/top", async (req, res) => {
     try {
-      res.json([]);
+      const page = parseInt(req.query.page as string) || 1;
+      
+      const { animeStreamingService } = await import('./lib/animeService');
+      const animes = await animeStreamingService.getTrendingAnime(page);
+      
+      res.json({ data: animes });
     } catch (error) {
+      console.error("Error fetching top animes:", error);
       res.status(500).json({ error: "Failed to fetch top animes" });
     }
   });
@@ -215,9 +268,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/animes/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      // In real implementation, fetch from external API or database
-      res.json(null);
+      
+      const { animeStreamingService } = await import('./lib/animeService');
+      const anime = await animeStreamingService.getAnimeById(id);
+      
+      if (!anime) {
+        return res.status(404).json({ error: "Anime not found" });
+      }
+      
+      res.json({ data: anime });
     } catch (error) {
+      console.error("Error fetching anime details:", error);
       res.status(500).json({ error: "Failed to fetch anime details" });
     }
   });
@@ -225,9 +286,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/animes/:id/episodes", async (req, res) => {
     try {
       const { id } = req.params;
-      res.json([]);
+      
+      const { animeStreamingService } = await import('./lib/animeService');
+      const episodes = await animeStreamingService.getAnimeEpisodes(id);
+      
+      res.json({ data: episodes });
     } catch (error) {
+      console.error("Error fetching anime episodes:", error);
       res.status(500).json({ error: "Failed to fetch episodes" });
+    }
+  });
+
+  // New streaming endpoint
+  app.get("/api/episodes/:id/stream", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const { animeStreamingService } = await import('./lib/animeService');
+      const streamingUrl = await animeStreamingService.getEpisodeStreamingUrl(id);
+      
+      if (!streamingUrl) {
+        return res.status(404).json({ error: "Streaming URL not found" });
+      }
+      
+      res.json({ 
+        streamingUrl,
+        headers: {
+          'Referer': 'https://gogoplay.io/',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching streaming URL:", error);
+      res.status(500).json({ error: "Failed to fetch streaming URL" });
     }
   });
 

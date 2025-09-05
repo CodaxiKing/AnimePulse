@@ -48,9 +48,11 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### Third-Party APIs
-- **HiAnime API**: Primary source for anime data, trending lists, and episode information
-- **AniNews API**: Anime and manga news content integration
-- **MangaHook API**: Manga content and category data
+- **GogoAnime API via Consumet**: Integração principal para streaming de anime através da API Consumet (https://api.consumet.org)
+- **Backup Streaming APIs**: APIs alternativas incluindo Anbu API e GogoAnime direct proxy para redundância
+- **MyAnimeList API**: Fonte oficial de dados de anime e manga com informações detalhadas e rankings
+- **Anime News Network**: Integração RSS para notícias reais de anime e manga
+- **YouTube Data API**: Sistema de trailers oficiais integrado para preview de animes
 
 ### Database Services
 - **Neon Database**: Serverless PostgreSQL hosting with connection pooling

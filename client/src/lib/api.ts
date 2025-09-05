@@ -23,6 +23,9 @@ const JIKAN_API_BASE = "https://api.jikan.moe/v4"; // Fallback
 const ANIME_STREAMING_API = 'https://api-anime-rouge.vercel.app';
 const ANBU_API = 'https://anbuanime.onrender.com';
 
+// APIs integradas do GogoAnime via backend
+const API_BASE = import.meta.env.DEV ? 'http://localhost:5000' : '';
+
 // Função removida temporariamente para evitar erros de rede
 // As APIs de streaming externas estão causando problemas de CORS e fetch
 // Futuramente pode ser reimplementada com um proxy backend
@@ -401,11 +404,123 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
   return [];
 }
 
+// Nova função para buscar animes trending usando GogoAnime API
+export async function getTrendingAnimeFromGogoAPI(): Promise<AnimeWithProgress[]> {
+  try {
+    console.log("🔥 Fetching trending animes from GogoAnime API...");
+    
+    const response = await fetch(`${API_BASE}/api/animes/trending?page=1`);
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.data && Array.isArray(result.data)) {
+        console.log(`✅ Got ${result.data.length} trending animes from GogoAnime API`);
+        
+        // Adaptar os dados para o formato esperado
+        const adaptedAnimes = result.data.map(adaptGogoAnimeToAnimeWithProgress);
+        return adaptedAnimes;
+      }
+    } else {
+      console.warn(`⚠️ GogoAnime trending API returned status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("❌ Error fetching from GogoAnime trending API:", error instanceof Error ? error.message : 'Unknown error');
+  }
+  
+  return [];
+}
+
+// Nova função para buscar episódios recentes usando GogoAnime API  
+export async function getRecentEpisodesFromGogoAPI(): Promise<Episode[]> {
+  try {
+    console.log("📺 Fetching recent episodes from GogoAnime API...");
+    
+    const response = await fetch(`${API_BASE}/api/animes/recent?page=1`);
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.data && Array.isArray(result.data)) {
+        console.log(`✅ Got ${result.data.length} recent episodes from GogoAnime API`);
+        
+        // Adaptar os dados para o formato esperado
+        const adaptedEpisodes = result.data.map(adaptGogoEpisodeToEpisode);
+        return adaptedEpisodes;
+      }
+    } else {
+      console.warn(`⚠️ GogoAnime recent API returned status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("❌ Error fetching from GogoAnime recent API:", error instanceof Error ? error.message : 'Unknown error');
+  }
+  
+  return [];
+}
+
+// Nova função para buscar animes específicos
+export async function searchAnimesFromGogoAPI(query: string): Promise<Anime[]> {
+  try {
+    console.log(`🔎 Searching animes for "${query}" using GogoAnime API...`);
+    
+    const response = await fetch(`${API_BASE}/api/animes/search?q=${encodeURIComponent(query)}&page=1`);
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.data && Array.isArray(result.data)) {
+        console.log(`✅ Found ${result.data.length} animes for "${query}"`);
+        
+        // Adaptar os dados para o formato esperado
+        const adaptedAnimes = result.data.map(adaptGogoAnimeToAnime);
+        return adaptedAnimes;
+      }
+    } else {
+      console.warn(`⚠️ GogoAnime search API returned status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("❌ Error searching animes from GogoAnime API:", error instanceof Error ? error.message : 'Unknown error');
+  }
+  
+  return [];
+}
+
+// Função para buscar link de streaming de um episódio
+export async function getEpisodeStreamingFromGogoAPI(episodeId: string): Promise<string | null> {
+  try {
+    console.log(`🎬 Fetching streaming URL for episode: ${episodeId}`);
+    
+    const response = await fetch(`${API_BASE}/api/episodes/${episodeId}/stream`);
+    
+    if (response.ok) {
+      const result = await response.json();
+      if (result.streamingUrl) {
+        console.log(`✅ Streaming URL obtained for episode: ${episodeId}`);
+        return result.streamingUrl;
+      }
+    } else {
+      console.warn(`⚠️ GogoAnime streaming API returned status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("❌ Error fetching streaming URL:", error instanceof Error ? error.message : 'Unknown error');
+  }
+  
+  return null;
+}
+
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🔍 Getting trending anime with MyAnimeList integration...");
+  console.log("🔍 Getting trending anime with GogoAnime integration...");
   
   try {
-    // Tentar primeiro com a API oficial do MyAnimeList
+    // Tentar primeiro com a nova API do GogoAnime
+    const gogoAnimes = await getTrendingAnimeFromGogoAPI();
+    if (gogoAnimes.length > 0) {
+      console.log(`✅ Got ${gogoAnimes.length} trending animes from GogoAnime`);
+      return gogoAnimes;
+    }
+  } catch (error) {
+    console.log("⚠️ GogoAnime API failed, trying MyAnimeList...");
+  }
+  
+  try {
+    // Tentar com a API oficial do MyAnimeList
     const malAnimes = await getMALTrendingAnime(25);
     if (malAnimes.length > 0) {
       console.log(`✅ Got ${malAnimes.length} trending animes from MyAnimeList`);
@@ -1725,5 +1840,60 @@ function adaptEpisodeFromAnimeTVAPI(episodeData: any): Episode {
     releaseDate: episodeData.release_date || new Date().toISOString().split('T')[0],
     streamingUrl: episodeData.video_url || episodeData.stream_url || "",
     downloadUrl: episodeData.download_url || "",
+  };
+}
+
+// Funções de adaptação para dados do GogoAnime
+function adaptGogoAnimeToAnimeWithProgress(gogoData: any): AnimeWithProgress {
+  return {
+    id: gogoData.id || Math.random().toString(),
+    title: gogoData.title || 'Título não disponível',
+    image: gogoData.image || 'https://via.placeholder.com/400x600',
+    description: gogoData.synopsis || 'Descrição não disponível',
+    rating: parseFloat(gogoData.rating) || 0,
+    year: gogoData.year || new Date().getFullYear(),
+    genres: Array.isArray(gogoData.genres) ? gogoData.genres : ['Ação'],
+    status: gogoData.status || 'unknown',
+    episodes: parseInt(gogoData.totalEpisodes) || 24,
+    studio: gogoData.studio || 'Estúdio Desconhecido',
+    malId: null,
+    progress: {
+      currentEpisode: 0,
+      totalEpisodes: parseInt(gogoData.totalEpisodes) || 24,
+      percentage: 0,
+      lastWatched: null
+    }
+  };
+}
+
+function adaptGogoAnimeToAnime(gogoData: any): Anime {
+  return {
+    id: gogoData.id || Math.random().toString(),
+    title: gogoData.title || 'Título não disponível',
+    image: gogoData.image || 'https://via.placeholder.com/400x600',
+    description: gogoData.synopsis || 'Descrição não disponível',
+    rating: parseFloat(gogoData.rating) || 0,
+    year: gogoData.year || new Date().getFullYear(),
+    genres: Array.isArray(gogoData.genres) ? gogoData.genres : ['Ação'],
+    status: gogoData.status || 'unknown',
+    episodes: parseInt(gogoData.totalEpisodes) || 24,
+    studio: gogoData.studio || 'Estúdio Desconhecido',
+    malId: null
+  };
+}
+
+function adaptGogoEpisodeToEpisode(gogoEpisode: any): Episode {
+  return {
+    id: gogoEpisode.id || Math.random().toString(),
+    animeId: gogoEpisode.animeId || '1',
+    number: parseInt(gogoEpisode.number) || 1,
+    title: gogoEpisode.title || `Episódio ${gogoEpisode.number || 1}`,
+    image: gogoEpisode.thumbnail || 'https://via.placeholder.com/400x225',
+    duration: gogoEpisode.duration || '24 min',
+    releaseDate: gogoEpisode.releaseDate || new Date().toISOString().split('T')[0],
+    streamingUrl: gogoEpisode.streamingUrl || null,
+    downloadUrl: gogoEpisode.downloadUrl || null,
+    description: `Episódio ${gogoEpisode.number || 1} - ${gogoEpisode.title || 'Sem título'}`,
+    subOrDub: gogoEpisode.subOrDub || 'SUB'
   };
 }
