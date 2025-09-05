@@ -16,6 +16,7 @@ import Timeline from "./pages/Timeline";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import SettingsPage from "./pages/Settings";
+import Profile from "./pages/Profile";
 import Header from "./components/Header";
 
 function Router() {
@@ -40,6 +41,7 @@ function Router() {
               <Route path="/mangas/:mangaId/chapter/:chapterNumber" component={ChapterReader} />
               <Route path="/noticias" component={News} />
               <Route path="/comunidade" component={Community} />
+              <Route path="/perfil" component={Profile} />
               <Route path="/configuracoes" component={SettingsPage} />
               <Route component={NotFound} />
             </Switch>
