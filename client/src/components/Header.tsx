@@ -97,10 +97,10 @@ export default function Header() {
                 align="end" 
                 className="w-44 z-[9999] profile-dropdown" 
                 sideOffset={8}
-                avoidCollisions={false}
+                avoidCollisions={true}
                 collisionPadding={20}
                 side="bottom"
-                alignOffset={-20}
+                alignOffset={-140}
               >
                 {isLoading ? (
                   <DropdownMenuItem disabled>
