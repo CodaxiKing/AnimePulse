@@ -131,7 +131,7 @@ export default function Header() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent 
                     align="end" 
-                    alignOffset={-180}
+                    alignOffset={-200}
                     className="w-56 p-2 bg-background/95 backdrop-blur-sm border border-border/50" 
                     sideOffset={8}
                     avoidCollisions={false}
