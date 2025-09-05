@@ -129,7 +129,7 @@ export default function Header() {
                   sideOffset={8}
                   avoidCollisions={true}
                   collisionPadding={20}
-                  alignOffset={-240}
+                  alignOffset={-280}
                 >
                   {isLoading ? (
                     <DropdownMenuItem disabled>
