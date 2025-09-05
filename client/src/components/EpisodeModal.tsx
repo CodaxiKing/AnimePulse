@@ -98,8 +98,8 @@ export default function EpisodeModal({
           const directResponse = await fetch(`${API_BASE}/api/episodes/${episode.id}/stream`);
           
           if (directResponse.ok) {
-            const streamResult = await directResponse.json();
-            if (streamResult.streamingUrl) {
+            const streamResult = await directResponse.json().catch(() => null);
+            if (streamResult?.streamingUrl) {
               console.log('🎊 URL de streaming direto obtida!');
               setVideoUrl(streamResult.streamingUrl);
               console.log(`✅ URL do vídeo encontrada: ${streamResult.streamingUrl.substring(0, 50)}...`);
@@ -108,7 +108,7 @@ export default function EpisodeModal({
             }
           }
         } catch (error) {
-          console.warn('❌ Falha no streaming direto, tentando busca por nome...');
+          console.warn('⚠️ Falha no streaming direto, tentando busca por nome...', error instanceof Error ? error.message : 'Erro desconhecido');
         }
       }
       

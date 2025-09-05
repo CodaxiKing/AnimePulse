@@ -383,48 +383,56 @@ class AnimeStreamingService {
       const searchResponse = await fetch(`${API_BASE}/api/animes/search?q=${encodeURIComponent(animeTitle)}&page=1`);
       
       if (searchResponse.ok) {
-        const searchResult = await searchResponse.json();
+        const searchResult = await searchResponse.json().catch(() => null);
         console.log(`🔎 Resultados da busca:`, searchResult.data?.length || 0, 'animes encontrados');
         
-        if (searchResult.data && searchResult.data.length > 0) {
+        if (searchResult?.data && searchResult.data.length > 0) {
           const anime = searchResult.data[0]; // Pegar o primeiro resultado
           console.log(`📺 Anime encontrado: ${anime.title} (ID: ${anime.id})`);
           
-          // Buscar episódios do anime
-          const episodesResponse = await fetch(`${API_BASE}/api/animes/${anime.id}/episodes`);
-          
-          if (episodesResponse.ok) {
-            const episodesResult = await episodesResponse.json();
-            console.log(`📋 Encontrados ${episodesResult.data?.length || 0} episódios`);
+          try {
+            // Buscar episódios do anime
+            const episodesResponse = await fetch(`${API_BASE}/api/animes/${anime.id}/episodes`);
             
-            if (episodesResult.data && episodesResult.data.length > 0) {
-              // Procurar pelo episódio específico
-              const targetEpisode = episodesResult.data.find((ep: any) => ep.number === episodeNumber);
+            if (episodesResponse.ok) {
+              const episodesResult = await episodesResponse.json().catch(() => null);
+              console.log(`📋 Encontrados ${episodesResult?.data?.length || 0} episódios`);
               
-              if (targetEpisode) {
-                console.log(`🎯 Episódio ${episodeNumber} encontrado: ${targetEpisode.title}`);
+              if (episodesResult?.data && episodesResult.data.length > 0) {
+                // Procurar pelo episódio específico
+                const targetEpisode = episodesResult.data.find((ep: any) => ep.number === episodeNumber);
                 
-                // Buscar URL de streaming do episódio
-                const streamResponse = await fetch(`${API_BASE}/api/episodes/${targetEpisode.id}/stream`);
-                
-                if (streamResponse.ok) {
-                  const streamResult = await streamResponse.json();
+                if (targetEpisode) {
+                  console.log(`🎯 Episódio ${episodeNumber} encontrado: ${targetEpisode.title}`);
                   
-                  if (streamResult.streamingUrl) {
-                    console.log('🎊 URL de streaming real obtida!');
-                    return {
-                      sources: [{
-                        url: streamResult.streamingUrl,
-                        quality: '720p',
-                        isM3U8: false
-                      }],
-                      subtitles: [],
-                      headers: streamResult.headers || {}
-                    };
+                  try {
+                    // Buscar URL de streaming do episódio
+                    const streamResponse = await fetch(`${API_BASE}/api/episodes/${targetEpisode.id}/stream`);
+                    
+                    if (streamResponse.ok) {
+                      const streamResult = await streamResponse.json().catch(() => null);
+                      
+                      if (streamResult?.streamingUrl) {
+                        console.log('🎊 URL de streaming real obtida!');
+                        return {
+                          sources: [{
+                            url: streamResult.streamingUrl,
+                            quality: '720p',
+                            isM3U8: false
+                          }],
+                          subtitles: [],
+                          headers: streamResult.headers || {}
+                        };
+                      }
+                    }
+                  } catch (streamError) {
+                    console.warn('⚠️ Erro ao buscar stream do episódio:', streamError);
                   }
                 }
               }
             }
+          } catch (episodesError) {
+            console.warn('⚠️ Erro ao buscar episódios:', episodesError);
           }
         }
       }
@@ -451,7 +459,7 @@ class AnimeStreamingService {
       return null;
 
     } catch (error) {
-      console.error('❌ Erro ao buscar conteúdo real:', error);
+      console.warn('⚠️ Erro ao buscar conteúdo real:', error instanceof Error ? error.message : 'Erro desconhecido');
       return null;
     }
   }
