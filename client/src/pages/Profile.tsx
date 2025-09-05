@@ -17,10 +17,13 @@ import {
   Award,
   Activity,
   Settings,
-  Edit3
+  Edit3,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 interface CompletedAnime {
   id: string;
@@ -40,6 +43,8 @@ interface WatchProgress {
 
 export default function Profile() {
   const { user, stats, isLoading } = useAuth();
+  const [progressPage, setProgressPage] = useState(0);
+  const progressPerPage = 3;
 
   // Buscar animes completados
   const { data: completedAnimes = [] } = useQuery<CompletedAnime[]>({
@@ -190,24 +195,62 @@ export default function Profile() {
             </CardHeader>
             <CardContent>
               {watchProgress && watchProgress.length > 0 ? (
-                <div className="space-y-4">
-                  {watchProgress.slice(0, 5).map((progress, index) => (
-                    <div key={index} className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-                      <div className="w-12 h-16 bg-muted rounded-md flex items-center justify-center">
-                        <Play className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">Anime #{progress.animeId}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Episódio {progress.episodeNumber} • {progress.progressPercent}% assistido
-                        </p>
-                        <Progress value={progress.progressPercent} className="h-1 mt-2" />
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Continuar
+                <div className="relative">
+                  {/* Controles de navegação */}
+                  {watchProgress.length > progressPerPage && (
+                    <div className="flex justify-between items-center mb-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProgressPage(Math.max(0, progressPage - 1))}
+                        disabled={progressPage === 0}
+                        className="flex items-center gap-1"
+                        data-testid="button-progress-prev"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Anterior
+                      </Button>
+                      
+                      <span className="text-sm text-muted-foreground">
+                        {progressPage * progressPerPage + 1}-{Math.min((progressPage + 1) * progressPerPage, watchProgress.length)} de {watchProgress.length}
+                      </span>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setProgressPage(Math.min(Math.ceil(watchProgress.length / progressPerPage) - 1, progressPage + 1))}
+                        disabled={progressPage >= Math.ceil(watchProgress.length / progressPerPage) - 1}
+                        className="flex items-center gap-1"
+                        data-testid="button-progress-next"
+                      >
+                        Próximo
+                        <ChevronRight className="w-4 h-4" />
                       </Button>
                     </div>
-                  ))}
+                  )}
+                  
+                  {/* Lista de animes em progresso */}
+                  <div className="space-y-4">
+                    {watchProgress
+                      .slice(progressPage * progressPerPage, (progressPage + 1) * progressPerPage)
+                      .map((progress, index) => (
+                      <div key={index} className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+                        <div className="w-12 h-16 bg-muted rounded-md flex items-center justify-center">
+                          <Play className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">Anime #{progress.animeId}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Episódio {progress.episodeNumber} • {progress.progressPercent}% assistido
+                          </p>
+                          <Progress value={progress.progressPercent} className="h-1 mt-2" />
+                        </div>
+                        <Button variant="outline" size="sm" data-testid={`button-continue-${progress.animeId}`}>
+                          Continuar
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
