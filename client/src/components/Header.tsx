@@ -108,9 +108,6 @@ export default function Header() {
 
             {/* Right side - Desktop */}
             <div className="hidden lg:flex items-center justify-end flex-1 max-w-xs gap-4">
-              {/* User Points Display */}
-              <UserPointsDisplay />
-              
               {/* Profile Dropdown */}
               <div>
                 <DropdownMenu modal={false}>
@@ -225,6 +222,9 @@ export default function Header() {
                 </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+              
+              {/* User Points Display */}
+              <UserPointsDisplay />
               </div>
           </div>
         </div>
