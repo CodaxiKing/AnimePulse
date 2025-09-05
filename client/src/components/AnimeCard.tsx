@@ -38,7 +38,7 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
           
           {/* Tag de visualizações */}
           {anime.viewCount && (
-            <div className={`absolute z-10 bg-black/75 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 shadow-lg ${rank ? 'top-2 right-11' : 'top-2 right-2'}`}>
+            <div className="absolute top-2 right-2 z-10 bg-black/75 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 shadow-lg">
               <Eye className="w-3 h-3" />
               {formatViewCount(anime.viewCount)}
             </div>
