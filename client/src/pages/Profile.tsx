@@ -27,7 +27,7 @@ import {
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { getCompletedAnimes, getProgressAnimesWithDetails } from "@/lib/api";
+import { getCompletedAnimes } from "@/lib/api";
 
 interface CompletedAnime {
   id: string;
@@ -70,22 +70,22 @@ export default function Profile() {
     enabled: !!user,
   });
 
-  // Buscar progresso atual de assistir com dados completos dos animes
-  const { data: progressAnimesWithDetails = [], isLoading: isLoadingProgress } = useQuery({
-    queryKey: ["/api/user/progress-with-details"],
-    queryFn: getProgressAnimesWithDetails,
+  // Buscar progresso atual de assistir (mesmo da home)
+  const { data: continueAnimes = [], isLoading: isLoadingProgress } = useQuery({
+    queryKey: ['continue'],
+    queryFn: async () => {
+      const { getContinueWatching } = await import("@/lib/api");
+      return getContinueWatching();
+    },
     enabled: !!user,
   });
 
-  // Filtrar apenas animes em progresso (não completados)
-  const watchProgress = progressAnimesWithDetails.filter((anime: any) => 
-    anime.progress?.status === 'watching' && 
-    anime.progress?.episodesWatched < anime.progress?.totalEpisodes
-  );
+  // Usar os dados diretos do Continue Watching (mesmo da home)
+  const watchProgress = continueAnimes;
 
   // Debug: verificar quantos animes em progresso temos
   console.log('🔍 Debug watchProgress:', {
-    total: progressAnimesWithDetails.length,
+    total: continueAnimes.length,
     watching: watchProgress.length,
     progressPerPage,
     shouldShowArrows: watchProgress.length > progressPerPage
@@ -288,20 +288,20 @@ export default function Profile() {
                                   {anime.title}
                                 </h4>
                                 <p className="text-sm text-muted-foreground">
-                                  Ep. {anime.progress?.episodesWatched}/{anime.progress?.totalEpisodes}
+                                  Ep. {anime.episodeNumber}/{anime.totalEpisodes}
                                 </p>
                                 <div className="mt-2">
                                   <Progress 
-                                    value={anime.progress?.progressPercent || 0} 
+                                    value={anime.progressPercent || 0} 
                                     className="h-1.5" 
                                   />
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    {anime.progress?.progressPercent || 0}% concluído
+                                    {anime.progressPercent || 0}% concluído
                                   </p>
                                 </div>
                               </div>
                             </div>
-                            <Link href={`/anime/${anime.id}`}>
+                            <Link href={`/animes/${anime.id}`}>
                               <Button 
                                 variant="outline" 
                                 size="sm" 
