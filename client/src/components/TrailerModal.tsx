@@ -27,7 +27,7 @@ export default function TrailerModal({ isOpen, onClose, animeTitle, trailerUrl }
         
         <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
           <iframe
-            src={trailerUrl}
+            src={`${trailerUrl}?autoplay=1&mute=1`}
             className="w-full h-full rounded-lg"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
