@@ -1916,6 +1916,78 @@ function adaptGogoEpisodeToEpisode(gogoEpisode: any): Episode {
   };
 }
 
+// Função para buscar dados completos dos animes em progresso
+export async function getProgressAnimesWithDetails() {
+  console.log('🔄 Getting progress animes with full details...');
+  try {
+    const response = await fetch("/api/user/progress");
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const progressData = await response.json();
+    
+    console.log('📋 Progress data:', progressData.length, 'animes');
+    
+    // Buscar detalhes completos de cada anime
+    const animesWithDetails = await Promise.all(
+      progressData.map(async (progress: any) => {
+        try {
+          // Importar função MAL
+          const { getMALAnimeById } = await import('./malApi');
+          const animeDetails = await getMALAnimeById(progress.animeId.toString());
+          
+          if (animeDetails) {
+            return {
+              ...animeDetails,
+              progress: {
+                episodesWatched: progress.episodesWatched,
+                totalEpisodes: progress.totalEpisodes,
+                progressPercent: Math.round((progress.episodesWatched / progress.totalEpisodes) * 100),
+                status: progress.status,
+                updatedAt: progress.updatedAt
+              }
+            };
+          } else {
+            // Fallback com dados básicos se não conseguir buscar detalhes
+            return {
+              id: progress.animeId,
+              title: `Anime ${progress.animeId}`,
+              image: "https://via.placeholder.com/400x600",
+              progress: {
+                episodesWatched: progress.episodesWatched,
+                totalEpisodes: progress.totalEpisodes,
+                progressPercent: Math.round((progress.episodesWatched / progress.totalEpisodes) * 100),
+                status: progress.status,
+                updatedAt: progress.updatedAt
+              }
+            };
+          }
+        } catch (error) {
+          console.warn(`❌ Erro ao buscar detalhes do anime ${progress.animeId}:`, error);
+          return {
+            id: progress.animeId,
+            title: `Anime ${progress.animeId}`,
+            image: "https://via.placeholder.com/400x600",
+            progress: {
+              episodesWatched: progress.episodesWatched,
+              totalEpisodes: progress.totalEpisodes,
+              progressPercent: Math.round((progress.episodesWatched / progress.totalEpisodes) * 100),
+              status: progress.status,
+              updatedAt: progress.updatedAt
+            }
+          };
+        }
+      })
+    );
+    
+    console.log('✅ Returning', animesWithDetails.length, 'animes with full details');
+    return animesWithDetails;
+  } catch (error) {
+    console.error('❌ Error fetching progress animes with details:', error);
+    return [];
+  }
+}
+
 // Função para buscar animes completados
 export async function getCompletedAnimes() {
   console.log('🏆 Getting completed animes...');

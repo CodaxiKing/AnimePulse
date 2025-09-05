@@ -27,7 +27,7 @@ import {
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { getCompletedAnimes } from "@/lib/api";
+import { getCompletedAnimes, getProgressAnimesWithDetails } from "@/lib/api";
 
 interface CompletedAnime {
   id: string;
@@ -70,20 +70,22 @@ export default function Profile() {
     enabled: !!user,
   });
 
-  // Buscar progresso atual de assistir
-  const { data: allProgress = [] } = useQuery<WatchProgress[]>({
-    queryKey: ["/api/user/progress"],
+  // Buscar progresso atual de assistir com dados completos dos animes
+  const { data: progressAnimesWithDetails = [], isLoading: isLoadingProgress } = useQuery({
+    queryKey: ["/api/user/progress-with-details"],
+    queryFn: getProgressAnimesWithDetails,
     enabled: !!user,
   });
 
   // Filtrar apenas animes em progresso (não completados)
-  const watchProgress = allProgress.filter(progress => 
-    progress.status === 'watching' && progress.episodesWatched < progress.totalEpisodes
+  const watchProgress = progressAnimesWithDetails.filter((anime: any) => 
+    anime.progress?.status === 'watching' && 
+    anime.progress?.episodesWatched < anime.progress?.totalEpisodes
   );
 
   // Debug: verificar quantos animes em progresso temos
   console.log('🔍 Debug watchProgress:', {
-    total: allProgress.length,
+    total: progressAnimesWithDetails.length,
     watching: watchProgress.length,
     progressPerPage,
     shouldShowArrows: watchProgress.length > progressPerPage
@@ -265,37 +267,51 @@ export default function Profile() {
                     <div className="flex-1 overflow-hidden">
                       <div className="flex gap-4 transition-transform duration-300 ease-in-out"
                            style={{ transform: `translateX(-${progressPage * (100 / progressPerPage)}%)` }}>
-                        {watchProgress.map((progress, index) => (
+                        {watchProgress.map((anime, index) => (
                           <div key={index} className="flex-none w-80 bg-muted/50 rounded-lg p-4">
                             <div className="flex items-center gap-3 mb-3">
-                              <div className="w-16 h-20 bg-muted rounded-md flex items-center justify-center">
-                                <Play className="w-8 h-8 text-muted-foreground" />
+                              <div className="w-16 h-20 bg-muted rounded-md overflow-hidden">
+                                {anime.image ? (
+                                  <img 
+                                    src={anime.image} 
+                                    alt={anime.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Play className="w-8 h-8 text-muted-foreground" />
+                                  </div>
+                                )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-medium truncate">Anime #{progress.animeId}</h4>
+                                <h4 className="font-medium truncate" title={anime.title}>
+                                  {anime.title}
+                                </h4>
                                 <p className="text-sm text-muted-foreground">
-                                  Ep. {progress.episodesWatched}/{progress.totalEpisodes}
+                                  Ep. {anime.progress?.episodesWatched}/{anime.progress?.totalEpisodes}
                                 </p>
                                 <div className="mt-2">
                                   <Progress 
-                                    value={(progress.episodesWatched / progress.totalEpisodes) * 100} 
+                                    value={anime.progress?.progressPercent || 0} 
                                     className="h-1.5" 
                                   />
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    {Math.round((progress.episodesWatched / progress.totalEpisodes) * 100)}% concluído
+                                    {anime.progress?.progressPercent || 0}% concluído
                                   </p>
                                 </div>
                               </div>
                             </div>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="w-full"
-                              data-testid={`button-continue-${progress.animeId}`}
-                            >
-                              <Play className="w-4 h-4 mr-2" />
-                              Continuar Assistindo
-                            </Button>
+                            <Link href={`/anime/${anime.id}`}>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="w-full"
+                                data-testid={`button-continue-${anime.id}`}
+                              >
+                                <Play className="w-4 h-4 mr-2" />
+                                Continuar Assistindo
+                              </Button>
+                            </Link>
                           </div>
                         ))}
                       </div>
