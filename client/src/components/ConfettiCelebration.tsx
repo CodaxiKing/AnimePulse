@@ -1,6 +1,48 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Efeito sonoro visual - criar vibração na tela para simular som
+const createSoundEffect = (frequency: 'high' | 'medium' | 'low', duration: number) => {
+  const body = document.body;
+  body.style.animation = `vibrate-${frequency} ${duration}ms ease-in-out`;
+  
+  setTimeout(() => {
+    body.style.animation = '';
+  }, duration);
+};
+
+// Adicionar keyframes de vibração dinâmicos
+const addVibrateKeyframes = () => {
+  if (document.querySelector('#vibrate-styles')) return;
+  
+  const style = document.createElement('style');
+  style.id = 'vibrate-styles';
+  style.textContent = `
+    @keyframes vibrate-high {
+      0%, 100% { transform: translateX(0); }
+      10% { transform: translateX(-1px) rotate(0.5deg); }
+      20% { transform: translateX(1px) rotate(-0.5deg); }
+      30% { transform: translateX(-1px) rotate(0.5deg); }
+      40% { transform: translateX(1px) rotate(-0.5deg); }
+      50% { transform: translateX(-1px) rotate(0.5deg); }
+      60% { transform: translateX(1px) rotate(-0.5deg); }
+      70% { transform: translateX(-1px) rotate(0.5deg); }
+      80% { transform: translateX(1px) rotate(-0.5deg); }
+      90% { transform: translateX(-1px) rotate(0.5deg); }
+    }
+    @keyframes vibrate-medium {
+      0%, 100% { transform: translateY(0); }
+      25% { transform: translateY(-0.5px); }
+      75% { transform: translateY(0.5px); }
+    }
+    @keyframes vibrate-low {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.001); }
+    }
+  `;
+  document.head.appendChild(style);
+};
+
 interface ConfettiPiece {
   id: string;
   x: number;
@@ -84,9 +126,30 @@ export default function ConfettiCelebration({
 
   useEffect(() => {
     if (isActive) {
+      // Adicionar estilos de vibração
+      addVibrateKeyframes();
+      
       setIsVisible(true);
       const pieces = Array.from({ length: getParticleCount() }, (_, i) => createConfettiPiece(i));
       setConfettiPieces(pieces);
+
+      // Criar sequência de efeitos sonoros baseados no tema e intensidade
+      const soundSequence = () => {
+        // Som inicial de explosão
+        createSoundEffect('high', 150);
+        
+        // Som contínuo baseado na intensidade
+        setTimeout(() => {
+          createSoundEffect(intensity === 'high' ? 'medium' : 'low', 300);
+        }, 200);
+        
+        // Som final de resolução
+        setTimeout(() => {
+          createSoundEffect('low', 200);
+        }, duration - 500);
+      };
+      
+      soundSequence();
 
       const timer = setTimeout(() => {
         setIsVisible(false);
