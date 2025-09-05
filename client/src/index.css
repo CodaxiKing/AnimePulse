@@ -13,6 +13,32 @@ html {
 body {
   overflow-x: hidden;
   padding-right: 0 !important;
+  overflow-y: overlay; /* Sobrepor scroll quando necessário */
+}
+
+/* Remover barra de scroll padrão */
+body::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+/* Para Firefox */
+html {
+  scrollbar-width: none;
+}
+
+/* Garantir que não há scroll horizontal */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* Ensure main content doesn't interfere with fixed header */
