@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Filter, Grid, List } from "lucide-react";
+import { Search, Filter, Grid, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +16,8 @@ export default function Animes() {
   const [filterByStatus, setFilterByStatus] = useState("all");
   const [filterByGenre, setFilterByGenre] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
 
   // Buscar animes com base nos filtros
   const { data: animes = [], isLoading } = useQuery({
@@ -26,6 +28,23 @@ export default function Animes() {
   const filteredAnimes = animes.filter((anime: any) =>
     anime.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Paginação
+  const totalPages = Math.ceil(filteredAnimes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentAnimes = filteredAnimes.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset para página 1 quando a busca muda
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
 
   const genres = [
     "Ação", "Aventura", "Comédia", "Drama", "Fantasia", "Romance", 
@@ -68,7 +87,7 @@ export default function Animes() {
                 <Input
                   placeholder="Buscar animes pelo título..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchChange}
                   className="pl-10 text-base"
                   data-testid="input-search-anime"
                 />
@@ -167,7 +186,7 @@ export default function Animes() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <p className="text-muted-foreground">
-              {isLoading ? "Carregando..." : `${filteredAnimes.length} animes encontrados`}
+              {isLoading ? "Carregando..." : `${filteredAnimes.length} animes encontrados • Página ${currentPage} de ${totalPages}`}
             </p>
             {searchQuery && (
               <Badge variant="secondary" className="text-sm">
@@ -190,13 +209,13 @@ export default function Animes() {
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {filteredAnimes.map((anime: any) => (
+            {currentAnimes.map((anime: any) => (
               <AnimeCard key={anime.id} anime={anime} />
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredAnimes.map((anime: any) => (
+            {currentAnimes.map((anime: any) => (
               <Card key={anime.id} className="hover:shadow-lg transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex gap-4">
@@ -257,6 +276,7 @@ export default function Animes() {
                   setSearchQuery("");
                   setFilterByStatus("all");
                   setFilterByGenre("all");
+                  setCurrentPage(1);
                 }}
                 data-testid="button-clear-filters"
               >
@@ -264,6 +284,88 @@ export default function Animes() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {/* Componente de Paginação */}
+        {!isLoading && filteredAnimes.length > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-center space-x-2 mt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Anterior
+            </Button>
+
+            <div className="flex items-center space-x-1">
+              {/* Primeira página */}
+              {currentPage > 3 && (
+                <>
+                  <Button
+                    variant={1 === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(1)}
+                  >
+                    1
+                  </Button>
+                  {currentPage > 4 && <span className="px-2 text-muted-foreground">...</span>}
+                </>
+              )}
+
+              {/* Páginas ao redor da atual */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => 
+                  page >= Math.max(1, currentPage - 2) && 
+                  page <= Math.min(totalPages, currentPage + 2)
+                )
+                .map(page => (
+                  <Button
+                    key={page}
+                    variant={page === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(page)}
+                    className={page === currentPage ? "bg-primary text-primary-foreground" : ""}
+                  >
+                    {page}
+                  </Button>
+                ))}
+
+              {/* Última página */}
+              {currentPage < totalPages - 2 && (
+                <>
+                  {currentPage < totalPages - 3 && <span className="px-2 text-muted-foreground">...</span>}
+                  <Button
+                    variant={totalPages === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageChange(totalPages)}
+                  >
+                    {totalPages}
+                  </Button>
+                </>
+              )}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-2"
+            >
+              Próximo
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Informações da página atual */}
+        {!isLoading && filteredAnimes.length > 0 && (
+          <div className="text-center mt-4 text-sm text-muted-foreground">
+            Mostrando {startIndex + 1} a {Math.min(endIndex, filteredAnimes.length)} de {filteredAnimes.length} animes
+          </div>
         )}
       </div>
     </div>
