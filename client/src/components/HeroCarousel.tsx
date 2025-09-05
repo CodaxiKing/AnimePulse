@@ -20,7 +20,12 @@ export default function HeroCarousel() {
     queryFn: getTrendingAnime,
   });
 
-  const heroAnimes = animes?.slice(0, 3) || [
+  // Use high quality images from MyAnimeList data
+  const heroAnimes = animes?.slice(0, 3).map(anime => ({
+    ...anime,
+    // Use the large image from MAL for better quality
+    image: anime.main_picture?.large || anime.main_picture?.medium || anime.image,
+  })) || [
     {
       id: "1",
       title: "Night Hunters",
