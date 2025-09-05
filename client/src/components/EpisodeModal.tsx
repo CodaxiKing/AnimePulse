@@ -1,7 +1,8 @@
-import { X, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Play, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal } from "@/lib/api";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { getEpisodeVideoUrl } from "@/lib/animeStreaming";
 import type { Episode } from "@shared/schema";
 
 interface EpisodeModalProps {
@@ -28,6 +29,9 @@ export default function EpisodeModal({
   onEpisodeChange
 }: EpisodeModalProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   if (!episode) return null;
@@ -70,7 +74,50 @@ export default function EpisodeModal({
     }
   };
 
+  // Buscar URL do vídeo quando episódio muda
+  useEffect(() => {
+    if (episode && animeTitle) {
+      loadVideoUrl();
+    }
+  }, [episode, animeTitle]);
+
+  const loadVideoUrl = async () => {
+    if (!episode || !animeTitle) return;
+    
+    setIsLoadingVideo(true);
+    setVideoError(null);
+    
+    try {
+      console.log(`🎬 Buscando vídeo real para: ${animeTitle} - Episódio ${episode.number}`);
+      
+      // Tentar extrair ano do título do anime (se houver)
+      const yearMatch = animeTitle.match(/\b(19|20)\d{2}\b/);
+      const year = yearMatch ? parseInt(yearMatch[0]) : undefined;
+      
+      const url = await getEpisodeVideoUrl(animeTitle, episode.number, year);
+      
+      if (url) {
+        setVideoUrl(url);
+        console.log(`✅ URL do vídeo encontrada: ${url.substring(0, 50)}...`);
+      } else {
+        console.warn('⚠️ Nenhuma URL de vídeo encontrada, usando placeholder');
+        setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
+        setVideoError('Vídeo não encontrado, usando placeholder');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar vídeo:', error);
+      setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
+      setVideoError('Erro ao carregar vídeo, usando placeholder');
+    } finally {
+      setIsLoadingVideo(false);
+    }
+  };
+
   const handlePlayClick = async () => {
+    if (!videoUrl && !isLoadingVideo) {
+      await loadVideoUrl();
+    }
+    
     setIsPlaying(true);
     // Aguarda um pouco para o elemento de vídeo ser criado
     setTimeout(async () => {
@@ -113,13 +160,23 @@ export default function EpisodeModal({
                 <div className="text-center">
                   <button 
                     onClick={handlePlayClick}
-                    className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] rounded-full flex items-center justify-center anime-glow hover:opacity-90 transition-opacity" 
+                    disabled={isLoadingVideo}
+                    className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] rounded-full flex items-center justify-center anime-glow hover:opacity-90 transition-opacity disabled:opacity-50" 
                     data-testid="button-play-episode"
                   >
-                    <Play className="w-8 h-8 text-white ml-1" />
+                    {isLoadingVideo ? (
+                      <Loader2 className="w-8 h-8 text-white animate-spin" />
+                    ) : (
+                      <Play className="w-8 h-8 text-white ml-1" />
+                    )}
                   </button>
-                  <p className="text-white text-sm">Clique para assistir o episódio</p>
+                  <p className="text-white text-sm">
+                    {isLoadingVideo ? 'Carregando vídeo...' : 'Clique para assistir o episódio'}
+                  </p>
                   <p className="text-white/80 text-xs mt-1">Duração: {episode.duration} minutos</p>
+                  {videoError && (
+                    <p className="text-yellow-400 text-xs mt-2">⚠️ {videoError}</p>
+                  )}
                   <p className="text-green-400 text-xs mt-2">✅ Será marcado automaticamente quando terminar</p>
                 </div>
               </div>
@@ -132,11 +189,14 @@ export default function EpisodeModal({
               autoPlay
               onEnded={handleVideoEnd}
               data-testid="video-player"
+              key={videoUrl} // Force reload when URL changes
             >
-              <source 
-                src="https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4" 
-                type="video/mp4" 
-              />
+              {videoUrl && (
+                <source 
+                  src={videoUrl} 
+                  type="video/mp4" 
+                />
+              )}
               Seu navegador não suporta reprodução de vídeo.
             </video>
           )}
