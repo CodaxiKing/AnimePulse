@@ -250,7 +250,7 @@ export default function Profile() {
                   {/* Carrossel horizontal com setas de navegação */}
                   <div className="flex items-center gap-4">
                     {/* Seta esquerda */}
-                    {watchProgress.length > progressPerPage && (
+                    {watchProgress.length > 1 && (
                       <Button
                         variant="outline"
                         size="icon"
@@ -318,7 +318,7 @@ export default function Profile() {
                     </div>
                     
                     {/* Seta direita */}
-                    {watchProgress.length > progressPerPage && (
+                    {watchProgress.length > 1 && (
                       <Button
                         variant="outline"
                         size="icon"
@@ -333,7 +333,7 @@ export default function Profile() {
                   </div>
                   
                   {/* Indicador de páginas */}
-                  {watchProgress.length > progressPerPage && (
+                  {watchProgress.length > 1 && Math.ceil(watchProgress.length / progressPerPage) > 1 && (
                     <div className="flex justify-center mt-4 gap-1">
                       {Array.from({ length: Math.ceil(watchProgress.length / progressPerPage) }).map((_, i) => (
                         <button
