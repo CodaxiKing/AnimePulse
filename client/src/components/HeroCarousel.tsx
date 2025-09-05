@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Plus, Heart } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Heart, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { getTrendingAnime } from "@/lib/api";
 import { Link } from "wouter";
+import TrailerModal from "@/components/TrailerModal";
+import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
 
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [trailerModalOpen, setTrailerModalOpen] = useState(false);
+  const [selectedTrailer, setSelectedTrailer] = useState<{ animeTitle: string; trailerUrl: string } | null>(null);
   
   const { data: animes } = useQuery({
     queryKey: ["hero-trending"],
@@ -33,6 +37,25 @@ export default function HeroCarousel() {
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + heroAnimes.length) % heroAnimes.length);
+  };
+
+  const handleWatchTrailer = () => {
+    const trailer = getAnimeTrailer(current.title);
+    if (trailer) {
+      setSelectedTrailer({
+        animeTitle: current.title,
+        trailerUrl: trailer.trailerUrl
+      });
+      setTrailerModalOpen(true);
+      console.log(`🎬 Abrindo trailer para: ${current.title}`);
+    } else {
+      console.log(`❌ Nenhum trailer disponível para: ${current.title}`);
+    }
+  };
+
+  const closeTrailerModal = () => {
+    setTrailerModalOpen(false);
+    setSelectedTrailer(null);
   };
 
   return (
@@ -65,14 +88,25 @@ export default function HeroCarousel() {
             {current.synopsis && current.synopsis.length > 120 ? `${current.synopsis.slice(0, 120)}...` : current.synopsis}
           </p>
           <div className="flex items-center space-x-4">
-            <Link href={`/animes/${current.id}`}>
+            {hasTrailer(current.title) ? (
               <Button
+                onClick={handleWatchTrailer}
                 className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-8 py-3 font-semibold anime-glow hover:opacity-95"
-                data-testid="button-watch-now"
+                data-testid="button-watch-trailer"
               >
-                Assistir agora
+                <Play className="w-5 h-5 mr-2" />
+                Ver Trailer
               </Button>
-            </Link>
+            ) : (
+              <Link href={`/animes/${current.id}`}>
+                <Button
+                  className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-8 py-3 font-semibold anime-glow hover:opacity-95"
+                  data-testid="button-watch-now"
+                >
+                  Ver Detalhes
+                </Button>
+              </Link>
+            )}
             <Button
               variant="secondary"
               className="border-border rounded-xl px-6 py-3 font-semibold hover:bg-muted"
@@ -108,6 +142,16 @@ export default function HeroCarousel() {
       >
         <ChevronRight className="w-6 h-6" />
       </button>
+
+      {/* Modal de Trailer */}
+      {selectedTrailer && (
+        <TrailerModal
+          isOpen={trailerModalOpen}
+          onClose={closeTrailerModal}
+          animeTitle={selectedTrailer.animeTitle}
+          trailerUrl={selectedTrailer.trailerUrl}
+        />
+      )}
     </section>
   );
 }
