@@ -1,4 +1,5 @@
 import type { Anime, Episode, Manga, Chapter, News, AnimeWithProgress, PostWithUser } from "@shared/schema";
+import { getMALTrendingAnime, getMALTopAnime, getMALTopManga, getMALAnimeById, getMALMangaById, searchMALAnime, searchMALManga } from './malApi';
 import { 
   mockAnimes, 
   mockEpisodes, 
@@ -401,9 +402,20 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
 }
 
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🔍 Getting trending anime...");
+  console.log("🔍 Getting trending anime with MyAnimeList integration...");
   
-  // Forçar nova busca com mais dados sempre
+  try {
+    // Tentar primeiro com a API oficial do MyAnimeList
+    const malAnimes = await getMALTrendingAnime(25);
+    if (malAnimes.length > 0) {
+      console.log(`✅ Got ${malAnimes.length} trending animes from MyAnimeList`);
+      return getAnimesWithProgress(malAnimes);
+    }
+  } catch (error) {
+    console.log("⚠️ MyAnimeList API failed, using fallback APIs...");
+  }
+  
+  // Fallback para APIs existentes
   clearAnimeCache();
   const apiData = await getAnimeDataFromAPI();
   if (apiData.length > 0) {
@@ -413,7 +425,7 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
     const trendingAnimes = apiData.map(anime => 
       isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
     );
-    console.log("✅ Returning", trendingAnimes.length, "trending animes from API cache");
+    console.log("✅ Returning", trendingAnimes.length, "trending animes from fallback API cache");
     return getAnimesWithProgress(trendingAnimes);
   }
   
@@ -777,7 +789,18 @@ export async function getAnimesBySeason(season: string = 'now'): Promise<AnimeWi
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🏆 Getting top 10 anime...");
+  console.log("🏆 Getting top anime with MyAnimeList integration...");
+  
+  try {
+    // Tentar primeiro com a API oficial do MyAnimeList
+    const malAnimes = await getMALTopAnime(10);
+    if (malAnimes.length > 0) {
+      console.log(`✅ Got ${malAnimes.length} top animes from MyAnimeList`);
+      return getAnimesWithProgress(malAnimes);
+    }
+  } catch (error) {
+    console.log("⚠️ MyAnimeList API failed, using fallback APIs...");
+  }
   
   const apiData = await getAnimeDataFromAPI();
   if (apiData.length > 0) {
@@ -792,8 +815,8 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
       .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
       .slice(0, 10);
     
-    console.log("✅ Returning top 10 animes ordered by viewCount");
-    return topAnimes;
+    console.log("✅ Returning top 10 animes ordered by viewCount from fallback");
+    return getAnimesWithProgress(topAnimes);
   }
   
   // Fallback: ordenar dados mock por viewCount
@@ -1065,7 +1088,20 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
 
 // Manga API functions
 export async function getLatestManga(): Promise<Manga[]> {
-  console.log("📚 Getting latest manga with expanded sources...");
+  console.log("📚 Getting latest manga with MyAnimeList integration...");
+  
+  try {
+    // Tentar primeiro com a API oficial do MyAnimeList
+    const malMangas = await getMALTopManga(25);
+    if (malMangas.length > 0) {
+      console.log(`✅ Got ${malMangas.length} latest mangas from MyAnimeList`);
+      return malMangas;
+    }
+  } catch (error) {
+    console.log("⚠️ MyAnimeList API failed, using fallback sources...");
+  }
+  
+  console.log("📚 Getting latest manga from fallback sources...");
   
   // Múltiplos endpoints para obter MUITOS mangás
   const mangaEndpoints = [
@@ -1181,12 +1217,19 @@ export async function getMangaByIdAPI(id: string): Promise<Manga> {
   try {
     console.log("📚 Getting manga details for ID:", id);
     
-    // Tentar buscar da API do Jikan se for ID numérico
+    // Tentar primeiro com a API oficial do MyAnimeList
+    const malManga = await getMALMangaById(id);
+    if (malManga) {
+      console.log(`✅ Found manga details from MyAnimeList: ${malManga.title}`);
+      return malManga;
+    }
+    
+    // Fallback: tentar buscar da API do Jikan se for ID numérico
     if (!isNaN(Number(id))) {
       const jikanResponse = await fetch(`${JIKAN_API_BASE}/manga/${id}`);
       if (jikanResponse.ok) {
         const jikanData = await jikanResponse.json();
-        console.log("✅ Found manga details from Jikan API");
+        console.log("✅ Found manga details from Jikan fallback");
         
         if (jikanData?.data) {
           return adaptMangaFromJikanAPI(jikanData.data);
