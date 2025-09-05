@@ -24,7 +24,7 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
       <div className={`group cursor-pointer ${
         variant === 'horizontal' ? 'flex-none w-48 aspect-[3/4.5]' : 'w-full aspect-[3/4.5]'
       }`} data-testid={`card-anime-${anime.id}`}>
-        <div className={`bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative h-full flex flex-col ${rank ? 'ring-2 ring-yellow-400/20' : ''}`}>
+        <div className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative h-full flex flex-col">
           {rank && (
             <div className="absolute top-2 left-2 z-10 bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 text-white text-xs w-7 h-7 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white/20">
               {rank}
