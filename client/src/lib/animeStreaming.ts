@@ -57,28 +57,40 @@ class AnimeStreamingService {
       for (const url of urls) {
         try {
           console.log(`🌐 Trying API: ${url.split('/')[2]}`);
-          const response = await fetch(url, {
-            headers: {
-              'User-Agent': 'AnimePulse/1.0',
-              'Accept': 'application/json',
-            },
-            signal: AbortSignal.timeout(10000) // 10 second timeout
-          });
           
-          if (!response.ok) {
-            console.warn(`⚠️ API ${url.split('/')[2]} failed with status: ${response.status}`);
-            continue;
-          }
+          // Criar controller manual para evitar erros de AbortSignal.timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          
+          try {
+            const response = await fetch(url, {
+              headers: {
+                'User-Agent': 'AnimePulse/1.0',
+                'Accept': 'application/json',
+              },
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+              console.warn(`⚠️ API ${url.split('/')[2]} failed with status: ${response.status}`);
+              continue;
+            }
 
-          const data = await response.json();
-          const results = data.animes || data.results || [];
-          
-          if (results.length > 0) {
-            console.log(`✅ Found ${results.length} anime results from ${url.split('/')[2]}`);
-            return results;
+            const data = await response.json();
+            const results = data.animes || data.results || [];
+            
+            if (results.length > 0) {
+              console.log(`✅ Found ${results.length} anime results from ${url.split('/')[2]}`);
+              return results;
+            }
+          } catch (fetchError) {
+            clearTimeout(timeoutId);
+            throw fetchError;
           }
         } catch (apiError) {
-          console.warn(`⚠️ API ${url.split('/')[2]} error:`, apiError);
+          console.warn(`⚠️ API ${url.split('/')[2]} error:`, apiError instanceof Error ? apiError.message : 'Unknown');
           continue;
         }
       }
