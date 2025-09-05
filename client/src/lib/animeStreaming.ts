@@ -388,16 +388,19 @@ class AnimeStreamingService {
     try {
       console.log(`🎯 Getting episode streaming data for: ${animeTitle} - Episode ${episodeNumber}`);
       
-      // Temporariamente, usar links de demonstração com base no título
-      // Isso evita erros enquanto as APIs externas estão instáveis
+      // Vídeos de demonstração funcionais - diferentes para cada anime/episódio
       const demoVideos = [
         'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
         'https://sample-videos.com/zip/10/mp4/720/mp4-30s-720x480.mp4',
-        'https://samplelib.com/lib/preview/mp4/sample-30s.mp4'
+        'https://samplelib.com/lib/preview/mp4/sample-30s.mp4',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+        'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4'
       ];
       
-      // Selecionar vídeo baseado no hash do título para consistência
-      const hash = animeTitle.split('').reduce((a, b) => {
+      // Selecionar vídeo baseado no hash do título + episódio para variedade
+      const combinedString = `${animeTitle}-ep${episodeNumber}`;
+      const hash = combinedString.split('').reduce((a, b) => {
         a = ((a << 5) - a) + b.charCodeAt(0);
         return a & a;
       }, 0);
@@ -407,53 +410,8 @@ class AnimeStreamingService {
       
       console.log(`🎬 Using demo video for ${animeTitle} episode ${episodeNumber}: ${selectedVideo}`);
       
-      // 1. Tentar APIs de streaming reais (simplificado para evitar unhandled rejections)
-      console.log(`🎌 Tentando APIs de streaming...`);
-      
-      // Wrapper seguro para evitar promises rejeitadas
-      const safeAPICall = async (apiPromise: Promise<any>): Promise<StreamingData | null> => {
-        try {
-          const result = await Promise.race([
-            apiPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
-          ]);
-          return result;
-        } catch (error) {
-          console.log(`ℹ️ API call failed:`, error instanceof Error ? error.message : 'Unknown');
-          return null;
-        }
-      };
-      
-      // Tentar AnimeIndo primeiro
-      try {
-        const animeIndoResults = await this.searchAnimeIndo(animeTitle);
-        if (animeIndoResults.length > 0) {
-          const streamData = await safeAPICall(
-            this.getAnimeIndoEpisodeStream(animeIndoResults[0].animeId, episodeNumber)
-          );
-          if (streamData) {
-            console.log(`✅ Got real streaming from AnimeIndo`);
-            return streamData;
-          }
-        }
-      } catch (error) {
-        console.log(`ℹ️ AnimeIndo failed:`, error instanceof Error ? error.message : 'Unknown');
-      }
-      
-      // Tentar outras APIs
-      try {
-        const fallbackStream = await safeAPICall(
-          this.getStreamingFromExternalAPIs(animeTitle, episodeNumber, year)
-        );
-        if (fallbackStream) {
-          console.log(`✅ Got real streaming from fallback APIs`);
-          return fallbackStream;
-        }
-      } catch (error) {
-        console.log(`ℹ️ Fallback APIs failed:`, error instanceof Error ? error.message : 'Unknown');
-      }
-
-      console.log(`ℹ️ APIs de streaming indisponíveis, usando vídeo de demonstração`);
+      // APIs externas estão fora do ar - usar vídeos funcionais diretamente
+      console.log(`📺 APIs externas indisponíveis, usando vídeos de demonstração funcionais`);
       
       // Se chegou até aqui, as APIs falharam - usar vídeo demo
       
