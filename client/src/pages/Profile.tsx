@@ -292,11 +292,11 @@ export default function Profile() {
                                 </p>
                                 <div className="mt-2">
                                   <Progress 
-                                    value={anime.progressPercent || 0} 
+                                    value={Math.round((anime.episodeNumber / anime.totalEpisodes) * 100)} 
                                     className="h-1.5" 
                                   />
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    {anime.progressPercent || 0}% concluído
+                                    {Math.round((anime.episodeNumber / anime.totalEpisodes) * 100)}% concluído
                                   </p>
                                 </div>
                               </div>
