@@ -53,6 +53,16 @@ export const mangas = pgTable("mangas", {
   rating: text("rating"),
 });
 
+export const chapters = pgTable("chapters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  mangaId: varchar("manga_id").references(() => mangas.id),
+  number: integer("number").notNull(),
+  title: text("title").notNull(),
+  pages: text("pages").array(), // URLs das páginas do capítulo
+  releaseDate: text("release_date"),
+  readingUrl: text("reading_url"),
+});
+
 export const news = pgTable("news", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
@@ -135,6 +145,10 @@ export const insertMangaSchema = createInsertSchema(mangas).omit({
   id: true,
 });
 
+export const insertChapterSchema = createInsertSchema(chapters).omit({
+  id: true,
+});
+
 export const insertNewsSchema = createInsertSchema(news).omit({
   id: true,
 });
@@ -175,6 +189,8 @@ export type Episode = typeof episodes.$inferSelect;
 export type InsertEpisode = z.infer<typeof insertEpisodeSchema>;
 export type Manga = typeof mangas.$inferSelect;
 export type InsertManga = z.infer<typeof insertMangaSchema>;
+export type Chapter = typeof chapters.$inferSelect;
+export type InsertChapter = z.infer<typeof insertChapterSchema>;
 export type News = typeof news.$inferSelect;
 export type InsertNews = z.infer<typeof insertNewsSchema>;
 export type Post = typeof posts.$inferSelect;
@@ -192,6 +208,10 @@ export type InsertWatchedEpisode = z.infer<typeof insertWatchedEpisodeSchema>;
 export type AnimeWithProgress = Anime & {
   progress?: WatchProgress;
   episodes?: Episode[];
+};
+
+export type MangaWithChapters = Manga & {
+  chapters?: Chapter[];
 };
 
 export type PostWithUser = Post & {

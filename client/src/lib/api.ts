@@ -1,4 +1,4 @@
-import type { Anime, Episode, Manga, News, AnimeWithProgress, PostWithUser } from "@shared/schema";
+import type { Anime, Episode, Manga, Chapter, News, AnimeWithProgress, PostWithUser } from "@shared/schema";
 import { 
   mockAnimes, 
   mockEpisodes, 
@@ -1222,6 +1222,64 @@ export async function getMangaByIdAPI(id: string): Promise<Manga> {
     author: "Desconhecido",
     synopsis: "Detalhes do mangá não disponíveis no momento."
   };
+}
+
+// Função para gerar capítulos mock para um mangá
+function generateMockChapters(mangaId: string, totalChapters: number = 50): Chapter[] {
+  const chapters: Chapter[] = [];
+  
+  for (let i = 1; i <= totalChapters; i++) {
+    chapters.push({
+      id: `chapter-${mangaId}-${i}`,
+      mangaId: mangaId,
+      number: i,
+      title: `Capítulo ${i}`,
+      pages: [
+        `https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=1200&fit=crop&auto=format&q=60&page=${i}&p=1`,
+        `https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=1200&fit=crop&auto=format&q=60&page=${i}&p=2`,
+        `https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=1200&fit=crop&auto=format&q=60&page=${i}&p=3`,
+        `https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=1200&fit=crop&auto=format&q=60&page=${i}&p=4`,
+        `https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=1200&fit=crop&auto=format&q=60&page=${i}&p=5`,
+      ],
+      releaseDate: `2024-${String(Math.ceil(i / 4)).padStart(2, '0')}-${String(((i - 1) % 4) * 7 + 1).padStart(2, '0')}`,
+      readingUrl: null
+    });
+  }
+  
+  return chapters;
+}
+
+// API para buscar capítulos de um mangá
+export async function getChaptersByMangaId(mangaId: string): Promise<Chapter[]> {
+  console.log("📖 Getting chapters for manga ID:", mangaId);
+  
+  // Por enquanto, usar dados mock já que APIs de mangá raramente fornecem capítulos completos
+  // No futuro pode integrar com APIs de mangá ou usar dados reais da base de dados
+  
+  // Gerar número aleatório de capítulos baseado no ID (para consistência)
+  const seed = parseInt(mangaId) || mangaId.length;
+  const totalChapters = Math.min(Math.max(seed % 200, 10), 500); // Entre 10 e 500 capítulos
+  
+  const chapters = generateMockChapters(mangaId, totalChapters);
+  console.log(`✅ Generated ${chapters.length} chapters for manga ${mangaId}`);
+  
+  return chapters;
+}
+
+// API para buscar um capítulo específico com suas páginas
+export async function getChapterById(mangaId: string, chapterNumber: number): Promise<Chapter | null> {
+  console.log(`📄 Getting chapter ${chapterNumber} for manga ${mangaId}`);
+  
+  const chapters = await getChaptersByMangaId(mangaId);
+  const chapter = chapters.find(c => c.number === chapterNumber);
+  
+  if (chapter) {
+    console.log(`✅ Found chapter ${chapterNumber}`);
+    return chapter;
+  }
+  
+  console.log(`⚠️ Chapter ${chapterNumber} not found`);
+  return null;
 }
 
 export async function getMangaCategories() {

@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getMangaByIdAPI } from "@/lib/api";
-import type { Manga } from "@shared/schema";
+import { getMangaByIdAPI, getChaptersByMangaId } from "@/lib/api";
+import type { Manga, Chapter } from "@shared/schema";
 
 export default function MangaDetail() {
   const { id } = useParams();
@@ -16,6 +16,12 @@ export default function MangaDetail() {
   const { data: manga, isLoading: loadingManga } = useQuery({
     queryKey: ["manga", id],
     queryFn: () => getMangaByIdAPI(id!),
+    enabled: !!id,
+  });
+
+  const { data: chapters = [], isLoading: loadingChapters } = useQuery({
+    queryKey: ["chapters", id],
+    queryFn: () => getChaptersByMangaId(id!),
     enabled: !!id,
   });
 
@@ -220,24 +226,78 @@ export default function MangaDetail() {
               </div>
             </div>
 
-            {/* Seção de capítulos (placeholder) */}
+            {/* Seção de capítulos */}
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-4">Capítulos</h3>
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h4 className="text-lg font-semibold text-foreground mb-2">
-                    Lista de Capítulos Em Breve
-                  </h4>
-                  <p className="text-muted-foreground mb-4">
-                    A funcionalidade de leitura de capítulos será implementada em uma versão futura.
-                  </p>
-                  <Button disabled>
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Ler Primeiro Capítulo
-                  </Button>
-                </CardContent>
-              </Card>
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                Capítulos ({loadingChapters ? "..." : chapters.length})
+              </h3>
+              
+              {loadingChapters ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : chapters.length > 0 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {chapters.slice(0, 50).map((chapter: Chapter) => (
+                    <Card key={chapter.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-foreground">
+                              Capítulo {chapter.number}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {chapter.title}
+                            </p>
+                            {chapter.releaseDate && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Lançado em: {new Date(chapter.releaseDate).toLocaleDateString('pt-BR')}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => window.open(`/mangas/${id}/chapter/${chapter.number}`, '_blank')}
+                              className="bg-primary hover:bg-primary/90"
+                            >
+                              <BookOpen className="w-4 h-4 mr-1" />
+                              Ler
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {chapters.length > 50 && (
+                    <Card>
+                      <CardContent className="p-4 text-center">
+                        <p className="text-muted-foreground mb-3">
+                          Mostrando primeiros 50 de {chapters.length} capítulos
+                        </p>
+                        <Button variant="outline" size="sm">
+                          Ver Todos os Capítulos
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h4 className="text-lg font-semibold text-foreground mb-2">
+                      Nenhum Capítulo Disponível
+                    </h4>
+                    <p className="text-muted-foreground">
+                      Os capítulos deste mangá ainda não foram adicionados.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>

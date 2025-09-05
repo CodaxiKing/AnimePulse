@@ -9,6 +9,7 @@ import Animes from "./pages/Animes";
 import AnimeDetail from "./pages/AnimeDetail";
 import Mangas from "./pages/Mangas";
 import MangaDetail from "./pages/MangaDetail";
+import ChapterReader from "./pages/ChapterReader";
 import News from "./pages/News";
 import Community from "./pages/Community";
 import Login from "./pages/Login";
@@ -34,6 +35,7 @@ function Router() {
               <Route path="/animes/:id" component={AnimeDetail} />
               <Route path="/mangas" component={Mangas} />
               <Route path="/mangas/:id" component={MangaDetail} />
+              <Route path="/mangas/:mangaId/chapter/:chapterNumber" component={ChapterReader} />
               <Route path="/noticias" component={News} />
               <Route path="/comunidade" component={Community} />
               <Route path="/configuracoes" component={SettingsPage} />
