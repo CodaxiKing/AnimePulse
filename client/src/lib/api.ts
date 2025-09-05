@@ -270,13 +270,23 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
     return apiCache;
   }
   
-  // Tentar múltiplas APIs em ordem de prioridade
+  // Tentar múltiplas APIs com diferentes endpoints e páginas para obter mais animes
   const apiEndpoints = [
-    `${JIKAN_API_BASE}/top/anime?limit=25`,
-    `${JIKAN_API_BASE}/seasons/now?limit=25`,
-    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25`
+    `${JIKAN_API_BASE}/top/anime?limit=25&page=1`,
+    `${JIKAN_API_BASE}/top/anime?limit=25&page=2`,
+    `${JIKAN_API_BASE}/seasons/now?limit=25&page=1`,
+    `${JIKAN_API_BASE}/seasons/now?limit=25&page=2`,
+    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=1`,
+    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=2`,
+    `${JIKAN_API_BASE}/anime?order_by=score&limit=25&page=1`,
+    `${JIKAN_API_BASE}/anime?order_by=members&limit=25&page=1`,
+    `${JIKAN_API_BASE}/seasons/2024/fall?limit=25`,
+    `${JIKAN_API_BASE}/seasons/2024/summer?limit=25`
   ];
   
+  let allAnimeData: any[] = [];
+  
+  // Buscar dados de TODOS os endpoints e combiná-los
   for (const endpoint of apiEndpoints) {
     try {
       console.log("🌐 Trying endpoint:", endpoint);
@@ -286,18 +296,31 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
       if (response.ok) {
         const data = await response.json();
         if (data?.data && data.data.length > 0) {
-          apiCache = data.data;
-          cacheTimestamp = now;
-          console.log("✅ Cached", apiCache?.length || 0, "animes from", endpoint);
-          return apiCache || [];
+          // Adicionar dados únicos baseados no mal_id
+          data.data.forEach((anime: any) => {
+            const existingAnime = allAnimeData.find(existing => existing.mal_id === anime.mal_id);
+            if (!existingAnime) {
+              allAnimeData.push(anime);
+            }
+          });
+          console.log("✅ Added", data.data.length, "animes from", endpoint);
+          console.log("📊 Total unique animes so far:", allAnimeData.length);
         }
       }
       
       // Aguardar um pouco antes da próxima tentativa para evitar rate limit
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch (error) {
       console.warn("❌ Failed endpoint:", endpoint, error);
     }
+  }
+  
+  // Se coletamos dados de algum endpoint, usar eles
+  if (allAnimeData.length > 0) {
+    apiCache = allAnimeData;
+    cacheTimestamp = now;
+    console.log("✅ Successfully cached", allAnimeData.length, "unique animes from multiple sources");
+    return apiCache;
   }
   
   console.log("⚠️ All API endpoints failed, trying Otakudesu API...");
@@ -332,14 +355,31 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
   if (apiData.length > 0) {
     // Verificar se os dados são do Jikan API ou Otakudesu
     const isJikanData = apiData[0]?.mal_id !== undefined;
-    const trendingAnimes = apiData.slice(0, 8).map(anime => 
+    // Usar TODOS os animes disponíveis, não apenas 8
+    const trendingAnimes = apiData.map(anime => 
       isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
     );
     console.log("✅ Returning", trendingAnimes.length, "trending animes from API cache");
     return getAnimesWithProgress(trendingAnimes);
   }
   
-  return getAnimesByCategory('trending');
+  // Fallback: usar MUITO mais dados mock se APIs falharem
+  const mockCategories = ['trending', 'action', 'adventure', 'comedy', 'drama', 'fantasy', 'romance', 'sci-fi', 'slice-of-life', 'supernatural'];
+  let allMockAnimes: AnimeWithProgress[] = [];
+  
+  mockCategories.forEach(category => {
+    const categoryAnimes = getAnimesByCategory(category);
+    categoryAnimes.forEach(anime => {
+      // Evitar duplicatas baseado no ID
+      const existingAnime = allMockAnimes.find(existing => existing.id === anime.id);
+      if (!existingAnime) {
+        allMockAnimes.push(anime);
+      }
+    });
+  });
+  
+  console.log("✅ Using", allMockAnimes.length, "mock animes as fallback");
+  return allMockAnimes;
 }
 
 // Sistema de armazenamento local para progresso de animes
