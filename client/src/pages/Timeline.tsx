@@ -33,18 +33,21 @@ export default function Timeline() {
 
   // Buscar dados de animes para timeline
   const { data: trendingData, isLoading: loadingTrending } = useQuery({
-    queryKey: ['/api/mal/anime/trending', { limit: 100 }]
+    queryKey: ['/api/mal/anime/trending?limit=100']
   });
 
   const { data: topData, isLoading: loadingTop } = useQuery({
-    queryKey: ['/api/mal/anime/top', { limit: 100 }]
+    queryKey: ['/api/mal/anime/top?limit=100']
   });
 
   const isLoading = loadingTrending || loadingTop;
 
   // Processar dados para timeline
   const timelineData = useMemo(() => {
-    if (!trendingData?.data || !topData?.data) return [];
+    // Usar dados disponíveis mesmo se apenas um dataset estiver carregado
+    if (!trendingData && !topData) {
+      return [];
+    }
 
     const allAnimes = [
       ...(trendingData?.data || []).map((item: any) => item.node),
