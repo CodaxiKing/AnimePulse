@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import Logo from "./Logo";
 import UserPointsDisplay from "./UserPointsDisplay";
-import { User, LogIn, UserPlus, LogOut, Settings, Trophy, BarChart3, Menu, X, Tv, BookOpen, Newspaper, Users } from "lucide-react";
+import { User, LogIn, UserPlus, LogOut, Settings, Trophy, BarChart3, Menu, X, Tv, BookOpen, Newspaper, Users, Clock } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -50,6 +50,7 @@ export default function Header() {
 
   const navItems = [
     { href: "/animes", label: "Animes", icon: Tv },
+    { href: "/timeline", label: "Timeline", icon: Clock },
     { href: "/mangas", label: "Mangás", icon: BookOpen },
     { href: "/noticias", label: "Notícias", icon: Newspaper },
     { href: "/comunidade", label: "Comunidade", icon: Users },
