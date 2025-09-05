@@ -102,12 +102,12 @@ export default function EpisodeModal({
       } else {
         console.warn('⚠️ Nenhuma URL de vídeo encontrada, usando placeholder');
         setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
-        setVideoError('Vídeo não encontrado, usando placeholder');
+        setVideoError('API de streaming temporariamente indisponível');
       }
     } catch (error) {
       console.error('❌ Erro ao buscar vídeo:', error);
       setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
-      setVideoError('Erro ao carregar vídeo, usando placeholder');
+      setVideoError('API de streaming indisponível, usando vídeo de demonstração');
     } finally {
       setIsLoadingVideo(false);
     }

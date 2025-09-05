@@ -46,15 +46,44 @@ class AnimeStreamingService {
   async searchAnime(query: string): Promise<any[]> {
     try {
       console.log(`🔍 Searching anime: ${query}`);
-      const response = await fetch(`${this.baseURL}/aniwatch/search?q=${encodeURIComponent(query)}`);
       
-      if (!response.ok) {
-        throw new Error(`Search failed: ${response.status}`);
-      }
+      // Tentar múltiplas APIs se a primeira falhar
+      const urls = [
+        `${this.baseURL}/aniwatch/search?q=${encodeURIComponent(query)}`,
+        `https://api.consumet.org/meta/anilist/${encodeURIComponent(query)}`
+      ];
+      
+      for (const url of urls) {
+        try {
+          console.log(`🌐 Trying API: ${url.split('/')[2]}`);
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'AnimePulse/1.0',
+              'Accept': 'application/json',
+            },
+            signal: AbortSignal.timeout(10000) // 10 second timeout
+          });
+          
+          if (!response.ok) {
+            console.warn(`⚠️ API ${url.split('/')[2]} failed with status: ${response.status}`);
+            continue;
+          }
 
-      const data = await response.json();
-      console.log(`✅ Found ${data.animes?.length || 0} anime results`);
-      return data.animes || [];
+          const data = await response.json();
+          const results = data.animes || data.results || [];
+          
+          if (results.length > 0) {
+            console.log(`✅ Found ${results.length} anime results from ${url.split('/')[2]}`);
+            return results;
+          }
+        } catch (apiError) {
+          console.warn(`⚠️ API ${url.split('/')[2]} error:`, apiError);
+          continue;
+        }
+      }
+      
+      console.warn('⚠️ All search APIs failed');
+      return [];
     } catch (error) {
       console.error('❌ Error searching anime:', error);
       return [];
