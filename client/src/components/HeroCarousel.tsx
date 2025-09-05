@@ -6,6 +6,7 @@ import { getTrendingAnime } from "@/lib/api";
 import { Link } from "wouter";
 import TrailerModal from "@/components/TrailerModal";
 import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
+import { getAnimeWallpaper, preloadWallpaper } from "@/lib/wallpaperService";
 
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -20,11 +21,13 @@ export default function HeroCarousel() {
     queryFn: getTrendingAnime,
   });
 
-  // Use high quality images from MyAnimeList data
+  // Use high quality wallpapers from dedicated service
   const heroAnimes = animes?.slice(0, 3).map(anime => ({
     ...anime,
-    // Use the large image from MAL for better quality
-    image: anime.main_picture?.large || anime.main_picture?.medium || anime.image,
+    // Use high-quality 16:9 anime wallpapers for carousel background
+    image: getAnimeWallpaper(anime.title),
+    // Keep the original poster for other UI components
+    posterImage: (anime as any).main_picture?.large || (anime as any).main_picture?.medium || anime.image,
   })) || [
     {
       id: "1",
@@ -33,9 +36,20 @@ export default function HeroCarousel() {
       genres: ["Ação", "Sobrenatural", "Romance"],
       studio: "AmpleX",
       synopsis: "Em um mundo tomado pela escuridão sobrenatural, dois caçadores relutantes unem forças para combater forças das sombras e restaurar a paz.",
-      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1920&h=1080&fit=crop",
+      image: getAnimeWallpaper("Night Hunters"),
     },
   ];
+
+  // Preload images for smoother transitions
+  useEffect(() => {
+    if (heroAnimes.length > 0) {
+      heroAnimes.forEach(anime => {
+        preloadWallpaper(anime.image).catch(() => {
+          // Silently handle preload failures
+        });
+      });
+    }
+  }, [heroAnimes]);
 
   const current = heroAnimes[currentSlide];
   const previous = heroAnimes[previousSlide];
