@@ -373,6 +373,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/auth/stats", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      let stats = await storage.getUserStats(userId);
+      
+      // Se o usuário não tem estatísticas, criar uma entrada inicial
+      if (!stats) {
+        stats = await storage.createUserStats(userId);
+      }
+      
+      res.json({ stats });
+    } catch (error) {
+      console.error("Get user stats error:", error);
+      res.status(500).json({ error: "Failed to get user stats" });
+    }
+  });
+
+  app.post("/api/auth/update-stats", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { episodesWatched, animesCompleted, totalPoints, lastWatchDate } = req.body;
+      
+      let stats = await storage.getUserStats(userId);
+      
+      // Se não existem estatísticas, criar
+      if (!stats) {
+        stats = await storage.createUserStats(userId);
+      }
+      
+      // Calcular novos valores (incrementais)
+      const updates: any = {};
+      
+      if (episodesWatched) {
+        updates.episodesWatched = (stats.episodesWatched || 0) + episodesWatched;
+      }
+      
+      if (animesCompleted) {
+        updates.animesCompleted = (stats.animesCompleted || 0) + animesCompleted;
+      }
+      
+      if (totalPoints) {
+        updates.totalPoints = (stats.totalPoints || 0) + totalPoints;
+      }
+      
+      if (lastWatchDate) {
+        updates.lastWatchDate = new Date(lastWatchDate);
+      }
+      
+      // Calcular nível baseado nos pontos
+      if (updates.totalPoints !== undefined) {
+        updates.level = Math.floor((updates.totalPoints || 0) / 100) + 1;
+      }
+      
+      const updatedStats = await storage.updateUserStats(userId, updates);
+      
+      res.json({ stats: updatedStats });
+    } catch (error) {
+      console.error("Update user stats error:", error);
+      res.status(500).json({ error: "Failed to update user stats" });
+    }
+  });
+
   app.put("/api/auth/display-name", requireAuth, async (req, res) => {
     try {
       const { displayName } = req.body;

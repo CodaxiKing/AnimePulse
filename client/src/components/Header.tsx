@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import Logo from "./Logo";
+import UserPointsDisplay from "./UserPointsDisplay";
 import { User, LogIn, UserPlus, LogOut, Settings, Trophy, BarChart3, Menu, X, Tv, BookOpen, Newspaper, Users } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -105,9 +106,12 @@ export default function Header() {
             </div>
 
             {/* Right side - Desktop */}
-            <div className="hidden lg:flex items-center justify-end flex-1 max-w-xs">
+            <div className="hidden lg:flex items-center justify-end flex-1 max-w-xs gap-4">
+              {/* User Points Display */}
+              <UserPointsDisplay />
+              
               {/* Profile Dropdown */}
-              <div className="mr-8">
+              <div>
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Button

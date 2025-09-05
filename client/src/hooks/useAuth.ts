@@ -1,8 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import type { User } from "@shared/schema";
+import type { User, UserStats } from "@shared/schema";
 
 interface AuthResponse {
-  user: User;
+  user: User & {
+    daysUntilNextChange: number;
+    canChangeName: boolean;
+  };
+}
+
+interface StatsResponse {
+  stats: UserStats;
 }
 
 export function useAuth() {
@@ -12,9 +19,17 @@ export function useAuth() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: statsData, isLoading: statsLoading } = useQuery<StatsResponse>({
+    queryKey: ["/api/auth/stats"],
+    retry: false,
+    enabled: !!data?.user,
+    refetchOnWindowFocus: false,
+  });
+
   return {
     user: data?.user || null,
-    isLoading,
+    stats: statsData?.stats || null,
+    isLoading: isLoading || statsLoading,
     isAuthenticated: !!data?.user,
     error,
   };

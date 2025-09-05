@@ -616,6 +616,31 @@ export async function markEpisodeWatchedFromPlayer(
       console.warn('⚠️ Erro ao verificar marcos:', error);
     }
 
+    // Atualizar estatísticas do usuário se logado
+    try {
+      const response = await fetch('/api/auth/me', { credentials: 'include' });
+      if (response.ok) {
+        // Usuário está logado, atualizar estatísticas
+        await fetch('/api/auth/update-stats', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            episodesWatched: 1,
+            lastWatchDate: new Date().toISOString()
+          })
+        });
+        console.log('📈 Estatísticas do usuário atualizadas');
+        
+        // Invalidar cache das estatísticas
+        if (typeof window !== 'undefined' && (window as any).queryClient) {
+          (window as any).queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Erro ao atualizar estatísticas:', error);
+    }
+
     // Notificar que um episódio foi assistido
     const episodeEvent = new CustomEvent('episodeWatched');
     window.dispatchEvent(episodeEvent);
@@ -624,6 +649,31 @@ export async function markEpisodeWatchedFromPlayer(
     if (watchedCount >= totalEpisodes) {
       const points = calculateAnimePoints(totalEpisodes);
       console.log(`🎉 Anime completado: ${animeTitle}! Pontos calculados: ${points}`);
+      
+      // Atualizar pontos do usuário para anime completo
+      try {
+        const response = await fetch('/api/auth/me', { credentials: 'include' });
+        if (response.ok) {
+          // Usuário está logado, dar pontos por completar anime
+          await fetch('/api/auth/update-stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              animesCompleted: 1,
+              totalPoints: points
+            })
+          });
+          console.log(`💰 ${points} pontos adicionados por completar anime!`);
+          
+          // Invalidar cache das estatísticas
+          if (typeof window !== 'undefined' && (window as any).queryClient) {
+            (window as any).queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Erro ao dar pontos por anime completo:', error);
+      }
       
       // Disparar evento de anime completado
       const animeCompletedEvent = new CustomEvent('animeCompleted', {
