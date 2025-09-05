@@ -94,20 +94,8 @@ export default function EpisodeModal({
       const yearMatch = animeTitle.match(/\b(19|20)\d{2}\b/);
       const year = yearMatch ? parseInt(yearMatch[0]) : undefined;
       
-      // Criar uma promise com timeout para evitar travamento
-      const videoPromise = getEpisodeVideoUrl(animeTitle, episode.number, year);
-      const timeoutPromise = new Promise<string>((_, reject) => {
-        setTimeout(() => reject(new Error('Video search timeout')), 5000);
-      });
-      
-      let url: string | null = null;
-      
-      try {
-        url = await Promise.race([videoPromise, timeoutPromise]);
-      } catch (timeoutError) {
-        console.log('⏰ Video search timed out, using demo video');
-        url = null;
-      }
+      // Buscar URL do vídeo diretamente
+      const url = await getEpisodeVideoUrl(animeTitle, episode.number, year);
       
       if (url) {
         setVideoUrl(url);
