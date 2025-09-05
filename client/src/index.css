@@ -92,11 +92,11 @@ body:has([data-radix-dropdown-menu-content]) {
 /* Header dropdown specific positioning - Force left positioning */
 header [data-radix-dropdown-menu-content] {
   position: fixed !important;
-  right: auto !important;
+  right: 10px !important;
   left: auto !important;
-  transform: translateX(-120px) translateY(0px) !important;
-  max-width: 160px !important;
-  min-width: 160px !important;
+  transform: translateX(0px) translateY(8px) !important;
+  max-width: 200px !important;
+  min-width: 180px !important;
   z-index: 9999 !important;
 }
 
