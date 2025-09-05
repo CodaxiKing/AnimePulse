@@ -4,8 +4,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import NewsCard from "@/components/NewsCard";
+import NewsModal from "@/components/NewsModal";
+import CreateNewsModal from "@/components/CreateNewsModal";
 import { getLatestNews, getNewsByCategory } from "@/lib/api";
-import { Newspaper, TrendingUp, Star, Film } from "lucide-react";
+import { Newspaper, TrendingUp, Star, Film, Plus } from "lucide-react";
+
+interface NewsItem {
+  id: string;
+  title: string;
+  description: string;
+  link: string;
+  publishedDate: string;
+  category?: string;
+  thumbnail?: string;
+  author?: string;
+}
 
 const newsCategories = [
   { key: 'all', label: 'Todas', icon: Newspaper },
@@ -16,6 +29,9 @@ const newsCategories = [
 
 export default function News() {
   const [activeCategory, setActiveCategory] = useState('all');
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: news, isLoading, error } = useQuery({
     queryKey: ["anime-news", activeCategory],
@@ -32,11 +48,21 @@ export default function News() {
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Newspaper className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl md:text-4xl font-bold" data-testid="text-news-page-title">
-            Notícias de Anime
-          </h1>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Newspaper className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl md:text-4xl font-bold" data-testid="text-news-page-title">
+              Notícias de Anime
+            </h1>
+          </div>
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+            data-testid="button-create-news"
+          >
+            <Plus className="w-4 h-4" />
+            Criar Notícia
+          </Button>
         </div>
         <p className="text-muted-foreground mb-6" data-testid="text-news-page-subtitle">
           As últimas notícias direto do Anime News Network - Fique por dentro de tudo que acontece no mundo dos animes
@@ -101,9 +127,30 @@ export default function News() {
         <>
           {/* Grid de notícias */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {news?.map((newsItem) => (
-              <NewsCard key={newsItem.id} news={newsItem} />
-            ))}
+            {news?.map((newsItem) => {
+              // Convert API response to NewsItem format
+              const newsItemFormatted: NewsItem = {
+                id: newsItem.id,
+                title: newsItem.title,
+                description: newsItem.description || newsItem.summary || '',
+                link: newsItem.link || '#',
+                publishedDate: newsItem.publishedDate || new Date().toISOString(),
+                category: newsItem.category,
+                thumbnail: newsItem.thumbnail || newsItem.image,
+                author: newsItem.author
+              };
+              
+              return (
+                <NewsCard 
+                  key={newsItem.id} 
+                  news={newsItemFormatted}
+                  onClick={(news) => {
+                    setSelectedNews(news);
+                    setIsNewsModalOpen(true);
+                  }}
+                />
+              );
+            })}
           </div>
 
           {/* Mensagem quando não há notícias */}
@@ -120,6 +167,26 @@ export default function News() {
           )}
         </>
       )}
+
+      {/* Modals */}
+      <NewsModal
+        news={selectedNews}
+        isOpen={isNewsModalOpen}
+        onClose={() => {
+          setIsNewsModalOpen(false);
+          setSelectedNews(null);
+        }}
+      />
+
+      <CreateNewsModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onNewsCreated={(newNews: NewsItem) => {
+          // Aqui você pode atualizar a lista de notícias ou fazer refresh
+          console.log('Nova notícia criada:', newNews);
+          setIsCreateModalOpen(false);
+        }}
+      />
     </div>
   );
 }

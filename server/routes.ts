@@ -471,6 +471,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para criar nova notícia
+  app.post("/api/news/create", async (req, res) => {
+    try {
+      const { title, description, category, thumbnail, author, link } = req.body;
+      
+      if (!title || !description) {
+        return res.status(400).json({ error: "Title and description are required" });
+      }
+      
+      const newNews = {
+        id: `custom-${Date.now()}`,
+        title,
+        description,
+        link: link || '#',
+        publishedDate: new Date().toISOString(),
+        category: category || 'news',
+        thumbnail,
+        author: author || 'AnimePulse'
+      };
+      
+      // Em uma aplicação real, você salvaria isso no banco de dados
+      // Por enquanto, vamos apenas retornar os dados criados
+      
+      console.log('✅ Nova notícia criada:', newNews.title);
+      res.json(newNews);
+    } catch (error) {
+      console.error("Error creating news:", error);
+      res.status(500).json({ error: "Failed to create news" });
+    }
+  });
+
   // Social routes
   app.get("/api/social/posts", async (req, res) => {
     try {
