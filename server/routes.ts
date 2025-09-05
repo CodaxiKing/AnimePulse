@@ -956,6 +956,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Achievement routes
+  app.get("/api/achievements", async (req, res) => {
+    try {
+      const achievements = await storage.getAllAchievements();
+      res.json(achievements);
+    } catch (error) {
+      console.error("Get achievements error:", error);
+      res.status(500).json({ error: "Failed to get achievements" });
+    }
+  });
+
+  // Seed achievements route (admin only)
+  app.post("/api/admin/seed-achievements", async (req, res) => {
+    try {
+      const { seedAchievements } = await import('./seedAchievements');
+      await seedAchievements();
+      res.json({ success: true, message: "Achievements seeded successfully" });
+    } catch (error) {
+      console.error("Seed achievements error:", error);
+      res.status(500).json({ error: "Failed to seed achievements" });
+    }
+  });
+
+  app.get("/api/user/achievements", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const userAchievements = await storage.getUserAchievements(userId);
+      res.json(userAchievements);
+    } catch (error) {
+      console.error("Get user achievements error:", error);
+      res.status(500).json({ error: "Failed to get user achievements" });
+    }
+  });
+
+  app.post("/api/user/check-achievements", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const newlyUnlocked = await storage.checkAndUnlockAchievements(userId);
+      res.json({ newlyUnlocked });
+    } catch (error) {
+      console.error("Check achievements error:", error);
+      res.status(500).json({ error: "Failed to check achievements" });
+    }
+  });
+
   // Atualizar progresso de anime
   app.post("/api/user/progress", requireAuth, async (req, res) => {
     try {

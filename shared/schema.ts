@@ -180,6 +180,39 @@ export const insertWatchedEpisodeSchema = createInsertSchema(watchedEpisodes).om
   watchedAt: true,
 });
 
+// Achievements/Conquistas
+export const achievements = pgTable("achievements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: varchar("description").notNull(),
+  icon: varchar("icon").notNull(),
+  category: varchar("category").notNull(), // "watching", "completion", "streak", "social"
+  type: varchar("type").notNull(), // "count", "milestone", "special"
+  requirement: integer("requirement").notNull(), // valor necessário para conquistar
+  points: integer("points").default(0), // pontos dados pela conquista
+  rarity: varchar("rarity").default("common"), // "common", "rare", "epic", "legendary"
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User Achievements - conquistas desbloqueadas pelo usuário
+export const userAchievements = pgTable("user_achievements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  achievementId: varchar("achievement_id").notNull().references(() => achievements.id),
+  unlockedAt: timestamp("unlocked_at").defaultNow(),
+  progress: integer("progress").default(0), // progresso atual
+});
+
+export const insertAchievementSchema = createInsertSchema(achievements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({
+  id: true,
+  unlockedAt: true,
+});
+
 // Infer types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -203,6 +236,10 @@ export type CompletedAnime = typeof completedAnimes.$inferSelect;
 export type InsertCompletedAnime = z.infer<typeof insertCompletedAnimeSchema>;
 export type WatchedEpisode = typeof watchedEpisodes.$inferSelect;
 export type InsertWatchedEpisode = z.infer<typeof insertWatchedEpisodeSchema>;
+export type Achievement = typeof achievements.$inferSelect;
+export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
 
 // Extended types for frontend
 export type AnimeWithProgress = Anime & {

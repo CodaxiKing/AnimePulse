@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfileImageUpload from "@/components/ProfileImageUpload";
 import { 
   User, 
@@ -19,7 +20,9 @@ import {
   Settings,
   Edit3,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BarChart3,
+  Target
 } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -47,10 +50,21 @@ export default function Profile() {
   const { user, stats, isLoading } = useAuth();
   const [progressPage, setProgressPage] = useState(0);
   const progressPerPage = 3; // Cards visíveis no carrossel horizontal
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Buscar animes completados
   const { data: completedAnimes = [] } = useQuery<CompletedAnime[]>({
     queryKey: ["/api/user/completed-animes"],
+    enabled: !!user,
+  });
+
+  // Buscar conquistas
+  const { data: achievements = [] } = useQuery({
+    queryKey: ["/api/achievements"],
+  });
+
+  const { data: userAchievements = [] } = useQuery({
+    queryKey: ["/api/user/achievements"],
     enabled: !!user,
   });
 
@@ -162,7 +176,25 @@ export default function Profile() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Navegação por Abas */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Visão Geral
+          </TabsTrigger>
+          <TabsTrigger value="statistics" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Estatísticas
+          </TabsTrigger>
+          <TabsTrigger value="achievements" className="flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Conquistas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Estatísticas Principais */}
         <div className="lg:col-span-2 space-y-6">
           {/* Cards de Estatísticas */}
@@ -497,8 +529,122 @@ export default function Profile() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="statistics" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                    Estatísticas Detalhadas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Progresso de Assistir</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Episódios Assistidos</span>
+                          <span className="font-medium">{stats?.episodesWatched || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Animes Concluídos</span>
+                          <span className="font-medium">{stats?.animesCompleted || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Pontos Totais</span>
+                          <span className="font-medium">{stats?.totalPoints || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Atividade</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Sequência Atual</span>
+                          <span className="font-medium">{stats?.streakDays || 0} dias</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Melhor Sequência</span>
+                          <span className="font-medium">{stats?.bestStreak || 0} dias</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Média Semanal</span>
+                          <span className="font-medium">{Math.round((stats?.episodesWatched || 0) / 4)} eps</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="achievements" className="mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    Conquistas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {achievements.map((achievement: any) => {
+                      const isUnlocked = userAchievements.some((ua: any) => ua.achievementId === achievement.id);
+                      const rarityColors = {
+                        common: 'text-gray-500 bg-gray-500/10',
+                        rare: 'text-blue-500 bg-blue-500/10',
+                        epic: 'text-purple-500 bg-purple-500/10',
+                        legendary: 'text-yellow-500 bg-yellow-500/10'
+                      };
+                      
+                      return (
+                        <div key={achievement.id} className={`p-4 rounded-lg border ${
+                          isUnlocked ? 'bg-primary/5 border-primary/20' : 'bg-muted/50 border-border'
+                        }`}>
+                          <div className="flex items-start gap-3">
+                            <div className={`text-2xl ${isUnlocked ? '' : 'grayscale opacity-50'}`}>
+                              {achievement.icon}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className={`font-medium ${isUnlocked ? '' : 'text-muted-foreground'}`}>
+                                  {achievement.name}
+                                </h4>
+                                {isUnlocked && <CheckCircle className="w-4 h-4 text-green-500" />}
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {achievement.description}
+                              </p>
+                              <div className="flex items-center justify-between">
+                                <Badge className={rarityColors[achievement.rarity as keyof typeof rarityColors]}>
+                                  {achievement.rarity}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  +{achievement.points} pontos
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

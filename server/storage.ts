@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type UserStats, type InsertUserStats, type CompletedAnime, type InsertCompletedAnime, type WatchProgress, users, userStats, completedAnimes, watchProgress } from "@shared/schema";
+import { type User, type InsertUser, type UserStats, type InsertUserStats, type CompletedAnime, type InsertCompletedAnime, type WatchProgress, type Achievement, type InsertAchievement, type UserAchievement, type InsertUserAchievement, users, userStats, completedAnimes, watchProgress, achievements, userAchievements } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -22,6 +22,12 @@ export interface IStorage {
   removeFromWatchProgress(userId: string, animeId: string): Promise<void>;
   getWatchProgress(userId: string): Promise<WatchProgress[]>;
   updateWatchProgress(userId: string, animeId: string, episodeNumber: number): Promise<WatchProgress>;
+  
+  // Achievement methods
+  getAllAchievements(): Promise<Achievement[]>;
+  getUserAchievements(userId: string): Promise<UserAchievement[]>;
+  checkAndUnlockAchievements(userId: string): Promise<UserAchievement[]>;
+  unlockAchievement(userId: string, achievementId: string): Promise<UserAchievement | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -201,6 +207,79 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
       return newProgress;
+    }
+  }
+
+  // Achievement methods
+  async getAllAchievements(): Promise<Achievement[]> {
+    const allAchievements = await db.select().from(achievements);
+    return allAchievements;
+  }
+
+  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    const userAchievementsList = await db
+      .select()
+      .from(userAchievements)
+      .where(eq(userAchievements.userId, userId));
+    return userAchievementsList;
+  }
+
+  async checkAndUnlockAchievements(userId: string): Promise<UserAchievement[]> {
+    const user = await this.getUser(userId);
+    const stats = await this.getUserStats(userId);
+    if (!user || !stats) return [];
+
+    const allAchievements = await this.getAllAchievements();
+    const userUnlockedAchievements = await this.getUserAchievements(userId);
+    const unlockedIds = userUnlockedAchievements.map(ua => ua.achievementId);
+    
+    const newlyUnlocked: UserAchievement[] = [];
+
+    for (const achievement of allAchievements) {
+      if (unlockedIds.includes(achievement.id)) continue;
+
+      let shouldUnlock = false;
+      let currentProgress = 0;
+
+      switch (achievement.category) {
+        case 'completion':
+          currentProgress = stats.animesCompleted || 0;
+          shouldUnlock = currentProgress >= achievement.requirement;
+          break;
+        case 'watching':
+          currentProgress = stats.episodesWatched || 0;
+          shouldUnlock = currentProgress >= achievement.requirement;
+          break;
+        case 'streak':
+          currentProgress = stats.streakDays || 0;
+          shouldUnlock = currentProgress >= achievement.requirement;
+          break;
+      }
+
+      if (shouldUnlock) {
+        const unlocked = await this.unlockAchievement(userId, achievement.id);
+        if (unlocked) {
+          newlyUnlocked.push(unlocked);
+        }
+      }
+    }
+
+    return newlyUnlocked;
+  }
+
+  async unlockAchievement(userId: string, achievementId: string): Promise<UserAchievement | null> {
+    try {
+      const [userAchievement] = await db
+        .insert(userAchievements)
+        .values({
+          userId,
+          achievementId,
+        })
+        .returning();
+      return userAchievement;
+    } catch (error) {
+      console.error('Error unlocking achievement:', error);
+      return null;
     }
   }
 }
