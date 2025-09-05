@@ -258,88 +258,86 @@ export default function Profile() {
             <CardContent>
               {watchProgress && watchProgress.length > 0 ? (
                 <div className="relative">
-                  {/* Carrossel horizontal com setas de navegação */}
-                  <div className="flex items-center gap-4">
-                    {/* Seta esquerda */}
-                    {watchProgress.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={scrollLeft}
-                        className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
-                        data-testid="button-scroll-left-continue"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                    )}
-                    
-                    {/* Container dos cards com scroll horizontal */}
-                    <div className="flex-1 relative">
-                      <div 
-                        ref={scrollRef}
-                        className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r"
-                      >
-                        {watchProgress.map((anime, index) => (
-                          <div key={index} className="flex-none w-80 bg-muted/50 rounded-lg p-4">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="w-16 h-20 bg-muted rounded-md overflow-hidden">
-                                {anime.image ? (
-                                  <img 
-                                    src={anime.image} 
-                                    alt={anime.title}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Play className="w-8 h-8 text-muted-foreground" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium truncate" title={anime.title}>
-                                  {anime.title}
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Ep. {anime.progress?.episodeNumber || anime.episodeNumber}/{anime.totalEpisodes}
-                                </p>
-                                <div className="mt-2">
-                                  <Progress 
-                                    value={anime.progress?.progressPercent || anime.progressPercent || 0} 
-                                    className="h-1.5" 
-                                  />
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {anime.progress?.progressPercent || anime.progressPercent || 0}% concluído
-                                  </p>
+                  {/* Container dos cards com scroll horizontal e setas */}
+                  <div className="relative">
+                    <div 
+                      ref={scrollRef}
+                      className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r"
+                    >
+                      {watchProgress.map((anime, index) => (
+                        <div key={index} className="flex-none w-80 bg-muted/50 rounded-lg p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-16 h-20 bg-muted rounded-md overflow-hidden">
+                              {anime.image ? (
+                                <img 
+                                  src={anime.image} 
+                                  alt={anime.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Play className="w-8 h-8 text-muted-foreground" />
                                 </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium truncate" title={anime.title}>
+                                {anime.title}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Ep. {anime.progress?.episodeNumber || anime.episodeNumber}/{anime.totalEpisodes}
+                              </p>
+                              <div className="mt-2">
+                                <Progress 
+                                  value={anime.progress?.progressPercent || anime.progressPercent || 0} 
+                                  className="h-1.5" 
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {anime.progress?.progressPercent || anime.progressPercent || 0}% concluído
+                                </p>
                               </div>
                             </div>
-                            <Link href={`/animes/${anime.id}`}>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="w-full"
-                                data-testid={`button-continue-${anime.id}`}
-                              >
-                                <Play className="w-4 h-4 mr-2" />
-                                Continuar Assistindo
-                              </Button>
-                            </Link>
                           </div>
-                        ))}
-                      </div>
+                          <Link href={`/animes/${anime.id}`}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full"
+                              data-testid={`button-continue-${anime.id}`}
+                            >
+                              <Play className="w-4 h-4 mr-2" />
+                              Continuar Assistindo
+                            </Button>
+                          </Link>
+                        </div>
+                      ))}
                     </div>
                     
-                    {/* Seta direita */}
+                    {/* Setas sobrepostas dentro do container */}
                     {watchProgress.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={scrollRight}
-                        className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
-                        data-testid="button-scroll-right-continue"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
+                      <>
+                        {/* Seta esquerda */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={scrollLeft}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/90 hover:bg-background border shadow-sm z-10"
+                          data-testid="button-scroll-left-continue"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        
+                        {/* Seta direita */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={scrollRight}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/90 hover:bg-background border shadow-sm z-10"
+                          data-testid="button-scroll-right-continue"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
