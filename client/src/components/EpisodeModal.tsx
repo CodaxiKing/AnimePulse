@@ -100,6 +100,7 @@ export default function EpisodeModal({
       if (url) {
         setVideoUrl(url);
         console.log(`✅ URL do vídeo encontrada: ${url.substring(0, 50)}...`);
+        console.log(`📺 VideoUrl state atualizado para: ${url}`);
       } else {
         console.warn('⚠️ Nenhuma URL de vídeo encontrada, usando placeholder');
         setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
@@ -150,6 +151,11 @@ export default function EpisodeModal({
         </DialogHeader>
         
         <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
+          {/* Debug info */}
+          <div className="absolute top-2 left-2 bg-black/50 text-white text-xs p-1 rounded z-10">
+            Playing: {isPlaying ? 'Yes' : 'No'} | URL: {videoUrl ? 'Set' : 'None'}
+          </div>
+          
           {!isPlaying ? (
             <>
               <img
