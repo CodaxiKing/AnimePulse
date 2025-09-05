@@ -24,9 +24,9 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
       <div className={`group cursor-pointer ${
         variant === 'horizontal' ? 'flex-none w-48 aspect-[3/4.5]' : 'w-full aspect-[3/4.5]'
       }`} data-testid={`card-anime-${anime.id}`}>
-        <div className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative h-full flex flex-col">
+        <div className={`bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative h-full flex flex-col ${rank ? 'ring-2 ring-yellow-400/20' : ''}`}>
           {rank && (
-            <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
+            <div className="absolute top-2 left-2 z-10 bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 text-white text-xs w-7 h-7 rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white/20">
               {rank}
             </div>
           )}
@@ -37,8 +37,8 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
           )}
           
           {/* Tag de visualizações */}
-          {anime.viewCount && (
-            <div className="absolute top-2 right-2 z-10 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1">
+          {anime.viewCount && anime.viewCount > 0 && (
+            <div className={`absolute z-10 bg-black/75 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 shadow-lg ${rank ? 'top-11 right-2' : 'top-2 right-2'}`}>
               <Eye className="w-3 h-3" />
               {formatViewCount(anime.viewCount)}
             </div>
@@ -75,7 +75,7 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
               </div>
             ) : (
               <p className="text-xs text-muted-foreground line-clamp-1 mt-auto" data-testid={`text-anime-info-${anime.id}`}>
-                {anime.genres?.slice(0, 2).join(" • ")} • {anime.totalEpisodes} eps
+                {anime.genres?.slice(0, 2).join(" • ")} {anime.totalEpisodes > 0 ? `• ${anime.totalEpisodes} eps` : ''}
               </p>
             )}
           </div>

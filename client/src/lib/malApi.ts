@@ -119,7 +119,7 @@ function convertMALAnimeToLocal(malAnime: MALAnime): Anime {
     title: malAnime.title,
     image: malAnime.main_picture?.large || malAnime.main_picture?.medium || '',
     studio: firstStudio,
-    year,
+    year: year ?? null,
     genres,
     synopsis: malAnime.synopsis || '',
     releaseDate: malAnime.start_date || '',
