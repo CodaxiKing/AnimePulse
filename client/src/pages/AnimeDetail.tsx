@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
 import MilestoneModal from "@/components/MilestoneModal";
+import TrailerModal from "@/components/TrailerModal";
 import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, removeWatchedEpisode, isEpisodeWatched, areAllEpisodesWatched, calculateAnimePoints, markEpisodeWatchedFromPlayer } from "@/lib/api";
+import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
 import type { Episode } from "@shared/schema";
 import type { MilestoneData } from "@/lib/milestones";
 
@@ -24,6 +26,8 @@ export default function AnimeDetail() {
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [milestones, setMilestones] = useState<MilestoneData[]>([]);
   const [showMilestones, setShowMilestones] = useState(false);
+  const [trailerModalOpen, setTrailerModalOpen] = useState(false);
+  const [selectedTrailer, setSelectedTrailer] = useState<{ animeTitle: string; trailerUrl: string } | null>(null);
 
   const handleMarkEpisode = async (episode: Episode) => {
     if (anime) {
@@ -78,6 +82,27 @@ export default function AnimeDetail() {
   };
   
   const shouldShowReadMore = (text: string) => text.length > 200;
+
+  const handleWatchTrailer = () => {
+    if (!anime) return;
+    
+    const trailer = getAnimeTrailer(anime.title);
+    if (trailer) {
+      setSelectedTrailer({
+        animeTitle: anime.title,
+        trailerUrl: trailer.trailerUrl
+      });
+      setTrailerModalOpen(true);
+      console.log(`🎬 Abrindo trailer para: ${anime.title}`);
+    } else {
+      console.log(`❌ Nenhum trailer disponível para: ${anime.title}`);
+    }
+  };
+
+  const closeTrailerModal = () => {
+    setTrailerModalOpen(false);
+    setSelectedTrailer(null);
+  };
 
   const { data: anime, isLoading: loadingAnime } = useQuery({
     queryKey: ["anime", id],
@@ -288,13 +313,24 @@ export default function AnimeDetail() {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                  <Button
-                    className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-6 py-2 font-semibold anime-glow hover:opacity-95 text-sm"
-                    data-testid="button-watch-anime"
-                  >
-                    <Play className="w-4 h-4 mr-2" />
-                    Assistir agora
-                  </Button>
+                  {hasTrailer(anime.title) ? (
+                    <Button
+                      onClick={handleWatchTrailer}
+                      className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-6 py-2 font-semibold anime-glow hover:opacity-95 text-sm"
+                      data-testid="button-watch-trailer"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Ver Trailer
+                    </Button>
+                  ) : (
+                    <Button
+                      className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-6 py-2 font-semibold anime-glow hover:opacity-95 text-sm"
+                      data-testid="button-watch-anime"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Ver Episódios
+                    </Button>
+                  )}
                   
                   <Button
                     variant="secondary"
@@ -436,6 +472,16 @@ export default function AnimeDetail() {
             setMilestones([]);
           }}
         />
+
+        {/* Modal de Trailer */}
+        {selectedTrailer && (
+          <TrailerModal
+            isOpen={trailerModalOpen}
+            onClose={closeTrailerModal}
+            animeTitle={selectedTrailer.animeTitle}
+            trailerUrl={selectedTrailer.trailerUrl}
+          />
+        )}
       </div>
   );
 }
