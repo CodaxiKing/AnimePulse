@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { TimelineVisualization } from '@/components/TimelineVisualization';
 import { TimelineFilters } from '@/components/TimelineFilters';
 import { useLocation } from 'wouter';
@@ -11,7 +12,14 @@ import {
   TrendingUp, 
   Calendar,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Trophy,
+  Target,
+  PlayCircle,
+  CheckCircle2,
+  BookmarkPlus,
+  History,
+  Star
 } from 'lucide-react';
 import {
   TimelineFilter,
@@ -19,7 +27,10 @@ import {
   convertMalToTimelineAnime,
   organizeAnimesByTimeline,
   filterTimelineAnimes,
-  getAvailableDecades
+  getAvailableDecades,
+  historicalMilestones,
+  getMilestonesForYear,
+  calculateTimelineStats
 } from '@/lib/timelineService';
 
 export default function Timeline() {
@@ -40,6 +51,11 @@ export default function Timeline() {
     queryKey: ['/api/mal/anime/top?limit=100']
   });
 
+  // Buscar progresso do usuário
+  const { data: userProgress = [] } = useQuery({
+    queryKey: ['/api/user/progress']
+  });
+
   const isLoading = loadingTrending || loadingTop;
 
   // Processar dados para timeline
@@ -50,8 +66,8 @@ export default function Timeline() {
     }
 
     const allAnimes = [
-      ...(trendingData?.data || []).map((item: any) => item.node),
-      ...(topData?.data || []).map((item: any) => item.node)
+      ...((trendingData as any)?.data || []).map((item: any) => item.node),
+      ...((topData as any)?.data || []).map((item: any) => item.node)
     ];
 
     // Remover duplicatas por ID
@@ -70,6 +86,24 @@ export default function Timeline() {
   const filteredTimelineData = useMemo(() => {
     return filterTimelineAnimes(timelineData, filters);
   }, [timelineData, filters]);
+
+  // Calcular estatísticas do usuário
+  const timelineStats = useMemo(() => {
+    const allAnimes = timelineData.flatMap(yearData => [
+      ...yearData.seasons.winter,
+      ...yearData.seasons.spring,
+      ...yearData.seasons.summer,
+      ...yearData.seasons.fall
+    ]);
+    return calculateTimelineStats(allAnimes, userProgress);
+  }, [timelineData, userProgress]);
+
+  // Marcos históricos para o ano selecionado
+  const selectedYearMilestones = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const targetYear = filteredTimelineData.find(data => data.year <= currentYear)?.year || currentYear;
+    return getMilestonesForYear(targetYear);
+  }, [filteredTimelineData]);
 
   // Extrair dados únicos para filtros
   const { availableGenres, availableStudios, availableDecades } = useMemo(() => {
@@ -153,7 +187,60 @@ export default function Timeline() {
           </p>
         </div>
 
-        {/* Estatísticas */}
+        {/* Estatísticas do Usuário */}
+        {timelineStats.totalAnimes > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="p-2 rounded-full bg-green-500/20">
+                  <CheckCircle2 className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Completos</p>
+                  <p className="text-2xl font-bold text-green-400">{timelineStats.completedAnimes}</p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="p-2 rounded-full bg-blue-500/20">
+                  <PlayCircle className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Assistindo</p>
+                  <p className="text-2xl font-bold text-blue-400">{timelineStats.watchingAnimes}</p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="p-2 rounded-full bg-yellow-500/20">
+                  <BookmarkPlus className="w-5 h-5 text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Planejados</p>
+                  <p className="text-2xl font-bold text-yellow-400">{timelineStats.plannedAnimes}</p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="p-2 rounded-full bg-purple-500/20">
+                  <TimelineIcon className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Horas</p>
+                  <p className="text-2xl font-bold text-purple-400">{timelineStats.totalWatchTime}h</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Estatísticas Gerais */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20">
             <CardContent className="p-4 text-center">
@@ -218,10 +305,48 @@ export default function Timeline() {
           </CardHeader>
           <CardContent>
             {filteredTimelineData.length > 0 ? (
-              <TimelineVisualization
-                timelineData={filteredTimelineData}
-                onAnimeSelect={handleAnimeSelect}
-              />
+              <div className="space-y-6">
+                {/* Marcos Históricos */}
+                {selectedYearMilestones.length > 0 && (
+                  <Card className="bg-card/50 backdrop-blur-sm border-purple-500/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <History className="w-5 h-5 text-purple-400" />
+                        Marcos Históricos
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4">
+                        {selectedYearMilestones.map((milestone, index) => (
+                          <div key={index} className="flex gap-3 p-3 rounded-lg bg-background/50">
+                            <div className="flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white text-sm font-bold">
+                                {milestone.year.toString().slice(-2)}
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-purple-400">{milestone.title}</h4>
+                              <p className="text-sm text-muted-foreground">{milestone.description}</p>
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {milestone.type === 'technology' && '🔧'}
+                                {milestone.type === 'cultural' && '🌟'}
+                                {milestone.type === 'industry' && '🏢'}
+                                {milestone.type === 'awards' && '🏆'}
+                                {milestone.type.charAt(0).toUpperCase() + milestone.type.slice(1)}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                <TimelineVisualization
+                  timelineData={filteredTimelineData}
+                  onAnimeSelect={handleAnimeSelect}
+                />
+              </div>
             ) : (
               <div className="text-center py-12 space-y-4">
                 <TimelineIcon className="w-16 h-16 mx-auto text-muted-foreground/50" />

@@ -23,6 +23,65 @@ function requireAuth(req: any, res: any, next: any) {
   next();
 }
 
+// Mock user progress data (in a real app, this would come from database)
+const mockUserProgress = [
+  {
+    animeId: 5114, // Fullmetal Alchemist: Brotherhood
+    episodesWatched: 64,
+    totalEpisodes: 64,
+    status: 'completed',
+    score: 10,
+    updatedAt: '2024-12-01'
+  },
+  {
+    animeId: 21, // One Piece
+    episodesWatched: 450,
+    totalEpisodes: 1000,
+    status: 'watching',
+    score: 9,
+    updatedAt: '2024-12-15'
+  },
+  {
+    animeId: 38000, // Kimetsu no Yaiba
+    episodesWatched: 26,
+    totalEpisodes: 26,
+    status: 'completed',
+    score: 9,
+    updatedAt: '2024-11-20'
+  },
+  {
+    animeId: 52991, // Sousou no Frieren
+    episodesWatched: 15,
+    totalEpisodes: 28,
+    status: 'watching',
+    score: 8,
+    updatedAt: '2024-12-10'
+  },
+  {
+    animeId: 16498, // Attack on Titan
+    episodesWatched: 0,
+    totalEpisodes: 25,
+    status: 'plan_to_watch',
+    updatedAt: '2024-12-05'
+  },
+  {
+    animeId: 31043, // Boku no Hero Academia
+    episodesWatched: 50,
+    totalEpisodes: 138,
+    status: 'watching',
+    score: 7,
+    updatedAt: '2024-12-12'
+  },
+  {
+    animeId: 47778, // Kimetsu no Yaiba Movie
+    episodesWatched: 1,
+    totalEpisodes: 1,
+    status: 'completed',
+    score: 10,
+    updatedAt: '2024-10-25'
+  }
+];
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Configurar sessão
   app.use(session({
@@ -533,6 +592,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get user stats error:", error);
       res.status(500).json({ error: "Failed to get user stats" });
+    }
+  });
+
+  // User Progress Endpoints for Timeline
+  app.get("/api/user/progress", async (req, res) => {
+    try {
+      // In a real app, this would filter by user session
+      // For now, return all mock data to demonstrate functionality
+      res.json(mockUserProgress);
+    } catch (error) {
+      console.error("Error fetching user progress:", error);
+      res.status(500).json({ error: "Failed to fetch user progress" });
+    }
+  });
+
+  app.post("/api/user/progress", async (req, res) => {
+    try {
+      const { animeId, episodesWatched, totalEpisodes, status, score } = req.body;
+      
+      if (!animeId || !status) {
+        return res.status(400).json({ error: "animeId and status are required" });
+      }
+      
+      // Find existing progress
+      const existingIndex = mockUserProgress.findIndex(p => p.animeId === animeId);
+      
+      const progressData = {
+        animeId,
+        episodesWatched: episodesWatched || 0,
+        totalEpisodes: totalEpisodes || 12,
+        status,
+        score,
+        updatedAt: new Date().toISOString().split('T')[0]
+      };
+      
+      if (existingIndex >= 0) {
+        // Update existing progress
+        mockUserProgress[existingIndex] = progressData;
+      } else {
+        // Add new progress
+        mockUserProgress.push(progressData);
+      }
+      
+      res.json(progressData);
+    } catch (error) {
+      console.error("Error updating user progress:", error);
+      res.status(500).json({ error: "Failed to update user progress" });
+    }
+  });
+
+  app.delete("/api/user/progress/:animeId", async (req, res) => {
+    try {
+      const animeId = parseInt(req.params.animeId);
+      const index = mockUserProgress.findIndex(p => p.animeId === animeId);
+      
+      if (index >= 0) {
+        mockUserProgress.splice(index, 1);
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Progress not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting user progress:", error);
+      res.status(500).json({ error: "Failed to delete user progress" });
     }
   });
 

@@ -1,5 +1,6 @@
 /**
  * Timeline Service - Gerencia dados da timeline interativa de animes
+ * Inclui integração com progresso do usuário e marcos históricos
  */
 
 export interface TimelineAnime {
@@ -35,6 +36,25 @@ export interface TimelineFilter {
   minScore: number;
   status: string[];
   decade?: string;
+  userStatus?: ('watching' | 'completed' | 'plan_to_watch' | 'dropped')[];
+}
+
+export interface HistoricalMilestone {
+  year: number;
+  title: string;
+  description: string;
+  type: 'technology' | 'cultural' | 'industry' | 'awards';
+  animeIds?: number[];
+}
+
+export interface TimelineStats {
+  totalAnimes: number;
+  completedAnimes: number;
+  watchingAnimes: number;
+  plannedAnimes: number;
+  droppedAnimes: number;
+  totalWatchTime: number; // em horas
+  averageScore: number;
 }
 
 /**
@@ -205,3 +225,172 @@ export const seasonIcons = {
   summer: '☀️',
   fall: '🍂'
 } as const;
+
+/**
+ * Marcos históricos do anime
+ */
+export const historicalMilestones: HistoricalMilestone[] = [
+  {
+    year: 2024,
+    title: 'Era do Streaming Global',
+    description: 'Plataformas de streaming dominam a distribuição de anime mundialmente.',
+    type: 'technology'
+  },
+  {
+    year: 2023,
+    title: 'Boom dos Animes Isekai',
+    description: 'Gênero isekai atinge pico de popularidade com dezenas de novos títulos.',
+    type: 'cultural'
+  },
+  {
+    year: 2020,
+    title: 'Demon Slayer Phänomen',
+    description: 'Demon Slayer quebra recordes de bilheteria e popularidade global.',
+    type: 'cultural',
+    animeIds: [38000]
+  },
+  {
+    year: 2019,
+    title: 'Your Name Global Impact',
+    description: 'Your Name se torna o anime de maior sucesso comercial da década.',
+    type: 'cultural'
+  },
+  {
+    year: 2016,
+    title: 'Ascensão do Studio Trigger',
+    description: 'Studio Trigger ganha reconhecimento mundial com Kill la Kill e Little Witch Academia.',
+    type: 'industry'
+  },
+  {
+    year: 2013,
+    title: 'Attack on Titan Revolution',
+    description: 'Attack on Titan redefine o que significa um anime de sucesso global.',
+    type: 'cultural'
+  },
+  {
+    year: 2009,
+    title: 'Era Digital Madura',
+    description: 'Transição completa para animação digital em todos os grandes estúdios.',
+    type: 'technology'
+  },
+  {
+    year: 2003,
+    title: 'Toonami e Globalização',
+    description: 'Toonami populariza anime no Ocidente com Dragon Ball Z e Naruto.',
+    type: 'cultural'
+  },
+  {
+    year: 1997,
+    title: 'Princess Mononoke Época',
+    description: 'Studio Ghibli atinge maturidade artística com Princess Mononoke.',
+    type: 'cultural'
+  },
+  {
+    year: 1995,
+    title: 'Evangelion Impact',
+    description: 'Neon Genesis Evangelion revoluciona narrativa e psicologia no anime.',
+    type: 'cultural'
+  },
+  {
+    year: 1988,
+    title: 'Akira Milestone',
+    description: 'Akira estabelece o anime como forma de arte séria mundialmente.',
+    type: 'cultural'
+  }
+];
+
+/**
+ * Obtém marcos históricos para um ano específico
+ */
+export function getMilestonesForYear(year: number): HistoricalMilestone[] {
+  return historicalMilestones.filter(milestone => milestone.year === year);
+}
+
+/**
+ * Calcula estatísticas da timeline baseado no progresso do usuário
+ */
+export function calculateTimelineStats(animes: TimelineAnime[], userProgress: any[]): TimelineStats {
+  const progressMap = new Map(userProgress.map(p => [p.animeId, p]));
+  
+  let totalWatchTime = 0;
+  let totalScore = 0;
+  let scoredCount = 0;
+  
+  const stats = {
+    totalAnimes: animes.length,
+    completedAnimes: 0,
+    watchingAnimes: 0,
+    plannedAnimes: 0,
+    droppedAnimes: 0,
+    totalWatchTime: 0,
+    averageScore: 0
+  };
+  
+  animes.forEach(anime => {
+    const progress = progressMap.get(anime.id);
+    if (progress) {
+      switch (progress.status) {
+        case 'completed':
+          stats.completedAnimes++;
+          totalWatchTime += anime.episodes * 24; // 24min por episódio
+          break;
+        case 'watching':
+          stats.watchingAnimes++;
+          totalWatchTime += progress.episodesWatched * 24;
+          break;
+        case 'plan_to_watch':
+          stats.plannedAnimes++;
+          break;
+        case 'dropped':
+          stats.droppedAnimes++;
+          totalWatchTime += progress.episodesWatched * 24;
+          break;
+      }
+      
+      if (progress.score) {
+        totalScore += progress.score;
+        scoredCount++;
+      }
+    }
+  });
+  
+  stats.totalWatchTime = Math.round(totalWatchTime / 60); // converter para horas
+  stats.averageScore = scoredCount > 0 ? Math.round((totalScore / scoredCount) * 10) / 10 : 0;
+  
+  return stats;
+}
+
+/**
+ * Busca animes por década
+ */
+export function getAnimesByDecade(timelineData: TimelineYear[], decade: string): TimelineAnime[] {
+  const startYear = parseInt(decade.replace('s', ''));
+  const endYear = startYear + 9;
+  
+  return timelineData
+    .filter(yearData => yearData.year >= startYear && yearData.year <= endYear)
+    .flatMap(yearData => [
+      ...yearData.seasons.winter,
+      ...yearData.seasons.spring,
+      ...yearData.seasons.summer,
+      ...yearData.seasons.fall
+    ]);
+}
+
+/**
+ * Gera cores dinâmicas para gêneros
+ */
+export function getGenreColor(genre: string): string {
+  const colors = [
+    'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500',
+    'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-cyan-500',
+    'bg-orange-500', 'bg-teal-500'
+  ];
+  
+  const hash = genre.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  
+  return colors[Math.abs(hash) % colors.length];
+}
