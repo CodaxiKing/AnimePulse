@@ -46,7 +46,7 @@ interface WatchProgress {
 export default function Profile() {
   const { user, stats, isLoading } = useAuth();
   const [progressPage, setProgressPage] = useState(0);
-  const progressPerPage = 2; // Reduzido para 2 para mostrar as setinhas mais facilmente
+  const progressPerPage = 3; // Cards visíveis no carrossel horizontal
 
   // Buscar animes completados
   const { data: completedAnimes = [] } = useQuery<CompletedAnime[]>({
@@ -211,61 +211,92 @@ export default function Profile() {
             <CardContent>
               {watchProgress && watchProgress.length > 0 ? (
                 <div className="relative">
-                  {/* Controles de navegação */}
-                  {watchProgress.length > progressPerPage && (
-                    <div className="flex justify-between items-center mb-4">
+                  {/* Carrossel horizontal com setas de navegação */}
+                  <div className="flex items-center gap-4">
+                    {/* Seta esquerda */}
+                    {watchProgress.length > progressPerPage && (
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="icon"
                         onClick={() => setProgressPage(Math.max(0, progressPage - 1))}
                         disabled={progressPage === 0}
-                        className="flex items-center gap-1"
-                        data-testid="button-progress-prev"
+                        className="h-8 w-8 shrink-0"
+                        data-testid="button-carousel-prev"
                       >
                         <ChevronLeft className="w-4 h-4" />
-                        Anterior
                       </Button>
-                      
-                      <span className="text-sm text-muted-foreground">
-                        {progressPage * progressPerPage + 1}-{Math.min((progressPage + 1) * progressPerPage, watchProgress.length)} de {watchProgress.length}
-                      </span>
-                      
+                    )}
+                    
+                    {/* Container dos cards com scroll horizontal */}
+                    <div className="flex-1 overflow-hidden">
+                      <div className="flex gap-4 transition-transform duration-300 ease-in-out"
+                           style={{ transform: `translateX(-${progressPage * (100 / progressPerPage)}%)` }}>
+                        {watchProgress.map((progress, index) => (
+                          <div key={index} className="flex-none w-80 bg-muted/50 rounded-lg p-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-16 h-20 bg-muted rounded-md flex items-center justify-center">
+                                <Play className="w-8 h-8 text-muted-foreground" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium truncate">Anime #{progress.animeId}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Ep. {progress.episodesWatched}/{progress.totalEpisodes}
+                                </p>
+                                <div className="mt-2">
+                                  <Progress 
+                                    value={(progress.episodesWatched / progress.totalEpisodes) * 100} 
+                                    className="h-1.5" 
+                                  />
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {Math.round((progress.episodesWatched / progress.totalEpisodes) * 100)}% concluído
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full"
+                              data-testid={`button-continue-${progress.animeId}`}
+                            >
+                              <Play className="w-4 h-4 mr-2" />
+                              Continuar Assistindo
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Seta direita */}
+                    {watchProgress.length > progressPerPage && (
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="icon"
                         onClick={() => setProgressPage(Math.min(Math.ceil(watchProgress.length / progressPerPage) - 1, progressPage + 1))}
                         disabled={progressPage >= Math.ceil(watchProgress.length / progressPerPage) - 1}
-                        className="flex items-center gap-1"
-                        data-testid="button-progress-next"
+                        className="h-8 w-8 shrink-0"
+                        data-testid="button-carousel-next"
                       >
-                        Próximo
                         <ChevronRight className="w-4 h-4" />
                       </Button>
+                    )}
+                  </div>
+                  
+                  {/* Indicador de páginas */}
+                  {watchProgress.length > progressPerPage && (
+                    <div className="flex justify-center mt-4 gap-1">
+                      {Array.from({ length: Math.ceil(watchProgress.length / progressPerPage) }).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setProgressPage(i)}
+                          className={`w-2 h-2 rounded-full transition-colors ${
+                            i === progressPage ? 'bg-primary' : 'bg-muted-foreground/30'
+                          }`}
+                          data-testid={`indicator-${i}`}
+                        />
+                      ))}
                     </div>
                   )}
-                  
-                  {/* Lista de animes em progresso */}
-                  <div className="space-y-4">
-                    {watchProgress
-                      .slice(progressPage * progressPerPage, (progressPage + 1) * progressPerPage)
-                      .map((progress, index) => (
-                      <div key={index} className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
-                        <div className="w-12 h-16 bg-muted rounded-md flex items-center justify-center">
-                          <Play className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium">Anime #{progress.animeId}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Episódio {progress.episodesWatched} de {progress.totalEpisodes} • {Math.round((progress.episodesWatched / progress.totalEpisodes) * 100)}% assistido
-                          </p>
-                          <Progress value={(progress.episodesWatched / progress.totalEpisodes) * 100} className="h-1 mt-2" />
-                        </div>
-                        <Button variant="outline" size="sm" data-testid={`button-continue-${progress.animeId}`}>
-                          Continuar
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
