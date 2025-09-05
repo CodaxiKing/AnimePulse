@@ -34,6 +34,13 @@ export default function EpisodeModal({
   const [videoError, setVideoError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Buscar URL do vídeo quando episódio muda
+  useEffect(() => {
+    if (episode && animeTitle && isOpen) {
+      loadVideoUrl();
+    }
+  }, [episode, animeTitle, isOpen]);
+
   if (!episode) return null;
 
   const currentIndex = episodes.findIndex(ep => ep.number === episode.number);
@@ -73,13 +80,6 @@ export default function EpisodeModal({
       console.error('❌ Erro ao marcar episódio automaticamente:', error);
     }
   };
-
-  // Buscar URL do vídeo quando episódio muda
-  useEffect(() => {
-    if (episode && animeTitle) {
-      loadVideoUrl();
-    }
-  }, [episode, animeTitle]);
 
   const loadVideoUrl = async () => {
     if (!episode || !animeTitle) return;
