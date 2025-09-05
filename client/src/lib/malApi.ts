@@ -142,7 +142,7 @@ function convertMALMangaToLocal(malManga: MALManga): Manga {
     title: malManga.title,
     image: malManga.main_picture?.large || malManga.main_picture?.medium || '',
     author: firstAuthor,
-    latestChapter: malManga.num_chapters || null,
+    latestChapter: malManga.num_chapters ?? null,
     genres,
     synopsis: malManga.synopsis || '',
     status: malManga.status === 'finished' ? 'completed' : 
