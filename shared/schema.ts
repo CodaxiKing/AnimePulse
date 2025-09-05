@@ -109,7 +109,7 @@ export const userStats = pgTable("user_stats", {
 export const completedAnimes = pgTable("completed_animes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
-  animeId: varchar("anime_id").references(() => animes.id),
+  animeId: varchar("anime_id"), // Removida referência FK pois anime vem de APIs externas
   animeTitle: text("anime_title").notNull(),
   animeImage: text("anime_image"),
   totalEpisodes: integer("total_episodes"),
