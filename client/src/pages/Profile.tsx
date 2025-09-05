@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { getCompletedAnimes } from "@/lib/api";
 
 interface CompletedAnime {
@@ -49,8 +49,21 @@ interface WatchProgress {
 
 export default function Profile() {
   const { user, stats, isLoading } = useAuth();
-  const [progressPage, setProgressPage] = useState(0);
-  const progressPerPage = 3; // Cards visíveis no carrossel horizontal
+  // Ref para scroll horizontal do carrossel
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Funções de scroll
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
   const [activeTab, setActiveTab] = useState("overview");
 
   // Buscar animes completados usando a nova API
@@ -86,9 +99,7 @@ export default function Profile() {
   // Debug: verificar quantos animes em progresso temos
   console.log('🔍 Debug watchProgress:', {
     total: continueAnimes.length,
-    watching: watchProgress.length,
-    progressPerPage,
-    shouldShowArrows: watchProgress.length > progressPerPage
+    watching: watchProgress.length
   });
 
   if (isLoading) {
@@ -252,21 +263,22 @@ export default function Profile() {
                     {/* Seta esquerda */}
                     {watchProgress.length > 1 && (
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
-                        onClick={() => setProgressPage(Math.max(0, progressPage - 1))}
-                        disabled={progressPage === 0}
-                        className="h-8 w-8 shrink-0"
-                        data-testid="button-carousel-prev"
+                        onClick={scrollLeft}
+                        className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
+                        data-testid="button-scroll-left-continue"
                       >
-                        <ChevronLeft className="w-4 h-4" />
+                        <ChevronLeft className="h-4 w-4" />
                       </Button>
                     )}
                     
                     {/* Container dos cards com scroll horizontal */}
-                    <div className="flex-1 overflow-hidden">
-                      <div className="flex gap-4 transition-transform duration-300 ease-in-out"
-                           style={{ transform: `translateX(-${progressPage * (100 / progressPerPage)}%)` }}>
+                    <div className="flex-1 relative">
+                      <div 
+                        ref={scrollRef}
+                        className="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r"
+                      >
                         {watchProgress.map((anime, index) => (
                           <div key={index} className="flex-none w-80 bg-muted/50 rounded-lg p-4">
                             <div className="flex items-center gap-3 mb-3">
@@ -320,33 +332,16 @@ export default function Profile() {
                     {/* Seta direita */}
                     {watchProgress.length > 1 && (
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
-                        onClick={() => setProgressPage(Math.min(Math.ceil(watchProgress.length / progressPerPage) - 1, progressPage + 1))}
-                        disabled={progressPage >= Math.ceil(watchProgress.length / progressPerPage) - 1}
-                        className="h-8 w-8 shrink-0"
-                        data-testid="button-carousel-next"
+                        onClick={scrollRight}
+                        className="h-8 w-8 rounded-full bg-background/80 hover:bg-background border"
+                        data-testid="button-scroll-right-continue"
                       >
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
-                  
-                  {/* Indicador de páginas */}
-                  {watchProgress.length > 1 && Math.ceil(watchProgress.length / progressPerPage) > 1 && (
-                    <div className="flex justify-center mt-4 gap-1">
-                      {Array.from({ length: Math.ceil(watchProgress.length / progressPerPage) }).map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setProgressPage(i)}
-                          className={`w-2 h-2 rounded-full transition-colors ${
-                            i === progressPage ? 'bg-primary' : 'bg-muted-foreground/30'
-                          }`}
-                          data-testid={`indicator-${i}`}
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
