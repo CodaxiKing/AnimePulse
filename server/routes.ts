@@ -620,6 +620,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar animes específico
+  app.get("/api/animes/search", async (req, res) => {
+    try {
+      const { q, page = 1 } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: "Search query required" });
+      }
+      
+      console.log(`🔍 Searching for anime: "${q}"`);
+      const { animeStreamingService } = await import('./lib/animeService');
+      const results = await animeStreamingService.searchAnime(q, Number(page));
+      
+      res.json({
+        data: results,
+        page: Number(page),
+        query: q
+      });
+    } catch (error) {
+      console.error('❌ Error searching anime:', error);
+      res.status(500).json({ error: "Anime search failed" });
+    }
+  });
+
   // Search route
   app.get("/api/search", async (req, res) => {
     try {

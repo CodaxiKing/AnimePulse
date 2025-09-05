@@ -66,6 +66,37 @@ export class AnimeStreamingService {
     }
   }
 
+  // Buscar anime por nome
+  async searchAnime(query: string, page: number = 1): Promise<AnimeData[]> {
+    const searchEndpoints = [
+      `${this.CONSUMET_API}/anime/gogoanime/${encodeURIComponent(query)}?page=${page}`,
+      `${this.ANBU_API}/search/${encodeURIComponent(query)}?page=${page}`,
+      `${this.BACKUP_API}/search/${encodeURIComponent(query)}?page=${page}`
+    ];
+
+    console.log(`🔍 Searching for: "${query}" on page ${page}`);
+
+    for (const endpoint of searchEndpoints) {
+      try {
+        console.log(`🔥 Tentando buscar em: ${endpoint}`);
+        const data = await this.fetchWithTimeout(endpoint);
+        
+        if (data && data.results && Array.isArray(data.results) && data.results.length > 0) {
+          console.log(`✅ Encontrados ${data.results.length} animes na pesquisa`);
+          return data.results.map((item: any) => this.adaptAnimeData(item));
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.log(`❌ Falha no endpoint ${endpoint}: ${errorMessage}`);
+      }
+    }
+
+    console.log(`⚠️ Nenhum resultado encontrado para "${query}", retornando dados mock`);
+    return this.getMockAnimeData().filter(anime => 
+      anime.title.toLowerCase().includes(query.toLowerCase())
+    );
+  }
+
   // Buscar animes em alta (trending/airing)
   async getTrendingAnime(page: number = 1): Promise<AnimeData[]> {
     const endpoints = [
@@ -154,36 +185,6 @@ export class AnimeStreamingService {
     return null;
   }
 
-  // Buscar animes por termo
-  async searchAnime(query: string, page: number = 1): Promise<AnimeData[]> {
-    const encodedQuery = encodeURIComponent(query);
-    const endpoints = [
-      `${this.CONSUMET_API}/anime/gogoanime/search/${encodedQuery}?page=${page}`,
-      `${this.ANBU_API}/search?keyw=${encodedQuery}&page=${page}`,
-      `${this.BACKUP_API}/search?keyw=${encodedQuery}&page=${page}`
-    ];
-
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`🔎 Buscando "${query}" em: ${endpoint}`);
-        
-        const data = await this.fetchWithTimeout(endpoint);
-        
-        if (data && (data.results || Array.isArray(data))) {
-          const results = data.results || data;
-          const animes = results.map((anime: any) => this.adaptAnimeData(anime));
-          
-          console.log(`✅ Encontrados ${animes.length} resultados para "${query}"`);
-          return animes;
-        }
-      } catch (error) {
-        console.warn(`❌ Falha na busca em ${endpoint}:`, error instanceof Error ? error.message : 'Unknown error');
-      }
-    }
-
-    console.log(`⚠️ Nenhum resultado encontrado para "${query}"`);
-    return [];
-  }
 
   // Buscar episódios de um anime
   async getAnimeEpisodes(animeId: string): Promise<EpisodeData[]> {
