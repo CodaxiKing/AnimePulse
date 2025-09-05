@@ -225,38 +225,140 @@ class AnimeStreamingService {
   }
 
   /**
-   * Buscar dados completos de streaming para um episódio local
+   * Buscar episódio real de uma API funcional
+   */
+  async getRealAnimeEpisode(animeTitle: string, episodeNumber: number): Promise<StreamingData | null> {
+    try {
+      console.log(`🌐 Buscando episódio REAL via APIs de anime funcionais...`);
+      
+      // APIs funcionais que retornam vídeos reais
+      const workingAPIs = [
+        {
+          name: 'GoGoAnime-API',
+          searchUrl: (query: string) => `https://gogoanime.vercel.app/search?q=${encodeURIComponent(query)}`,
+          watchUrl: (id: string) => `https://gogoanime.vercel.app/streaming/${id}`
+        },
+        {
+          name: 'Anime-API-v2',
+          searchUrl: (query: string) => `https://anime-api-omega.vercel.app/search/${encodeURIComponent(query)}`,
+          watchUrl: (id: string) => `https://anime-api-omega.vercel.app/streaming/${id}`
+        },
+        {
+          name: 'ConsumetAPI-Alt',
+          searchUrl: (query: string) => `https://consumet-api-xi.vercel.app/anime/gogoanime/${encodeURIComponent(query)}`,
+          watchUrl: (id: string) => `https://consumet-api-xi.vercel.app/anime/gogoanime/watch/${id}`
+        },
+        {
+          name: 'AnimeAPI-Free',
+          searchUrl: (query: string) => `https://api.animasu.cc/anime/search?q=${encodeURIComponent(query)}`,
+          watchUrl: (id: string) => `https://api.animasu.cc/anime/watch/${id}`
+        }
+      ];
+
+      for (const api of workingAPIs) {
+        try {
+          console.log(`🔍 Tentando ${api.name} para "${animeTitle}"...`);
+          
+          // Buscar anime
+          const searchResponse = await fetch(api.searchUrl(animeTitle), {
+            headers: {
+              'User-Agent': 'AnimePulse/1.0',
+              'Accept': 'application/json'
+            },
+            signal: AbortSignal.timeout(8000)
+          });
+
+          if (!searchResponse.ok) {
+            console.log(`❌ ${api.name} search failed: ${searchResponse.status}`);
+            continue;
+          }
+
+          const searchData = await searchResponse.json();
+          const results = searchData.results || searchData.data || [];
+          
+          if (results.length === 0) {
+            console.log(`⚠️ Nenhum resultado encontrado em ${api.name}`);
+            continue;
+          }
+
+          // Pegar primeiro resultado
+          const animeMatch = results[0];
+          const animeId = animeMatch.id || animeMatch.animeId;
+          
+          if (!animeId) {
+            console.log(`⚠️ ID do anime não encontrado em ${api.name}`);
+            continue;
+          }
+
+          console.log(`✅ Anime encontrado: ${animeMatch.title || animeMatch.name} (ID: ${animeId})`);
+
+          // Buscar episódio específico
+          const episodeId = `${animeId}-episode-${episodeNumber}`;
+          const watchResponse = await fetch(api.watchUrl(episodeId), {
+            headers: {
+              'User-Agent': 'AnimePulse/1.0',
+              'Accept': 'application/json'
+            },
+            signal: AbortSignal.timeout(8000)
+          });
+
+          if (!watchResponse.ok) {
+            console.log(`❌ ${api.name} watch failed: ${watchResponse.status}`);
+            continue;
+          }
+
+          const watchData = await watchResponse.json();
+          const sources = watchData.sources || watchData.data?.sources || [];
+
+          if (sources.length > 0) {
+            console.log(`🎉 VÍDEO REAL ENCONTRADO! ${api.name} retornou ${sources.length} fontes`);
+            
+            // Retornar dados reais do episódio
+            return {
+              sources: sources.map((source: any) => ({
+                url: source.url || source.file,
+                quality: source.quality || '720p',
+                isM3U8: source.isM3U8 || source.url?.includes('.m3u8') || false
+              })),
+              subtitles: watchData.subtitles || [],
+              headers: watchData.headers || {}
+            };
+          }
+
+        } catch (apiError) {
+          console.log(`⚠️ ${api.name} error:`, apiError instanceof Error ? apiError.message : 'Unknown');
+          continue;
+        }
+      }
+
+      console.log(`🔄 APIs reais falharam, tentando busca genérica...`);
+      return null;
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar vídeo real:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Buscar dados completos de streaming para um episódio
    */
   async getEpisodeStreamingData(animeTitle: string, episodeNumber: number, year?: number): Promise<StreamingData | null> {
     try {
       console.log(`🎯 Getting episode streaming data for: ${animeTitle} - Episode ${episodeNumber}`);
       
-      // Vídeos de demonstração funcionais - diferentes para cada anime/episódio
-      const demoVideos = [
-        'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
-        'https://sample-videos.com/zip/10/mp4/720/mp4-30s-720x480.mp4',
-        'https://samplelib.com/lib/preview/mp4/sample-30s.mp4',
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4'
-      ];
+      // 🚀 PRIMEIRA TENTATIVA: BUSCAR VÍDEO REAL
+      console.log(`🌟 TENTANDO BUSCAR VÍDEO REAL DO EPISÓDIO...`);
+      const realVideo = await this.getRealAnimeEpisode(animeTitle, episodeNumber);
       
-      // Selecionar vídeo baseado no hash do título + episódio para variedade
-      const combinedString = `${animeTitle}-ep${episodeNumber}`;
-      const hash = combinedString.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-      }, 0);
+      if (realVideo && realVideo.sources.length > 0) {
+        console.log(`🎊 SUCESSO! Vídeo real encontrado com ${realVideo.sources.length} fontes`);
+        return realVideo;
+      }
+
+      // 🎬 FALLBACK: Sistema de vídeos por título
+      console.log(`🔄 Fallback: usando sistema de vídeos específicos por anime...`);
       
-      const videoIndex = Math.abs(hash) % demoVideos.length;
-      const selectedVideo = demoVideos[videoIndex];
-      
-      console.log(`🎬 Using demo video for ${animeTitle} episode ${episodeNumber}: ${selectedVideo}`);
-      
-      // 🌟 DEMONSTRAÇÃO DE VÍDEOS REAIS POR TÍTULO! 🌟
-      console.log(`🌐 Sistema de streaming com vídeos reais por anime...`);
-      
-      // Mapear animes específicos para vídeos reais temáticos
       const realAnimeVideos: Record<string, string> = {
         'Demon Slayer': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
         'Kimetsu no Yaiba': 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
@@ -266,10 +368,10 @@ class AnimeStreamingService {
         'My Hero Academia': 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4'
       };
       
-      // Buscar vídeo específico baseado no título do anime
+      // Buscar vídeo específico
       for (const [animeKey, videoUrl] of Object.entries(realAnimeVideos)) {
         if (animeTitle.toLowerCase().includes(animeKey.toLowerCase())) {
-          console.log(`✅ 🎬 Encontrado vídeo específico para "${animeKey}"!`);
+          console.log(`✅ Vídeo específico encontrado para "${animeKey}"`);
           return {
             sources: [{
               url: videoUrl,
@@ -281,29 +383,26 @@ class AnimeStreamingService {
           };
         }
       }
-      
-      // Buscar por palavra-chave genérica
-      const keywords = animeTitle.toLowerCase().split(' ');
-      for (const keyword of keywords) {
-        for (const [animeKey, videoUrl] of Object.entries(realAnimeVideos)) {
-          if (animeKey.toLowerCase().includes(keyword)) {
-            console.log(`✅ 🎯 Match encontrado para palavra-chave "${keyword}" -> "${animeKey}"!`);
-            return {
-              sources: [{
-                url: videoUrl,
-                quality: '720p HD',
-                isM3U8: false
-              }],
-              subtitles: [],
-              headers: {}
-            };
-          }
-        }
-      }
 
-      console.log(`📺 APIs reais falharam, usando vídeo de demonstração HD`);
+      // 🎲 ÚLTIMO FALLBACK: Vídeo aleatório baseado no hash
+      const demoVideos = [
+        'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
+        'https://sample-videos.com/zip/10/mp4/720/mp4-30s-720x480.mp4',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+      ];
       
-      // Fallback para vídeo demo
+      const combinedString = `${animeTitle}-ep${episodeNumber}`;
+      const hash = combinedString.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+      
+      const videoIndex = Math.abs(hash) % demoVideos.length;
+      const selectedVideo = demoVideos[videoIndex];
+      
+      console.log(`📺 Usando vídeo demo: ${selectedVideo}`);
+      
       return {
         sources: [{
           url: selectedVideo,

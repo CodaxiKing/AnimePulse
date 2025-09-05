@@ -151,11 +151,6 @@ export default function EpisodeModal({
         </DialogHeader>
         
         <div className="aspect-video bg-muted flex items-center justify-center relative rounded-lg overflow-hidden">
-          {/* Debug info */}
-          <div className="absolute top-2 left-2 bg-black/50 text-white text-xs p-1 rounded z-10">
-            Playing: {isPlaying ? 'Yes' : 'No'} | URL: {videoUrl ? 'Set' : 'None'}
-          </div>
-          
           {!isPlaying ? (
             <>
               <img
