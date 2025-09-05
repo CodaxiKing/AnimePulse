@@ -59,11 +59,11 @@ export default function Profile() {
   });
 
   // Buscar conquistas
-  const { data: achievements = [] } = useQuery({
+  const { data: achievements = [] } = useQuery<any[]>({
     queryKey: ["/api/achievements"],
   });
 
-  const { data: userAchievements = [] } = useQuery({
+  const { data: userAchievements = [] } = useQuery<any[]>({
     queryKey: ["/api/user/achievements"],
     enabled: !!user,
   });
@@ -571,7 +571,7 @@ export default function Profile() {
                         </div>
                         <div className="flex justify-between text-sm">
                           <span>Melhor Sequência</span>
-                          <span className="font-medium">{stats?.bestStreak || 0} dias</span>
+                          <span className="font-medium">{stats?.streakDays || 0} dias</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span>Média Semanal</span>
