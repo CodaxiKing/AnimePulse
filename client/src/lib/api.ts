@@ -1924,40 +1924,21 @@ export async function getCompletedAnimes() {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-    const completedProgress = await response.json();
+    const completedAnimes = await response.json();
     
-    console.log('✅ Returning', completedProgress.length, 'completed animes');
+    console.log('✅ Returning', completedAnimes.length, 'completed animes');
     
-    // Converter animes completados para formato padrão
-    const animes = await Promise.all(
-      completedProgress.map(async (progress: any) => {
-        try {
-          // Buscar detalhes do anime usando a API do MAL
-          const animeDetails = await getAnimeById(progress.animeId);
-          return {
-            ...animeDetails,
-            episodesWatched: progress.episodesWatched,
-            totalEpisodes: progress.totalEpisodes || animeDetails.episodes || 24,
-            completedAt: progress.updatedAt,
-            score: progress.score
-          };
-        } catch (error) {
-          console.warn(`❌ Erro ao buscar detalhes do anime completado ${progress.animeId}:`, error);
-          // Retornar dados básicos se não conseguir buscar detalhes
-          return {
-            id: progress.animeId,
-            title: `Anime ${progress.animeId}`,
-            image: "https://via.placeholder.com/400x600",
-            episodesWatched: progress.episodesWatched,
-            totalEpisodes: progress.totalEpisodes || 24,
-            completedAt: progress.updatedAt,
-            score: progress.score
-          };
-        }
-      })
-    );
-    
-    return animes;
+    // Os dados já vêm no formato correto do banco de dados
+    // Apenas precisamos mapear para garantir consistência no frontend
+    return completedAnimes.map((anime: any) => ({
+      id: anime.id,
+      animeId: anime.animeId,
+      animeTitle: anime.animeTitle,
+      animeImage: anime.animeImage,
+      totalEpisodes: anime.totalEpisodes,
+      pointsEarned: anime.pointsEarned,
+      completedAt: anime.completedAt
+    }));
   } catch (error) {
     console.error('❌ Error fetching completed animes:', error);
     return [];

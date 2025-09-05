@@ -781,21 +781,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endpoint para buscar animes completados (para o perfil)
-  app.get("/api/user/completed-animes", requireAuth, async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      
-      // Filtrar apenas animes completados
-      const completedAnimes = mockUserProgress.filter(p => p.status === 'completed');
-      
-      console.log('📊 Retornando animes completados:', completedAnimes.length, 'itens');
-      res.json(completedAnimes);
-    } catch (error) {
-      console.error("Error fetching completed animes:", error);
-      res.status(500).json({ error: "Failed to fetch completed animes" });
-    }
-  });
 
   app.delete("/api/user/progress/:animeId", async (req, res) => {
     try {
