@@ -260,6 +260,13 @@ let apiCache: any[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 60000; // 1 minuto
 
+// Função para limpar cache e forçar nova busca
+export function clearAnimeCache() {
+  apiCache = null;
+  cacheTimestamp = 0;
+  console.log("🗑️ Anime cache cleared, will fetch fresh data");
+}
+
 // Função para buscar animes com múltiplas fontes
 async function getAnimeDataFromAPI(): Promise<any[]> {
   const now = Date.now();
@@ -270,18 +277,63 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
     return apiCache;
   }
   
-  // Tentar múltiplas APIs com diferentes endpoints e páginas para obter mais animes
+  // Tentar MUITOS endpoints diferentes para obter o máximo de animes possível
   const apiEndpoints = [
+    // Top animes (múltiplas páginas)
     `${JIKAN_API_BASE}/top/anime?limit=25&page=1`,
     `${JIKAN_API_BASE}/top/anime?limit=25&page=2`,
+    `${JIKAN_API_BASE}/top/anime?limit=25&page=3`,
+    `${JIKAN_API_BASE}/top/anime?limit=25&page=4`,
+    `${JIKAN_API_BASE}/top/anime?limit=25&page=5`,
+    
+    // Temporadas atuais
     `${JIKAN_API_BASE}/seasons/now?limit=25&page=1`,
     `${JIKAN_API_BASE}/seasons/now?limit=25&page=2`,
+    `${JIKAN_API_BASE}/seasons/now?limit=25&page=3`,
+    
+    // Ordenação por popularidade
     `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=1`,
     `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=2`,
+    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=3`,
+    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=4`,
+    
+    // Ordenação por score
     `${JIKAN_API_BASE}/anime?order_by=score&limit=25&page=1`,
+    `${JIKAN_API_BASE}/anime?order_by=score&limit=25&page=2`,
+    `${JIKAN_API_BASE}/anime?order_by=score&limit=25&page=3`,
+    
+    // Ordenação por membros
     `${JIKAN_API_BASE}/anime?order_by=members&limit=25&page=1`,
-    `${JIKAN_API_BASE}/seasons/2024/fall?limit=25`,
-    `${JIKAN_API_BASE}/seasons/2024/summer?limit=25`
+    `${JIKAN_API_BASE}/anime?order_by=members&limit=25&page=2`,
+    `${JIKAN_API_BASE}/anime?order_by=members&limit=25&page=3`,
+    
+    // Diferentes temporadas de 2024
+    `${JIKAN_API_BASE}/seasons/2024/fall?limit=25&page=1`,
+    `${JIKAN_API_BASE}/seasons/2024/fall?limit=25&page=2`,
+    `${JIKAN_API_BASE}/seasons/2024/summer?limit=25&page=1`,
+    `${JIKAN_API_BASE}/seasons/2024/summer?limit=25&page=2`,
+    `${JIKAN_API_BASE}/seasons/2024/spring?limit=25&page=1`,
+    `${JIKAN_API_BASE}/seasons/2024/spring?limit=25&page=2`,
+    `${JIKAN_API_BASE}/seasons/2024/winter?limit=25&page=1`,
+    
+    // Temporadas de 2023
+    `${JIKAN_API_BASE}/seasons/2023/fall?limit=25`,
+    `${JIKAN_API_BASE}/seasons/2023/summer?limit=25`,
+    `${JIKAN_API_BASE}/seasons/2023/spring?limit=25`,
+    `${JIKAN_API_BASE}/seasons/2023/winter?limit=25`,
+    
+    // Temporadas de 2022
+    `${JIKAN_API_BASE}/seasons/2022/fall?limit=25`,
+    `${JIKAN_API_BASE}/seasons/2022/summer?limit=25`,
+    `${JIKAN_API_BASE}/seasons/2022/spring?limit=25`,
+    `${JIKAN_API_BASE}/seasons/2022/winter?limit=25`,
+    
+    // Diferentes tipos de ordenação
+    `${JIKAN_API_BASE}/anime?order_by=start_date&limit=25&page=1`,
+    `${JIKAN_API_BASE}/anime?order_by=end_date&limit=25&page=1`,
+    `${JIKAN_API_BASE}/anime?order_by=episodes&limit=25&page=1`,
+    `${JIKAN_API_BASE}/anime?order_by=rank&limit=25&page=1`,
+    `${JIKAN_API_BASE}/anime?order_by=rank&limit=25&page=2`
   ];
   
   let allAnimeData: any[] = [];
@@ -308,8 +360,8 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
         }
       }
       
-      // Aguardar um pouco antes da próxima tentativa para evitar rate limit
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Aguardar menos tempo para acelerar o carregamento
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.warn("❌ Failed endpoint:", endpoint, error);
     }
@@ -351,6 +403,8 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
   console.log("🔍 Getting trending anime...");
   
+  // Forçar nova busca com mais dados sempre
+  clearAnimeCache();
   const apiData = await getAnimeDataFromAPI();
   if (apiData.length > 0) {
     // Verificar se os dados são do Jikan API ou Otakudesu
@@ -363,22 +417,34 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
     return getAnimesWithProgress(trendingAnimes);
   }
   
-  // Fallback: usar MUITO mais dados mock se APIs falharem
-  const mockCategories = ['trending', 'action', 'adventure', 'comedy', 'drama', 'fantasy', 'romance', 'sci-fi', 'slice-of-life', 'supernatural'];
+  // Fallback: usar TODOS os dados mock disponíveis para maximizar a coleção
+  const mockCategories = [
+    'trending', 'action', 'adventure', 'comedy', 'drama', 'fantasy', 'romance', 
+    'sci-fi', 'slice-of-life', 'supernatural', 'thriller', 'mystery', 'horror',
+    'sports', 'music', 'school', 'military', 'historical', 'mecha', 'magic',
+    'demons', 'vampire', 'martial-arts', 'super-power', 'game', 'parody',
+    'psychological', 'seinen', 'shoujo', 'shounen', 'josei', 'kids'
+  ];
   let allMockAnimes: AnimeWithProgress[] = [];
   
+  // Buscar animes de TODAS as categorias disponíveis
   mockCategories.forEach(category => {
-    const categoryAnimes = getAnimesByCategory(category);
-    categoryAnimes.forEach(anime => {
-      // Evitar duplicatas baseado no ID
-      const existingAnime = allMockAnimes.find(existing => existing.id === anime.id);
-      if (!existingAnime) {
-        allMockAnimes.push(anime);
-      }
-    });
+    try {
+      const categoryAnimes = getAnimesByCategory(category);
+      categoryAnimes.forEach(anime => {
+        // Evitar duplicatas baseado no ID
+        const existingAnime = allMockAnimes.find(existing => existing.id === anime.id);
+        if (!existingAnime) {
+          allMockAnimes.push(anime);
+        }
+      });
+    } catch (error) {
+      // Se a categoria não existe, ignorar
+      console.log(`Category ${category} not found, skipping`);
+    }
   });
   
-  console.log("✅ Using", allMockAnimes.length, "mock animes as fallback");
+  console.log("✅ Using", allMockAnimes.length, "mock animes as comprehensive fallback");
   return allMockAnimes;
 }
 
