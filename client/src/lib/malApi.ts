@@ -88,7 +88,8 @@ const CLIENT_ID = '8c655cb39b399536ed320693e1074910';
 // Headers padrão para requisições
 const getHeaders = () => ({
   'X-MAL-CLIENT-ID': CLIENT_ID,
-  'Content-Type': 'application/json',
+  'User-Agent': 'AnimePulse/1.0',
+  'Accept': 'application/json',
 });
 
 // Cache para evitar muitas requisições
@@ -172,16 +173,23 @@ export async function getMALTrendingAnime(limit: number = 25): Promise<Anime[]> 
       'studios', 'rating', 'media_type', 'source', 'statistics'
     ].join(',');
 
-    const response = await fetch(
-      `${MAL_API_BASE}/anime/ranking?ranking_type=airing&limit=${limit}&fields=${fields}`,
-      { headers: getHeaders() }
-    );
+    const url = `/api/mal/anime/trending?limit=${limit}`;
+    console.log('🌐 MAL Proxy URL:', url);
+
+    const response = await fetch(url);
+
+    console.log('📡 MAL Response status:', response.status);
+    console.log('📡 MAL Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
-      throw new Error(`MAL API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ MAL API Error Response:', errorText);
+      throw new Error(`MAL API error: ${response.status} - ${errorText}`);
     }
 
     const data: MALApiResponse<MALAnime> = await response.json();
+    console.log('📊 MAL Data received:', data);
+    
     const animes = data.data.map(item => convertMALAnimeToLocal(item.node));
     
     setCachedData(cacheKey, animes);
@@ -190,6 +198,10 @@ export async function getMALTrendingAnime(limit: number = 25): Promise<Anime[]> 
     return animes;
   } catch (error) {
     console.error('❌ Error fetching trending anime from MAL:', error);
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return [];
   }
 }
@@ -212,10 +224,7 @@ export async function getMALTopAnime(limit: number = 25): Promise<Anime[]> {
       'studios', 'rating', 'media_type', 'source', 'statistics'
     ].join(',');
 
-    const response = await fetch(
-      `${MAL_API_BASE}/anime/ranking?ranking_type=all&limit=${limit}&fields=${fields}`,
-      { headers: getHeaders() }
-    );
+    const response = await fetch(`/api/mal/anime/top?limit=${limit}`);
 
     if (!response.ok) {
       throw new Error(`MAL API error: ${response.status}`);
@@ -252,10 +261,7 @@ export async function getMALTopManga(limit: number = 25): Promise<Manga[]> {
       'genres', 'authors', 'media_type', 'serialization'
     ].join(',');
 
-    const response = await fetch(
-      `${MAL_API_BASE}/manga/ranking?ranking_type=all&limit=${limit}&fields=${fields}`,
-      { headers: getHeaders() }
-    );
+    const response = await fetch(`/api/mal/manga/top?limit=${limit}`);
 
     if (!response.ok) {
       throw new Error(`MAL API error: ${response.status}`);

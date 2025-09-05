@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import type { Anime, Episode, Manga, News, InsertUser } from "@shared/schema";
+import fetch from 'node-fetch';
 import { insertUserSchema } from "@shared/schema";
 import session from "express-session";
 import { ZodError } from "zod";
@@ -34,6 +35,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
       maxAge: 24 * 60 * 60 * 1000 // 24 horas
     }
   }));
+  // MyAnimeList Proxy Endpoints
+  app.get("/api/mal/anime/trending", async (req, res) => {
+    try {
+      const { limit = 25 } = req.query;
+      const fields = [
+        'id', 'title', 'main_picture', 'alternative_titles',
+        'start_date', 'end_date', 'synopsis', 'mean', 'rank',
+        'popularity', 'num_episodes', 'status', 'genres',
+        'studios', 'rating', 'media_type', 'source', 'statistics'
+      ].join(',');
+      
+      const response = await fetch(
+        `https://api.myanimelist.net/v2/anime/ranking?ranking_type=airing&limit=${limit}&fields=${fields}`,
+        {
+          headers: {
+            'X-MAL-CLIENT-ID': '8c655cb39b399536ed320693e1074910',
+            'User-Agent': 'AnimePulse/1.0',
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('MAL API Error:', response.status);
+        return res.status(response.status).json({ error: 'MyAnimeList API error' });
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching from MAL:', error);
+      res.status(500).json({ error: "Failed to fetch trending animes from MAL" });
+    }
+  });
+  
+  app.get("/api/mal/anime/top", async (req, res) => {
+    try {
+      const { limit = 25 } = req.query;
+      const fields = [
+        'id', 'title', 'main_picture', 'alternative_titles',
+        'start_date', 'end_date', 'synopsis', 'mean', 'rank',
+        'popularity', 'num_episodes', 'status', 'genres',
+        'studios', 'rating', 'media_type', 'source', 'statistics'
+      ].join(',');
+      
+      const response = await fetch(
+        `https://api.myanimelist.net/v2/anime/ranking?ranking_type=all&limit=${limit}&fields=${fields}`,
+        {
+          headers: {
+            'X-MAL-CLIENT-ID': '8c655cb39b399536ed320693e1074910',
+            'User-Agent': 'AnimePulse/1.0',
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('MAL API Error:', response.status);
+        return res.status(response.status).json({ error: 'MyAnimeList API error' });
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching from MAL:', error);
+      res.status(500).json({ error: "Failed to fetch top animes from MAL" });
+    }
+  });
+  
+  app.get("/api/mal/manga/top", async (req, res) => {
+    try {
+      const { limit = 25 } = req.query;
+      const fields = [
+        'id', 'title', 'main_picture', 'alternative_titles',
+        'start_date', 'end_date', 'synopsis', 'mean', 'rank',
+        'popularity', 'num_chapters', 'num_volumes', 'status',
+        'genres', 'authors', 'media_type', 'serialization'
+      ].join(',');
+      
+      const response = await fetch(
+        `https://api.myanimelist.net/v2/manga/ranking?ranking_type=all&limit=${limit}&fields=${fields}`,
+        {
+          headers: {
+            'X-MAL-CLIENT-ID': '8c655cb39b399536ed320693e1074910',
+            'User-Agent': 'AnimePulse/1.0',
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        console.error('MAL API Error:', response.status);
+        return res.status(response.status).json({ error: 'MyAnimeList API error' });
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching from MAL:', error);
+      res.status(500).json({ error: "Failed to fetch top manga from MAL" });
+    }
+  });
+
   // Anime routes
   app.get("/api/animes/trending", async (req, res) => {
     try {
