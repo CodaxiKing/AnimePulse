@@ -248,20 +248,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // News routes
+  // News routes with Anime News Network integration
+  app.get("/api/news", async (req, res) => {
+    try {
+      const category = req.query.category as 'all' | 'news' | 'reviews' | 'features' || 'news';
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const { animeNewsService } = await import('./lib/newsService');
+      const news = await animeNewsService.getNews(category, limit);
+      
+      res.json({ data: news });
+    } catch (error) {
+      console.error("Error fetching anime news:", error);
+      res.status(500).json({ error: "Failed to fetch anime news" });
+    }
+  });
+
   app.get("/api/news/latest", async (req, res) => {
     try {
-      res.json([]);
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const { animeNewsService } = await import('./lib/newsService');
+      const news = await animeNewsService.getLatestNews(limit);
+      
+      res.json({ data: news });
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch latest news" });
+      console.error("Error fetching latest anime news:", error);
+      res.status(500).json({ error: "Failed to fetch latest anime news" });
+    }
+  });
+
+  app.get("/api/news/reviews", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const { animeNewsService } = await import('./lib/newsService');
+      const news = await animeNewsService.getReviews(limit);
+      
+      res.json({ data: news });
+    } catch (error) {
+      console.error("Error fetching anime reviews:", error);
+      res.status(500).json({ error: "Failed to fetch anime reviews" });
+    }
+  });
+
+  app.get("/api/news/features", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const { animeNewsService } = await import('./lib/newsService');
+      const news = await animeNewsService.getFeatures(limit);
+      
+      res.json({ data: news });
+    } catch (error) {
+      console.error("Error fetching anime features:", error);
+      res.status(500).json({ error: "Failed to fetch anime features" });
     }
   });
 
   app.get("/api/news/category/:category", async (req, res) => {
     try {
-      const { category } = req.params;
-      res.json([]);
+      const category = req.params.category as 'all' | 'news' | 'reviews' | 'features';
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const { animeNewsService } = await import('./lib/newsService');
+      const news = await animeNewsService.getNews(category, limit);
+      
+      res.json({ data: news });
     } catch (error) {
+      console.error(`Error fetching ${req.params.category} news:`, error);
       res.status(500).json({ error: "Failed to fetch news by category" });
     }
   });

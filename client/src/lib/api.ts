@@ -1418,22 +1418,61 @@ export async function getMangaCategories() {
   return mockMangaCategories;
 }
 
-// News API functions
+// News API functions - Updated to use Anime News Network
 export async function getLatestNews(): Promise<News[]> {
   try {
-    const response = await fetch(`${JIKAN_API_BASE}/top/anime?limit=4`);
+    const response = await fetch('/api/news/latest?limit=20');
     if (response.ok) {
       const data = await response.json();
-      const adaptedNews = data.data?.slice(0, 4).map(adaptNewsFromJikanAPI) || [];
+      console.log('📰 Latest news from ANN:', data.data?.length || 0, 'items');
+      
+      // Converter para o formato esperado pelo frontend
+      const adaptedNews = data.data?.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        image: item.thumbnail || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop",
+        category: item.category || 'anime',
+        summary: item.description,
+        content: item.description,
+        source: item.author || 'Anime News Network',
+        publishedAt: new Date(item.publishedDate)
+      })) || [];
+      
       return adaptedNews.length > 0 ? adaptedNews : mockNews;
     }
   } catch (error) {
-    console.warn("Failed to fetch latest news:", error);
+    console.warn("Failed to fetch latest news from ANN:", error);
   }
+  
+  console.log("⚠️ Using fallback mock news");
   return mockNews;
 }
 
 export async function getNewsByCategory(category: string): Promise<News[]> {
+  try {
+    const response = await fetch(`/api/news/category/${category}?limit=20`);
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`📰 ${category} news from ANN:`, data.data?.length || 0, 'items');
+      
+      // Converter para o formato esperado pelo frontend
+      const adaptedNews = data.data?.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        image: item.thumbnail || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop",
+        category: item.category || category,
+        summary: item.description,
+        content: item.description,
+        source: item.author || 'Anime News Network',
+        publishedAt: new Date(item.publishedDate)
+      })) || [];
+      
+      return adaptedNews.length > 0 ? adaptedNews : mockNews.filter(news => news.category === category);
+    }
+  } catch (error) {
+    console.warn(`Failed to fetch ${category} news from ANN:`, error);
+  }
+  
   return mockNews.filter(news => news.category === category);
 }
 
