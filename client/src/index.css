@@ -73,7 +73,7 @@ main {
 header [data-testid="button-profile-menu"] + [data-radix-dropdown-menu-content] {
   position: fixed !important;
   top: 60px !important;
-  right: 260px !important;
+  right: 320px !important;
   left: auto !important;
   transform: none !important;
   max-width: 200px !important;
