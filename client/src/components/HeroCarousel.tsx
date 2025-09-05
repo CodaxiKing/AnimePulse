@@ -9,6 +9,7 @@ import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
 
 export default function HeroCarousel() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [trailerModalOpen, setTrailerModalOpen] = useState(false);
   const [selectedTrailer, setSelectedTrailer] = useState<{ animeTitle: string; trailerUrl: string } | null>(null);
   
@@ -32,11 +33,17 @@ export default function HeroCarousel() {
   const current = heroAnimes[currentSlide];
 
   const nextSlide = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
     setCurrentSlide((prev) => (prev + 1) % heroAnimes.length);
+    setTimeout(() => setIsTransitioning(false), 600);
   };
 
   const prevSlide = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
     setCurrentSlide((prev) => (prev - 1 + heroAnimes.length) % heroAnimes.length);
+    setTimeout(() => setIsTransitioning(false), 600);
   };
 
   const handleWatchTrailer = () => {
@@ -63,14 +70,19 @@ export default function HeroCarousel() {
       <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-20" />
       
       <img
+        key={currentSlide}
         src={current.image}
         alt={current.title}
-        className="absolute inset-0 w-full h-full object-cover"
+        className={`absolute inset-0 w-full h-full object-cover transition-all duration-600 ease-in-out ${
+          isTransitioning ? 'scale-110 opacity-80' : 'scale-100 opacity-100'
+        }`}
       />
       
       <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center">
-        <div className="max-w-2xl">
-          <h2 className="text-4xl md:text-6xl font-bold mb-4" data-testid="text-hero-title">
+        <div className={`max-w-2xl transition-all duration-600 ease-in-out ${
+          isTransitioning ? 'translate-x-4 opacity-0' : 'translate-x-0 opacity-100'
+        }`}>
+          <h2 className="text-4xl md:text-6xl font-bold mb-4 transition-all duration-700 ease-out" data-testid="text-hero-title">
             {current.title}
           </h2>
           <div className="flex items-center space-x-4 mb-4 text-sm text-muted-foreground">
@@ -129,18 +141,24 @@ export default function HeroCarousel() {
       
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-border hover:bg-background/40 transition-colors"
+        disabled={isTransitioning}
+        className={`absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-border hover:bg-background/40 transition-all duration-200 hover:scale-110 active:scale-95 ${
+          isTransitioning ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
         data-testid="button-carousel-prev"
       >
-        <ChevronLeft className="w-6 h-6" />
+        <ChevronLeft className={`w-6 h-6 transition-transform duration-200 ${isTransitioning ? '-translate-x-1' : ''}`} />
       </button>
       
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-border hover:bg-background/40 transition-colors"
+        disabled={isTransitioning}
+        className={`absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-border hover:bg-background/40 transition-all duration-200 hover:scale-110 active:scale-95 ${
+          isTransitioning ? 'opacity-50 cursor-not-allowed' : ''
+        }`}
         data-testid="button-carousel-next"
       >
-        <ChevronRight className="w-6 h-6" />
+        <ChevronRight className={`w-6 h-6 transition-transform duration-200 ${isTransitioning ? 'translate-x-1' : ''}`} />
       </button>
 
       {/* Modal de Trailer */}
