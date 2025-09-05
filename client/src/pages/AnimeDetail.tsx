@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
+import MilestoneModal from "@/components/MilestoneModal";
 import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, removeWatchedEpisode, isEpisodeWatched, areAllEpisodesWatched, calculateAnimePoints, markEpisodeWatchedFromPlayer } from "@/lib/api";
 import type { Episode } from "@shared/schema";
+import type { MilestoneData } from "@/lib/milestones";
 
 export default function AnimeDetail() {
   const { id } = useParams();
@@ -20,6 +22,8 @@ export default function AnimeDetail() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showCongrats, setShowCongrats] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
+  const [milestones, setMilestones] = useState<MilestoneData[]>([]);
+  const [showMilestones, setShowMilestones] = useState(false);
 
   const handleMarkEpisode = async (episode: Episode) => {
     if (anime) {
@@ -106,12 +110,23 @@ export default function AnimeDetail() {
       queryClient.invalidateQueries({ queryKey: ['continue'] });
     };
 
+    const handleMilestonesAchieved = (event: CustomEvent) => {
+      const { milestones } = event.detail;
+      if (milestones && milestones.length > 0) {
+        setMilestones(milestones);
+        setShowMilestones(true);
+        console.log('🎯 Marcos alcançados na página de detalhes:', milestones);
+      }
+    };
+
     window.addEventListener('animeCompleted', handleAnimeCompleted as EventListener);
     window.addEventListener('episodeWatched', handleEpisodeWatched as EventListener);
+    window.addEventListener('milestonesAchieved', handleMilestonesAchieved as EventListener);
     
     return () => {
       window.removeEventListener('animeCompleted', handleAnimeCompleted as EventListener);
       window.removeEventListener('episodeWatched', handleEpisodeWatched as EventListener);
+      window.removeEventListener('milestonesAchieved', handleMilestonesAchieved as EventListener);
     };
   }, [anime, queryClient]);
 
@@ -411,6 +426,16 @@ export default function AnimeDetail() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Marcos */}
+        <MilestoneModal
+          milestones={milestones}
+          isOpen={showMilestones}
+          onClose={() => {
+            setShowMilestones(false);
+            setMilestones([]);
+          }}
+        />
       </div>
   );
 }

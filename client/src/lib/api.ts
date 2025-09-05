@@ -598,6 +598,24 @@ export async function markEpisodeWatchedFromPlayer(
     
     console.log(`📊 Progresso: ${watchedCount}/${totalEpisodes} episódios assistidos`);
     
+    // Rastrear marcos de progresso
+    let newMilestones: any[] = [];
+    try {
+      const { trackWatchActivity } = await import('./milestones');
+      newMilestones = trackWatchActivity(animeId, episodeNumber);
+      
+      if (newMilestones.length > 0) {
+        console.log('🏆 Novos marcos alcançados:', newMilestones.map(m => m.name));
+        // Disparar evento para mostrar marcos
+        const milestoneEvent = new CustomEvent('milestonesAchieved', { 
+          detail: { milestones: newMilestones } 
+        });
+        window.dispatchEvent(milestoneEvent);
+      }
+    } catch (error) {
+      console.warn('⚠️ Erro ao verificar marcos:', error);
+    }
+
     // Notificar que um episódio foi assistido
     const episodeEvent = new CustomEvent('episodeWatched');
     window.dispatchEvent(episodeEvent);
@@ -606,10 +624,17 @@ export async function markEpisodeWatchedFromPlayer(
     if (watchedCount >= totalEpisodes) {
       const points = calculateAnimePoints(totalEpisodes);
       console.log(`🎉 Anime completado: ${animeTitle}! Pontos calculados: ${points}`);
-      return { completed: true, points };
+      
+      // Disparar evento de anime completado
+      const animeCompletedEvent = new CustomEvent('animeCompleted', {
+        detail: { animeTitle, points }
+      });
+      window.dispatchEvent(animeCompletedEvent);
+      
+      return { completed: true, points, milestones: newMilestones };
     }
     
-    return { completed: false, points: 0 };
+    return { completed: false, points: 0, milestones: newMilestones };
   } catch (error) {
     console.error('❌ Erro ao marcar episódio como assistido:', error);
     return { completed: false, points: 0 };
