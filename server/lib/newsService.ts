@@ -4,6 +4,7 @@ interface NewsItem {
   id: string;
   title: string;
   description: string;
+  content?: string;
   link: string;
   publishedDate: string;
   category?: string;
@@ -48,7 +49,8 @@ export class AnimeNewsService {
         const thumbnailMatch = item.content?.match(/<img[^>]+src="([^">]+)"/);
         const thumbnail = thumbnailMatch ? thumbnailMatch[1] : undefined;
 
-        // Limpar HTML da descrição
+        // Extrair conteúdo completo e descrição
+        const fullContent = item.content || item.description || '';
         const cleanDescription = item.contentSnippet || item.description || '';
         const description = cleanDescription.replace(/<[^>]*>/g, '').trim();
 
@@ -56,6 +58,7 @@ export class AnimeNewsService {
           id: item.guid || `${category}-${index}`,
           title: item.title || 'Título não disponível',
           description: description.substring(0, 200) + (description.length > 200 ? '...' : ''),
+          content: fullContent, // Conteúdo completo com HTML
           link: item.link || '#',
           publishedDate: item.pubDate || new Date().toISOString(),
           category: item.categories?.[0] || category,
@@ -125,6 +128,26 @@ export class AnimeNewsService {
     ];
 
     return mockNews.slice(0, limit);
+  }
+
+  async getNewsById(id: string): Promise<NewsItem | null> {
+    try {
+      // Buscar em todas as categorias para encontrar a notícia pelo ID
+      const categories: Array<'all' | 'news' | 'reviews' | 'features'> = ['all', 'news', 'reviews', 'features'];
+      
+      for (const category of categories) {
+        const news = await this.getNews(category, 100); // Buscar mais itens para encontrar pelo ID
+        const foundNews = news.find(item => item.id === id);
+        if (foundNews) {
+          return foundNews;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`❌ Erro ao buscar notícia por ID ${id}:`, error);
+      return null;
+    }
   }
 
   async getLatestNews(limit: number = 10): Promise<NewsItem[]> {

@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calendar, User, ExternalLink, Share2, BookmarkPlus, X } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Calendar, User, ExternalLink, Share2, BookmarkPlus, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface NewsItem {
   id: string;
   title: string;
   description: string;
+  content?: string;
   link: string;
   publishedDate: string;
   category?: string;
@@ -28,6 +31,25 @@ export default function NewsModal({ news, isOpen, onClose }: NewsModalProps) {
   const { toast } = useToast();
   const [isBookmarked, setIsBookmarked] = useState(false);
 
+  // Buscar conteúdo completo da notícia
+  const { data: fullNews, isLoading: loadingFullNews } = useQuery({
+    queryKey: ['news-detail', news?.id],
+    queryFn: async () => {
+      if (!news?.id) throw new Error('News ID not provided');
+      const response = await fetch(`/api/news/${news.id}`);
+      if (!response.ok) {
+        // Se não encontrar pelo ID, usar os dados já disponíveis
+        return news;
+      }
+      return response.json();
+    },
+    enabled: !!news?.id && isOpen,
+    retry: false,
+    staleTime: 1000 * 60 * 5 // 5 minutos
+  });
+
+  const currentNews = fullNews || news;
+  
   if (!news) return null;
 
   const formatDate = (dateString: string) => {
@@ -79,7 +101,28 @@ export default function NewsModal({ news, isOpen, onClose }: NewsModalProps) {
   };
 
   const openOriginalArticle = () => {
-    window.open(news.link, '_blank', 'noopener,noreferrer');
+    const link = currentNews?.link || news?.link;
+    if (link && link !== '#') {
+      window.open(link, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: "Link não disponível",
+        description: "Esta notícia não possui um link externo."
+      });
+    }
+  };
+
+  // Função para limpar e melhorar o conteúdo HTML
+  const cleanHtmlContent = (htmlContent: string) => {
+    return htmlContent
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Remove styles
+      .replace(/style="[^"]*"/gi, '') // Remove inline styles
+      .replace(/class="[^"]*"/gi, '') // Remove classes
+      .replace(/<img([^>]*)>/gi, '<img$1 class="max-w-full h-auto rounded-lg my-4" loading="lazy">') // Melhora imagens
+      .replace(/<a([^>]*)>/gi, '<a$1 class="text-purple-400 hover:underline" target="_blank" rel="noopener noreferrer">') // Melhora links
+      .replace(/<p>/gi, '<p class="mb-3">') // Espaçamento de parágrafos
+      .replace(/<h([1-6])>/gi, '<h$1 class="font-semibold mt-4 mb-2">'); // Estilos de títulos
   };
 
   return (
@@ -137,29 +180,51 @@ export default function NewsModal({ news, isOpen, onClose }: NewsModalProps) {
 
         {/* Conteúdo da notícia */}
         <ScrollArea className="flex-1 pr-4">
-          <div className="space-y-4">
-            <p className="text-muted-foreground leading-relaxed">
-              {news.description}
-            </p>
-            
-            {/* Placeholder para conteúdo expandido */}
-            <div className="space-y-4 text-sm">
-              <p>
-                Esta é uma prévia da notícia. Para ler o artigo completo, 
-                clique no botão "Ler artigo completo" abaixo para ser redirecionado 
-                ao site original do Anime News Network.
+          {loadingFullNews ? (
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-5/6" />
+              <div className="flex items-center gap-2 mt-4">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm text-muted-foreground">Carregando conteúdo completo...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Descrição */}
+              <p className="text-muted-foreground leading-relaxed">
+                {currentNews?.description}
               </p>
               
-              <div className="bg-muted/50 rounded-lg p-4">
-                <h4 className="font-semibold mb-2">Sobre esta notícia:</h4>
-                <ul className="space-y-1 text-muted-foreground">
-                  <li>• Fonte: Anime News Network</li>
-                  <li>• Categoria: {news.category || 'Geral'}</li>
-                  <li>• Publicado em: {formatDate(news.publishedDate)}</li>
+              {/* Conteúdo completo da notícia */}
+              {currentNews?.content && (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <Separator className="my-4" />
+                  <h4 className="font-semibold mb-3">Conteúdo Completo:</h4>
+                  <div 
+                    className="text-sm leading-relaxed space-y-3"
+                    dangerouslySetInnerHTML={{ 
+                      __html: cleanHtmlContent(currentNews.content) 
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Informações da notícia */}
+              <div className="bg-muted/50 rounded-lg p-4 mt-6">
+                <h4 className="font-semibold mb-2">Informações da Notícia:</h4>
+                <ul className="space-y-1 text-muted-foreground text-sm">
+                  <li>• Fonte: {currentNews?.author || 'Anime News Network'}</li>
+                  <li>• Categoria: {currentNews?.category || 'Geral'}</li>
+                  <li>• Publicado em: {formatDate(currentNews?.publishedDate || '')}</li>
+                  {currentNews?.link && currentNews.link !== '#' && (
+                    <li>• Link original: <a href={currentNews.link} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">Ver no ANN</a></li>
+                  )}
                 </ul>
               </div>
             </div>
-          </div>
+          )}
         </ScrollArea>
 
         <Separator className="my-4" />
@@ -190,14 +255,16 @@ export default function NewsModal({ news, isOpen, onClose }: NewsModalProps) {
             </Button>
           </div>
 
-          <Button
-            onClick={openOriginalArticle}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
-            data-testid="button-read-full-article"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Ler artigo completo
-          </Button>
+          {currentNews?.link && currentNews.link !== '#' && (
+            <Button
+              onClick={openOriginalArticle}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+              data-testid="button-read-full-article"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Ler no site original
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -471,6 +471,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint para buscar notícia individual com conteúdo completo
+  app.get("/api/news/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const { animeNewsService } = await import('./lib/newsService');
+      const news = await animeNewsService.getNewsById(id);
+      
+      if (!news) {
+        return res.status(404).json({ error: "News not found" });
+      }
+      
+      res.json(news);
+    } catch (error) {
+      console.error(`Error fetching news ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to fetch news" });
+    }
+  });
+
   // Endpoint para criar nova notícia
   app.post("/api/news/create", async (req, res) => {
     try {
@@ -484,6 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `custom-${Date.now()}`,
         title,
         description,
+        content: description, // Para notícias criadas manualmente, usar description como content
         link: link || '#',
         publishedDate: new Date().toISOString(),
         category: category || 'news',
