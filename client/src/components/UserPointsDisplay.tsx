@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, TrendingUp, Award } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { queryClient } from '@/lib/queryClient';
 
 export default function UserPointsDisplay() {
   const { user, stats, isAuthenticated } = useAuth();
@@ -19,6 +20,31 @@ export default function UserPointsDisplay() {
     }
     setPreviousPoints(currentPoints);
   }, [currentPoints, previousPoints]);
+
+  // Listener para eventos de atualização de pontos
+  useEffect(() => {
+    const handlePointsUpdate = () => {
+      // Forçar atualização das estatísticas
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
+      console.log('🔄 Pontos atualizados via evento');
+    };
+
+    const handleAnimeCompleted = (event: CustomEvent) => {
+      // Quando um anime é completado, forçar atualização
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
+        console.log('🏆 Atualização de pontos após anime completado');
+      }, 1000);
+    };
+
+    window.addEventListener('episodeWatched', handlePointsUpdate);
+    window.addEventListener('animeCompleted', handleAnimeCompleted as EventListener);
+
+    return () => {
+      window.removeEventListener('episodeWatched', handlePointsUpdate);
+      window.removeEventListener('animeCompleted', handleAnimeCompleted as EventListener);
+    };
+  }, []);
 
   // Não exibir se o usuário não estiver logado
   if (!isAuthenticated || !user) {

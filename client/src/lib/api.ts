@@ -632,10 +632,10 @@ export async function markEpisodeWatchedFromPlayer(
         });
         console.log('📈 Estatísticas do usuário atualizadas');
         
-        // Invalidar cache das estatísticas
-        if (typeof window !== 'undefined' && (window as any).queryClient) {
-          (window as any).queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
-        }
+        // Invalidar cache das estatísticas - importar o queryClient corretamente
+        const { queryClient } = await import('@/lib/queryClient');
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
+        console.log('🔄 Cache de estatísticas invalidado');
       }
     } catch (error) {
       console.warn('⚠️ Erro ao atualizar estatísticas:', error);
@@ -666,10 +666,10 @@ export async function markEpisodeWatchedFromPlayer(
           });
           console.log(`💰 ${points} pontos adicionados por completar anime!`);
           
-          // Invalidar cache das estatísticas
-          if (typeof window !== 'undefined' && (window as any).queryClient) {
-            (window as any).queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
-          }
+          // Invalidar cache das estatísticas - importar o queryClient corretamente
+          const { queryClient } = await import('@/lib/queryClient');
+          queryClient.invalidateQueries({ queryKey: ['/api/auth/stats'] });
+          console.log('🔄 Cache de estatísticas invalidado após completar anime');
         }
       } catch (error) {
         console.warn('⚠️ Erro ao dar pontos por anime completo:', error);

@@ -218,7 +218,6 @@ export async function getMALTrendingAnime(limit: number = 25): Promise<Anime[]> 
     
     const animes = data.data.map(item => convertMALAnimeToLocal(item.node));
     
-    setCachedData(cacheKey, animes);
     console.log(`✅ Fetched ${animes.length} trending anime from MAL`);
     
     return animes;
@@ -259,7 +258,6 @@ export async function getMALTopAnime(limit: number = 25): Promise<Anime[]> {
     const data: MALApiResponse<MALAnime> = await response.json();
     const animes = data.data.map(item => convertMALAnimeToLocal(item.node));
     
-    setCachedData(cacheKey, animes);
     console.log(`✅ Fetched ${animes.length} top anime from MAL`);
     
     return animes;
@@ -296,7 +294,7 @@ export async function getMALTopManga(limit: number = 25): Promise<Manga[]> {
     const data: MALApiResponse<MALManga> = await response.json();
     const mangas = data.data.map(item => convertMALMangaToLocal(item.node));
     
-    setCachedData(cacheKey, mangas);
+
     console.log(`✅ Fetched ${mangas.length} top manga from MAL`);
     
     return mangas;
@@ -340,7 +338,7 @@ export async function getMALAnimeById(id: string): Promise<Anime | null> {
     const malAnime: MALAnime = await response.json();
     const anime = convertMALAnimeToLocal(malAnime);
     
-    setCachedData(cacheKey, anime);
+    // setCachedData(cacheKey, anime);
     console.log(`✅ Fetched anime details for: ${anime.title}`);
     
     return anime;
@@ -384,7 +382,7 @@ export async function getMALMangaById(id: string): Promise<Manga | null> {
     const malManga: MALManga = await response.json();
     const manga = convertMALMangaToLocal(malManga);
     
-    setCachedData(cacheKey, manga);
+    // setCachedData(cacheKey, manga);
     console.log(`✅ Fetched manga details for: ${manga.title}`);
     
     return manga;
@@ -426,7 +424,7 @@ export async function searchMALAnime(query: string, limit: number = 10): Promise
     const data: MALApiResponse<MALAnime> = await response.json();
     const animes = data.data.map(item => convertMALAnimeToLocal(item.node));
     
-    setCachedData(cacheKey, animes);
+    // setCachedData(cacheKey, animes);
     console.log(`✅ Found ${animes.length} anime results for: ${query}`);
     
     return animes;
@@ -464,7 +462,7 @@ export async function getMALAnimeDetails(id: string): Promise<Anime | null> {
     const data = await response.json();
     if (data.node) {
       const anime = convertMALAnimeToLocal(data.node);
-      setCachedData(cacheKey, anime);
+      // setCachedData(cacheKey, anime);
       console.log(`✅ Found anime details for: ${anime.title}`);
       return anime;
     }
@@ -508,7 +506,7 @@ export async function searchMALManga(query: string, limit: number = 10): Promise
     const data: MALApiResponse<MALManga> = await response.json();
     const mangas = data.data.map(item => convertMALMangaToLocal(item.node));
     
-    setCachedData(cacheKey, mangas);
+
     console.log(`✅ Found ${mangas.length} manga results for: ${query}`);
     
     return mangas;
