@@ -1065,17 +1065,116 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
 
 // Manga API functions
 export async function getLatestManga(): Promise<Manga[]> {
-  try {
-    const response = await fetch(`${JIKAN_API_BASE}/top/manga?limit=12`);
-    if (response.ok) {
-      const data = await response.json();
-      const adaptedMangas = data.data?.slice(0, 12).map(adaptMangaFromJikanAPI) || [];
-      return adaptedMangas.length > 0 ? adaptedMangas : mockMangas;
+  console.log("📚 Getting latest manga with expanded sources...");
+  
+  // Múltiplos endpoints para obter MUITOS mangás
+  const mangaEndpoints = [
+    // Top manga (múltiplas páginas)
+    `${JIKAN_API_BASE}/top/manga?limit=25&page=1`,
+    `${JIKAN_API_BASE}/top/manga?limit=25&page=2`,
+    `${JIKAN_API_BASE}/top/manga?limit=25&page=3`,
+    `${JIKAN_API_BASE}/top/manga?limit=25&page=4`,
+    `${JIKAN_API_BASE}/top/manga?limit=25&page=5`,
+    
+    // Manga por popularidade
+    `${JIKAN_API_BASE}/manga?order_by=popularity&limit=25&page=1`,
+    `${JIKAN_API_BASE}/manga?order_by=popularity&limit=25&page=2`,
+    `${JIKAN_API_BASE}/manga?order_by=popularity&limit=25&page=3`,
+    
+    // Manga por score
+    `${JIKAN_API_BASE}/manga?order_by=score&limit=25&page=1`,
+    `${JIKAN_API_BASE}/manga?order_by=score&limit=25&page=2`,
+    `${JIKAN_API_BASE}/manga?order_by=score&limit=25&page=3`,
+    
+    // Manga por membros
+    `${JIKAN_API_BASE}/manga?order_by=members&limit=25&page=1`,
+    `${JIKAN_API_BASE}/manga?order_by=members&limit=25&page=2`,
+    `${JIKAN_API_BASE}/manga?order_by=members&limit=25&page=3`,
+    
+    // Diferentes ordenações
+    `${JIKAN_API_BASE}/manga?order_by=chapters&limit=25&page=1`,
+    `${JIKAN_API_BASE}/manga?order_by=start_date&limit=25&page=1`,
+    `${JIKAN_API_BASE}/manga?order_by=end_date&limit=25&page=1`,
+    `${JIKAN_API_BASE}/manga?order_by=rank&limit=25&page=1`,
+    `${JIKAN_API_BASE}/manga?order_by=rank&limit=25&page=2`
+  ];
+
+  let allMangaData: any[] = [];
+
+  // Buscar dados de TODOS os endpoints
+  for (const endpoint of mangaEndpoints) {
+    try {
+      console.log("📖 Trying manga endpoint:", endpoint);
+      const response = await fetch(endpoint);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.data && data.data.length > 0) {
+          // Adicionar dados únicos baseados no mal_id
+          data.data.forEach((manga: any) => {
+            const existingManga = allMangaData.find(existing => existing.mal_id === manga.mal_id);
+            if (!existingManga) {
+              allMangaData.push(manga);
+            }
+          });
+          console.log("✅ Added", data.data.length, "manga from", endpoint);
+          console.log("📊 Total unique manga so far:", allMangaData.length);
+        }
+      }
+      
+      // Aguardar menos tempo para acelerar
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      console.warn("❌ Failed manga endpoint:", endpoint, error);
     }
-  } catch (error) {
-    console.warn("Failed to fetch latest manga:", error);
   }
-  return mockMangas;
+
+  // Se conseguimos dados da API, usar eles
+  if (allMangaData.length > 0) {
+    const adaptedMangas = allMangaData.map(adaptMangaFromJikanAPI);
+    console.log("✅ Successfully fetched", adaptedMangas.length, "unique manga from API");
+    return adaptedMangas;
+  }
+
+  // Fallback: usar TODOS os dados mock de manga disponíveis  
+  const mockMangaCategories = [
+    'action', 'adventure', 'comedy', 'drama', 'fantasy', 'romance', 
+    'sci-fi', 'slice-of-life', 'supernatural', 'thriller', 'mystery', 'horror',
+    'sports', 'music', 'school', 'historical', 'mecha', 'magic',
+    'demons', 'vampire', 'martial-arts', 'psychological', 'seinen', 
+    'shoujo', 'shounen', 'josei', 'kids', 'ecchi', 'harem'
+  ];
+  
+  let allMockMangas: Manga[] = [];
+  
+  mockMangaCategories.forEach(category => {
+    try {
+      // Tentar pegar mangás por categoria dos dados mock
+      const categoryMangas = mockMangas.filter((manga: Manga) => 
+        manga.genres?.some(genre => 
+          genre.toLowerCase().includes(category) || 
+          category.includes(genre.toLowerCase())
+        )
+      );
+      
+      categoryMangas.forEach(manga => {
+        const existingManga = allMockMangas.find(existing => existing.id === manga.id);
+        if (!existingManga) {
+          allMockMangas.push(manga);
+        }
+      });
+    } catch (error) {
+      console.log(`Manga category ${category} processing failed, skipping`);
+    }
+  });
+  
+  // Se não conseguiu categorizar bem, usar todos os mock mangás
+  if (allMockMangas.length < mockMangas.length / 2) {
+    allMockMangas = mockMangas;
+  }
+  
+  console.log("✅ Using", allMockMangas.length, "manga as comprehensive fallback");
+  return allMockMangas;
 }
 
 export async function getMangaCategories() {
