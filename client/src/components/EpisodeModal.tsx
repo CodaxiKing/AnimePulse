@@ -90,6 +90,31 @@ export default function EpisodeModal({
     try {
       console.log(`🎬 Buscando vídeo real para: ${animeTitle} - Episódio ${episode.number}`);
       
+      // 🔍 PRIMEIRA TENTATIVA: Usar endpoint direto se temos o ID do episódio
+      if (episode.id && episode.id !== episode.number.toString()) {
+        console.log(`🎯 Tentando buscar streaming direto para episódio ID: ${episode.id}`);
+        try {
+          const API_BASE = import.meta.env.DEV ? 'http://localhost:5000' : '';
+          const directResponse = await fetch(`${API_BASE}/api/episodes/${episode.id}/stream`);
+          
+          if (directResponse.ok) {
+            const streamResult = await directResponse.json();
+            if (streamResult.streamingUrl) {
+              console.log('🎊 URL de streaming direto obtida!');
+              setVideoUrl(streamResult.streamingUrl);
+              console.log(`✅ URL do vídeo encontrada: ${streamResult.streamingUrl.substring(0, 50)}...`);
+              console.log(`📺 VideoUrl state atualizado para: ${streamResult.streamingUrl}`);
+              return;
+            }
+          }
+        } catch (error) {
+          console.warn('❌ Falha no streaming direto, tentando busca por nome...');
+        }
+      }
+      
+      // 🔍 SEGUNDA TENTATIVA: Buscar por nome do anime
+      console.log('🔍 Buscando por nome do anime...');
+      
       // Tentar extrair ano do título do anime (se houver)
       const yearMatch = animeTitle.match(/\b(19|20)\d{2}\b/);
       const year = yearMatch ? parseInt(yearMatch[0]) : undefined;
@@ -104,12 +129,12 @@ export default function EpisodeModal({
       } else {
         console.warn('⚠️ Nenhuma URL de vídeo encontrada, usando placeholder');
         setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
-        setVideoError('Usando vídeo de demonstração - APIs de streaming temporariamente indisponíveis');
+        setVideoError('Episódio real não disponível - Usando vídeo de demonstração');
       }
     } catch (error) {
       console.error('❌ Erro ao buscar vídeo:', error);
       setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
-      setVideoError('Usando vídeo de demonstração');
+      setVideoError('Erro ao buscar episódio - Usando vídeo de demonstração');
     } finally {
       setIsLoadingVideo(false);
     }

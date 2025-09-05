@@ -372,10 +372,65 @@ class AnimeStreamingService {
    */
   async getRealAnimeEpisode(animeTitle: string, episodeNumber: number): Promise<StreamingData | null> {
     try {
-      console.log(`🌐 Buscando conteúdo OFICIAL para "${animeTitle}" - Episódio ${episodeNumber}...`);
+      console.log(`🌐 Buscando episódio REAL para "${animeTitle}" - Episódio ${episodeNumber}...`);
       
-      // 🎬 PRIMEIRA PRIORIDADE: Trailer oficial do YouTube
-      console.log(`🎥 Tentando buscar trailer oficial do YouTube...`);
+      // 🔍 PRIMEIRA TENTATIVA: Buscar anime na nossa API integrada
+      console.log('🔍 Buscando anime na API integrada do GogoAnime...');
+      
+      const API_BASE = import.meta.env.DEV ? 'http://localhost:5000' : '';
+      
+      // Buscar o anime por nome
+      const searchResponse = await fetch(`${API_BASE}/api/animes/search?q=${encodeURIComponent(animeTitle)}&page=1`);
+      
+      if (searchResponse.ok) {
+        const searchResult = await searchResponse.json();
+        console.log(`🔎 Resultados da busca:`, searchResult.data?.length || 0, 'animes encontrados');
+        
+        if (searchResult.data && searchResult.data.length > 0) {
+          const anime = searchResult.data[0]; // Pegar o primeiro resultado
+          console.log(`📺 Anime encontrado: ${anime.title} (ID: ${anime.id})`);
+          
+          // Buscar episódios do anime
+          const episodesResponse = await fetch(`${API_BASE}/api/animes/${anime.id}/episodes`);
+          
+          if (episodesResponse.ok) {
+            const episodesResult = await episodesResponse.json();
+            console.log(`📋 Encontrados ${episodesResult.data?.length || 0} episódios`);
+            
+            if (episodesResult.data && episodesResult.data.length > 0) {
+              // Procurar pelo episódio específico
+              const targetEpisode = episodesResult.data.find((ep: any) => ep.number === episodeNumber);
+              
+              if (targetEpisode) {
+                console.log(`🎯 Episódio ${episodeNumber} encontrado: ${targetEpisode.title}`);
+                
+                // Buscar URL de streaming do episódio
+                const streamResponse = await fetch(`${API_BASE}/api/episodes/${targetEpisode.id}/stream`);
+                
+                if (streamResponse.ok) {
+                  const streamResult = await streamResponse.json();
+                  
+                  if (streamResult.streamingUrl) {
+                    console.log('🎊 URL de streaming real obtida!');
+                    return {
+                      sources: [{
+                        url: streamResult.streamingUrl,
+                        quality: '720p',
+                        isM3U8: false
+                      }],
+                      subtitles: [],
+                      headers: streamResult.headers || {}
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // 🎬 FALLBACK: Trailer oficial do YouTube
+      console.log(`🎥 Fallback: Tentando buscar trailer oficial do YouTube...`);
       const youtubeTrailer = await this.getYouTubeTrailer(animeTitle, episodeNumber);
       
       if (youtubeTrailer) {
@@ -383,7 +438,7 @@ class AnimeStreamingService {
         return youtubeTrailer;
       }
 
-      // 🔄 FALLBACK: Sistema simulado anterior
+      // 🔄 ÚLTIMO FALLBACK: Sistema simulado anterior
       console.log(`📺 Fallback: usando sistema de vídeos simulados...`);
       const simulatedStreams = this.getSimulatedAnimeStreams(animeTitle, episodeNumber);
       
