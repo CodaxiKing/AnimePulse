@@ -114,15 +114,23 @@ export default function NewsModal({ news, isOpen, onClose }: NewsModalProps) {
 
   // Função para limpar e melhorar o conteúdo HTML
   const cleanHtmlContent = (htmlContent: string) => {
+    if (!htmlContent) return '';
+    
     return htmlContent
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Remove styles
+      .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, '') // Remove noscript
+      .replace(/<!--[\s\S]*?-->/g, '') // Remove comentários HTML
       .replace(/style="[^"]*"/gi, '') // Remove inline styles
       .replace(/class="[^"]*"/gi, '') // Remove classes
-      .replace(/<img([^>]*)>/gi, '<img$1 class="max-w-full h-auto rounded-lg my-4" loading="lazy">') // Melhora imagens
+      .replace(/onclick="[^"]*"/gi, '') // Remove onclick events
+      .replace(/onload="[^"]*"/gi, '') // Remove onload events
+      .replace(/<img([^>]*)>/gi, '<img$1 class="max-w-full h-auto rounded-lg my-4" loading="lazy" style="max-height: 300px; object-fit: cover;">') // Melhora imagens
       .replace(/<a([^>]*)>/gi, '<a$1 class="text-purple-400 hover:underline" target="_blank" rel="noopener noreferrer">') // Melhora links
-      .replace(/<p>/gi, '<p class="mb-3">') // Espaçamento de parágrafos
-      .replace(/<h([1-6])>/gi, '<h$1 class="font-semibold mt-4 mb-2">'); // Estilos de títulos
+      .replace(/<p>/gi, '<p class="mb-3 text-sm">') // Espaçamento de parágrafos
+      .replace(/<h([1-6])>/gi, '<h$1 class="font-semibold mt-4 mb-2 text-base">') // Estilos de títulos
+      .replace(/<div>/gi, '<div class="mb-2">') // Espaçamento de divs
+      .trim();
   };
 
   return (
@@ -193,38 +201,33 @@ export default function NewsModal({ news, isOpen, onClose }: NewsModalProps) {
           ) : (
             <div className="space-y-4">
               {/* Descrição */}
-              <p className="text-muted-foreground leading-relaxed">
+              <div className="text-muted-foreground leading-relaxed mb-4">
                 {currentNews?.description}
-              </p>
+              </div>
               
               {/* Conteúdo completo da notícia */}
-              {currentNews?.content ? (
+              {currentNews?.content && currentNews.content.length > currentNews.description.length ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <Separator className="my-4" />
                   <h4 className="font-semibold mb-3">Conteúdo Completo:</h4>
                   <div 
-                    className="text-sm leading-relaxed space-y-3"
+                    className="text-sm leading-relaxed space-y-3 max-h-96 overflow-y-auto pr-2"
                     dangerouslySetInnerHTML={{ 
                       __html: cleanHtmlContent(currentNews.content) 
                     }}
                   />
                 </div>
               ) : (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold mb-2 text-yellow-400">Debug Info:</h4>
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <p>• Content available: {currentNews?.content ? 'Yes' : 'No'}</p>
-                    <p>• Content length: {currentNews?.content?.length || 0}</p>
-                    <p>• Description length: {currentNews?.description?.length || 0}</p>
-                    <p>• News ID: {currentNews?.id}</p>
-                    <p>• Loading full news: {loadingFullNews ? 'Yes' : 'No'}</p>
-                    {currentNews?.content && (
-                      <details className="mt-2">
-                        <summary className="cursor-pointer text-yellow-400">Show raw content</summary>
-                        <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-auto max-h-32">
-                          {currentNews.content.substring(0, 500)}...
-                        </pre>
-                      </details>
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold mb-2 text-blue-400">Conteúdo da Notícia:</h4>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <div>Esta é uma notícia externa do Anime News Network.</div>
+                    <div className="text-xs">O conteúdo mostrado é o resumo disponível no feed RSS. Para ler o artigo completo, clique no botão "Ler no site original" abaixo.</div>
+                    {loadingFullNews && (
+                      <div className="flex items-center gap-2 text-blue-400">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-400"></div>
+                        <span className="text-xs">Tentando carregar conteúdo completo...</span>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import RSS from 'rss-parser';
+import fetch from 'node-fetch';
 
 interface NewsItem {
   id: string;
@@ -153,6 +154,13 @@ export class AnimeNewsService {
         const news = await this.getNews(category, 100); // Buscar mais itens para encontrar pelo ID
         const foundNews = news.find(item => item.id === id);
         if (foundNews) {
+          // Tentar buscar conteúdo completo se tiver link
+          if (foundNews.link && foundNews.link !== '#') {
+            const fullContent = await this.fetchFullContent(foundNews.link);
+            if (fullContent) {
+              foundNews.content = fullContent;
+            }
+          }
           return foundNews;
         }
       }
@@ -160,6 +168,51 @@ export class AnimeNewsService {
       return null;
     } catch (error) {
       console.error(`❌ Erro ao buscar notícia por ID ${id}:`, error);
+      return null;
+    }
+  }
+
+  private async fetchFullContent(url: string): Promise<string | null> {
+    try {
+      console.log(`🔍 Tentando buscar conteúdo completo de: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      } as any);
+      
+      if (!response.ok) {
+        console.log(`❌ Status ${response.status} para URL: ${url}`);
+        return null;
+      }
+      
+      const html = await response.text();
+      
+      // Extrair conteúdo principal do HTML
+      const contentMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i) ||
+                          html.match(/<div[^>]*class=['"].*?content.*?['"][^>]*>([\s\S]*?)<\/div>/i) ||
+                          html.match(/<div[^>]*class=['"].*?article.*?['"][^>]*>([\s\S]*?)<\/div>/i);
+      
+      if (contentMatch) {
+        let content = contentMatch[1];
+        // Limpar scripts, estilos e outros elementos desnecessários
+        content = content
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
+          .replace(/<!--[\s\S]*?-->/g, '')
+          .trim();
+        
+        console.log(`✅ Conteúdo extraído com sucesso (${content.length} caracteres)`);
+        return content;
+      }
+      
+      console.log(`⚠️ Não foi possível extrair conteúdo de: ${url}`);
+      return null;
+      
+    } catch (error) {
+      console.error(`❌ Erro ao buscar conteúdo de ${url}:`, error);
       return null;
     }
   }
