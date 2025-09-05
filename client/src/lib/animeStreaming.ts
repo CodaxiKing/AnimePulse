@@ -33,8 +33,11 @@ interface ServersResponse {
 class AnimeStreamingService {
   private baseURL = 'https://api-anime-rouge.vercel.app';
   private animeIndoAPI = 'https://anime-indo-rest-api.vercel.app';
+  private gogoAnimeAPI = 'https://gogoanime.consumet.stream';
+  private anilistAPI = 'https://consumet-api-brown.vercel.app';
   private fallbackAPIs = [
     'https://api.consumet.org',
+    'https://consumet-api-brown.vercel.app',
     // Adicionar mais APIs de fallback se necessário
   ];
 
@@ -242,6 +245,114 @@ class AnimeStreamingService {
   }
 
   /**
+   * Buscar anime na nova API GogoAnime/Consumet
+   */
+  async searchGogoAnime(query: string): Promise<any[]> {
+    try {
+      console.log(`🔍 Searching in GogoAnime API: ${query}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      try {
+        const response = await fetch(`${this.anilistAPI}/anime/gogoanime/${encodeURIComponent(query)}`, {
+          headers: {
+            'User-Agent': 'AnimePulse/1.0',
+            'Accept': 'application/json',
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`GogoAnime API failed: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const results = data.results || [];
+        
+        console.log(`✅ Found ${results.length} results from GogoAnime API`);
+        return results;
+        
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
+      
+    } catch (error) {
+      console.warn('⚠️ GogoAnime API unavailable:', error instanceof Error ? error.message : 'Unknown error');
+      return [];
+    }
+  }
+
+  /**
+   * Buscar dados de streaming do GogoAnime
+   */
+  async getGogoAnimeStream(animeId: string, episodeNumber: number): Promise<StreamingData | null> {
+    try {
+      console.log(`🎬 Getting GogoAnime stream for: ${animeId}, episode ${episodeNumber}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      try {
+        // Primeiro buscar informações do anime
+        const infoResponse = await fetch(`${this.anilistAPI}/anime/gogoanime/info/${animeId}`, {
+          signal: controller.signal
+        });
+        
+        if (!infoResponse.ok) {
+          throw new Error(`Info fetch failed: ${infoResponse.status}`);
+        }
+        
+        const animeInfo = await infoResponse.json();
+        const episodes = animeInfo.episodes || [];
+        
+        // Encontrar o episódio correto
+        const targetEpisode = episodes.find((ep: any) => ep.number === episodeNumber);
+        
+        if (!targetEpisode) {
+          console.warn(`⚠️ Episode ${episodeNumber} not found in GogoAnime`);
+          return null;
+        }
+        
+        // Buscar URLs de streaming para o episódio
+        const streamResponse = await fetch(`${this.anilistAPI}/anime/gogoanime/watch/${targetEpisode.id}`, {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!streamResponse.ok) {
+          throw new Error(`Stream fetch failed: ${streamResponse.status}`);
+        }
+        
+        const streamData = await streamResponse.json();
+        
+        if (streamData.sources && streamData.sources.length > 0) {
+          console.log(`✅ Got GogoAnime stream for episode ${episodeNumber}`);
+          return {
+            sources: streamData.sources,
+            subtitles: streamData.subtitles || [],
+            headers: streamData.headers || {}
+          };
+        }
+        
+        return null;
+        
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
+      
+    } catch (error) {
+      console.error('❌ Error getting GogoAnime stream:', error instanceof Error ? error.message : 'Unknown error');
+      return null;
+    }
+  }
+
+  /**
    * Buscar anime na AnimeIndo API
    */
   async searchAnimeIndo(query: string): Promise<any[]> {
@@ -410,8 +521,7 @@ class AnimeStreamingService {
       
       console.log(`🎬 Using demo video for ${animeTitle} episode ${episodeNumber}: ${selectedVideo}`);
       
-      // APIs externas estão fora do ar - usar vídeos funcionais diretamente
-      console.log(`📺 APIs externas indisponíveis, usando vídeos de demonstração funcionais`);
+      console.log(`📺 APIs externas temporariamente indisponíveis, usando vídeos de demonstração HD`);
       
       // Se chegou até aqui, as APIs falharam - usar vídeo demo
       
