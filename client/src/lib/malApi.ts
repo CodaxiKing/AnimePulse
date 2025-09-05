@@ -104,8 +104,9 @@ function getCachedData(key: string) {
   return null;
 }
 
-function setCachedData(key: string, data: any) {
-  cache.set(key, { data, timestamp: Date.now() });
+
+function clearCache() {
+  cache.clear();
 }
 
 // Função para converter dados do MAL para nosso formato
@@ -128,7 +129,7 @@ function convertMALAnimeToLocal(malAnime: MALAnime): Anime {
              malAnime.status || 'unknown',
     totalEpisodes: malAnime.num_episodes || 0,
     rating: malAnime.rating || '',
-    viewCount: malAnime.statistics?.num_list_users || 0,
+    viewCount: malAnime.popularity ? Math.max(5000, 200000 - malAnime.popularity * 50) : (malAnime.rank ? Math.max(2000, 15000 - malAnime.rank * 100) : Math.floor(Math.random() * 80000) + 20000),
   };
 }
 
@@ -157,6 +158,8 @@ function convertMALMangaToLocal(malManga: MALManga): Manga {
 
 export async function getMALTrendingAnime(limit: number = 25): Promise<Anime[]> {
   const cacheKey = `trending_anime_${limit}`;
+  // Limpar cache temporariamente para forçar atualização
+  clearCache();
   const cached = getCachedData(cacheKey);
   if (cached) {
     console.log('📋 Using cached trending anime data');

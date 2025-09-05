@@ -13,7 +13,7 @@ interface AnimeCardProps {
 export default function AnimeCard({ anime, showProgress = false, rank, isNew = false, variant = 'grid' }: AnimeCardProps) {
   // Função para formatar o número de visualizações
   const formatViewCount = (count?: number | null) => {
-    if (!count) return "0";
+    if (!count || count <= 0) return "N/A";
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
     if (count >= 1000) return `${(count / 1000).toFixed(0)}K`;
     return count.toString();
@@ -37,7 +37,7 @@ export default function AnimeCard({ anime, showProgress = false, rank, isNew = f
           )}
           
           {/* Tag de visualizações */}
-          {anime.viewCount && anime.viewCount > 0 && (
+          {anime.viewCount && (
             <div className={`absolute z-10 bg-black/75 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 shadow-lg ${rank ? 'top-11 right-2' : 'top-2 right-2'}`}>
               <Eye className="w-3 h-3" />
               {formatViewCount(anime.viewCount)}
