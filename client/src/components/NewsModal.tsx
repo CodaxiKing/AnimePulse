@@ -198,7 +198,7 @@ export default function NewsModal({ news, isOpen, onClose }: NewsModalProps) {
               </p>
               
               {/* Conteúdo completo da notícia */}
-              {currentNews?.content && (
+              {currentNews?.content ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <Separator className="my-4" />
                   <h4 className="font-semibold mb-3">Conteúdo Completo:</h4>
@@ -208,6 +208,25 @@ export default function NewsModal({ news, isOpen, onClose }: NewsModalProps) {
                       __html: cleanHtmlContent(currentNews.content) 
                     }}
                   />
+                </div>
+              ) : (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold mb-2 text-yellow-400">Debug Info:</h4>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>• Content available: {currentNews?.content ? 'Yes' : 'No'}</p>
+                    <p>• Content length: {currentNews?.content?.length || 0}</p>
+                    <p>• Description length: {currentNews?.description?.length || 0}</p>
+                    <p>• News ID: {currentNews?.id}</p>
+                    <p>• Loading full news: {loadingFullNews ? 'Yes' : 'No'}</p>
+                    {currentNews?.content && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-yellow-400">Show raw content</summary>
+                        <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-auto max-h-32">
+                          {currentNews.content.substring(0, 500)}...
+                        </pre>
+                      </details>
+                    )}
+                  </div>
                 </div>
               )}
               

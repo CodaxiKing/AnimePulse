@@ -471,18 +471,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Endpoint para buscar notícia individual com conteúdo completo
-  app.get("/api/news/:id", async (req, res) => {
+  // Endpoint de debug para verificar estrutura RSS (deve vir antes do endpoint dinâmico)
+  app.get("/api/news/debug", async (req, res) => {
     try {
-      const { id } = req.params;
+      const { animeNewsService } = await import('./lib/newsService');
+      const news = await animeNewsService.getNews('news', 3);
+      
+      res.json({
+        message: "Debug RSS feed content",
+        newsCount: news.length,
+        firstNews: news[0] ? {
+          id: news[0].id,
+          title: news[0].title,
+          descriptionLength: news[0].description.length,
+          contentLength: news[0].content?.length || 0,
+          hasContent: !!news[0].content,
+          contentPreview: news[0].content?.substring(0, 200) || 'No content'
+        } : null
+      });
+    } catch (error) {
+      console.error("Debug error:", error);
+      res.status(500).json({ error: "Debug failed" });
+    }
+  });
+
+  // Endpoint para buscar notícia individual com conteúdo completo  
+  app.get("/api/news/:id(*)", async (req, res) => {
+    try {
+      const id = req.params.id;
+      console.log(`🔍 Buscando notícia com ID: ${id}`);
       
       const { animeNewsService } = await import('./lib/newsService');
       const news = await animeNewsService.getNewsById(id);
       
       if (!news) {
+        console.log(`❌ Notícia não encontrada para ID: ${id}`);
         return res.status(404).json({ error: "News not found" });
       }
       
+      console.log(`✅ Notícia encontrada: ${news.title}`);
       res.json(news);
     } catch (error) {
       console.error(`Error fetching news ${req.params.id}:`, error);

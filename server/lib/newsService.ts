@@ -18,7 +18,10 @@ export class AnimeNewsService {
       item: [
         'description',
         'category',
-        'author'
+        'author',
+        'content',
+        'content:encoded',
+        'summary'
       ]
     }
   });
@@ -49,16 +52,27 @@ export class AnimeNewsService {
         const thumbnailMatch = item.content?.match(/<img[^>]+src="([^">]+)"/);
         const thumbnail = thumbnailMatch ? thumbnailMatch[1] : undefined;
 
-        // Extrair conteúdo completo e descrição
-        const fullContent = item.content || item.description || '';
+        // Extrair conteúdo completo e descrição com debug
+        const fullContent = (item as any)['content:encoded'] || item.content || item.description || item.summary || '';
         const cleanDescription = item.contentSnippet || item.description || '';
         const description = cleanDescription.replace(/<[^>]*>/g, '').trim();
+        
+        // Debug: log dos dados disponíveis
+        if (index < 2) { // Log apenas os primeiros 2 itens para não poluir
+          console.log(`🔍 Debug notícia ${index + 1}:`);
+          console.log('- Title:', item.title);
+          console.log('- Content keys:', Object.keys(item));
+          console.log('- Content:', item.content ? 'Presente' : 'Ausente');
+          console.log('- Content:encoded:', (item as any)['content:encoded'] ? 'Presente' : 'Ausente');
+          console.log('- Description length:', (item.description || '').length);
+          console.log('- Full content length:', fullContent.length);
+        }
 
         return {
           id: item.guid || `${category}-${index}`,
           title: item.title || 'Título não disponível',
           description: description.substring(0, 200) + (description.length > 200 ? '...' : ''),
-          content: fullContent, // Conteúdo completo com HTML
+          content: fullContent.length > description.length ? fullContent : description, // Usar o maior conteúdo disponível
           link: item.link || '#',
           publishedDate: item.pubDate || new Date().toISOString(),
           category: item.categories?.[0] || category,
