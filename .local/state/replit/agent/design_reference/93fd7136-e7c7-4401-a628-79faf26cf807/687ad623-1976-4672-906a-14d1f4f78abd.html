@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnimePulse - Assista Animes e Leia Mangás</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                    chart: {
+                        "1": "var(--chart-1)",
+                        "2": "var(--chart-2)",
+                        "3": "var(--chart-3)",
+                        "4": "var(--chart-4)",
+                        "5": "var(--chart-5)",
+                    }
+                },
+                fontFamily: {
+                    sans: ["var(--font-sans)"],
+                    serif: ["var(--font-serif)"],
+                    mono: ["var(--font-mono)"],
+                }
+            },
+        }
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --radius: 12px;
+            --background: hsl(240 8% 4%);
+            --foreground: hsl(240 5% 92%);
+            --card: hsl(240 8% 8%);
+            --card-foreground: hsl(240 5% 92%);
+            --popover: hsl(240 8% 8%);
+            --popover-foreground: hsl(240 5% 92%);
+            --primary: hsl(277 85% 53%);
+            --primary-foreground: hsl(0 0% 100%);
+            --secondary: hsl(240 5% 15%);
+            --secondary-foreground: hsl(240 5% 92%);
+            --muted: hsl(240 5% 15%);
+            --muted-foreground: hsl(240 4% 65%);
+            --accent: hsl(277 85% 53%);
+            --accent-foreground: hsl(0 0% 100%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(0 0% 100%);
+            --border: hsl(240 5% 15%);
+            --input: hsl(240 5% 15%);
+            --ring: hsl(277 85% 53%);
+            --font-sans: 'Inter', system-ui, sans-serif;
+        }
+        
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .gradient-mask-r {
+            -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+            mask-image: linear-gradient(to right, black 85%, transparent 100%);
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground font-sans antialiased min-h-screen">
+    <!-- @COMPONENT: Header [fixed navigation with logo, menu, search, profile] -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- @COMPONENT: Logo [brand identity with gradient text] -->
+                <div class="flex items-center space-x-8">
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] bg-clip-text text-transparent">
+                        AnimePulse
+                    </h1>
+                    
+                    <!-- @COMPONENT: Navigation [main menu links] -->
+                    <nav class="hidden md:flex items-center space-x-6">
+                        <a href="/animes" class="text-foreground hover:text-primary transition-colors font-medium" data-event="click:navigate">Animes</a>
+                        <a href="/mangas" class="text-muted-foreground hover:text-primary transition-colors font-medium" data-event="click:navigate">Mangás</a>
+                        <a href="/noticias" class="text-muted-foreground hover:text-primary transition-colors font-medium" data-event="click:navigate">Notícias</a>
+                        <a href="/comunidade" class="text-muted-foreground hover:text-primary transition-colors font-medium" data-event="click:navigate">Comunidade</a>
+                    </nav>
+                </div>
+                
+                <!-- @COMPONENT: SearchBar [search input with icon] -->
+                <div class="flex items-center space-x-4">
+                    <div class="relative hidden sm:block">
+                        <input 
+                            type="search" 
+                            placeholder="Buscar..." 
+                            class="w-64 bg-muted border border-border rounded-lg px-4 py-2 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                            data-implementation="Search functionality should filter content locally"
+                        />
+                        <svg class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    
+                    <!-- @COMPONENT: ProfileIcon [user avatar and menu] -->
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5">
+                        <div class="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                            <svg class="w-4 h-4 text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <main class="pt-16">
+        <!-- @COMPONENT: HeroCarousel [main featured content carousel] -->
+        <section class="relative h-[60vh] overflow-hidden">
+            <!-- Featured anime background with dark overlay for text readability -->
+            <div class="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10"></div>
+            <!-- A dramatic scene from an anime with two main characters against a mystical dark background -->
+            <img 
+                src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1920&h=1080" 
+                alt="Featured anime hero banner" 
+                class="absolute inset-0 w-full h-full object-cover"
+                data-mock="true"
+            />
+            
+            <div class="relative z-20 max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center">
+                <div class="max-w-2xl">
+                    <h2 class="text-4xl md:text-6xl font-bold mb-4" data-bind="featuredAnime.title">Night Hunters</h2>
+                    <div class="flex items-center space-x-4 mb-4 text-sm text-muted-foreground">
+                        <span data-bind="featuredAnime.year">2023</span>
+                        <span>•</span>
+                        <span data-bind="featuredAnime.genre">Ação</span>
+                        <span>•</span>
+                        <span data-bind="featuredAnime.tags">Sobrenatural • Romance</span>
+                    </div>
+                    <p class="text-lg text-muted-foreground mb-6 max-w-lg" data-bind="featuredAnime.synopsis">
+                        Em um mundo tomado pela escuridão sobrenatural, dois caçadores relutantes unem forças para combater forças das sombras e restaurar a paz.
+                    </p>
+                    <div class="flex items-center space-x-4">
+                        <button class="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-8 py-3 font-semibold shadow-[0_0_20px_rgba(176,38,255,0.35)] hover:opacity-95 transition-opacity" data-event="click:watchNow">
+                            Assistir agora
+                        </button>
+                        <button class="bg-secondary border border-border text-foreground rounded-xl px-6 py-3 font-semibold hover:bg-muted transition-colors flex items-center space-x-2" data-event="click:addToList">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <span>Adicionar à fila</span>
+                        </button>
+                        <button class="p-3 rounded-xl border border-border hover:bg-muted transition-colors" data-event="click:favorite">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Carousel navigation arrows -->
+            <button class="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-border hover:bg-background/40 transition-colors" data-event="click:previousSlide">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <button class="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 rounded-full bg-background/20 backdrop-blur-sm border border-border hover:bg-background/40 transition-colors" data-event="click:nextSlide">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+        </section>
+        <!-- @END_COMPONENT: HeroCarousel -->
+
+        <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 space-y-12">
+            <!-- @COMPONENT: SectionRow [Assistir Animes section with horizontal scrolls] -->
+            <section class="space-y-8">
+                <h2 class="text-2xl md:text-3xl font-semibold">Assistir Animes</h2>
+                
+                <!-- Continue assistindo -->
+                <div class="space-y-4">
+                    <h3 class="text-xl font-semibold">Continue assistindo</h3>
+                    <div class="relative">
+                        <div class="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
+                            <!-- @MAP: continueWatching.map(anime => ( -->
+                            <!-- @COMPONENT: AnimeCard [anime with progress bar] -->
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime" data-anime-id="1">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                    <!-- An intense anime scene with dynamic action and colorful effects -->
+                                    <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=600" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1" data-bind="anime.title">Attack on Titan</h4>
+                                        <p class="text-xs text-muted-foreground mb-2" data-bind="anime.progress">Episódio 15 de 25</p>
+                                        <div class="w-full bg-muted rounded-full h-1">
+                                            <div class="bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] h-1 rounded-full" style="width: 60%" data-bind="anime.progressPercent"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime" data-anime-id="2">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                    <!-- A mystical anime character with magical powers and glowing effects -->
+                                    <img src="https://images.unsplash.com/photo-1596727147705-61a532a659bd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=600" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1">Jujutsu Kaisen</h4>
+                                        <p class="text-xs text-muted-foreground mb-2">Episódio 8 de 24</p>
+                                        <div class="w-full bg-muted rounded-full h-1">
+                                            <div class="bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] h-1 rounded-full" style="width: 33%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime" data-anime-id="3">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                    <!-- A futuristic anime scene with cyberpunk aesthetics and neon lighting -->
+                                    <img src="https://pixabay.com/get/g15262bc1822ff8875f2f2f16adab365c51346cbbae2cf99aa698fec8971f81da3dc4ae268094fcf6700521f17268088a834ff6152c555590aa42527c3332a113_1280.jpg" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1">Demon Slayer</h4>
+                                        <p class="text-xs text-muted-foreground mb-2">Episódio 22 de 26</p>
+                                        <div class="w-full bg-muted rounded-full h-1">
+                                            <div class="bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] h-1 rounded-full" style="width: 85%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime" data-anime-id="4">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                    <!-- A romantic anime scene with beautiful character designs and soft lighting -->
+                                    <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=600" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1">Your Name</h4>
+                                        <p class="text-xs text-muted-foreground mb-2">Filme • 1h 46m</p>
+                                        <div class="w-full bg-muted rounded-full h-1">
+                                            <div class="bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] h-1 rounded-full" style="width: 45%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recomendados para você -->
+                <div class="space-y-4">
+                    <h3 class="text-xl font-semibold">Recomendados para você</h3>
+                    <div class="relative">
+                        <div class="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
+                            <!-- @MAP: recommendations.map(anime => ( -->
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                    <!-- A dark fantasy anime with supernatural elements and mysterious atmosphere -->
+                                    <img src="https://pixabay.com/get/g0766813cbebdbbfd6a2abcceb3ea9a4557d3ab932f7b6ca2bacf0a4106b07a6b34b75c8776b004519d794bbe33a9a23b317b5f39a7cabd82a8ddd3c966602a14_1280.jpg" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1">Death Note</h4>
+                                        <p class="text-xs text-muted-foreground">Suspense • 37 episódios</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                    <!-- A vibrant anime scene with colorful characters and energetic action -->
+                                    <img src="https://pixabay.com/get/gc912d0ef4b3e37cb5eea76df26a0f4ee806404fe9fa963387c0210f249c3b7cdfc910963e4c8e470ac534f1262dc5f08dfd412b41f61b262faab3525775783d0_1280.jpg" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1">One Piece</h4>
+                                        <p class="text-xs text-muted-foreground">Aventura • 1000+ episódios</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                                    <!-- A slice-of-life anime with peaceful school setting and warm atmosphere -->
+                                    <img src="https://pixabay.com/get/gfe5e45288682fc4eb59a45ebddb4a22365df59ecd798c4a152c29541464f818b165b5da68926f5012ece89f178ebb57242c3194b08d7e8240bf042f173785a21_1280.jpg" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1">My Hero Academia</h4>
+                                        <p class="text-xs text-muted-foreground">Ação • 6 temporadas</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lançamentos -->
+                <div class="space-y-4">
+                    <h3 class="text-xl font-semibold">Lançamentos</h3>
+                    <div class="relative">
+                        <div class="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
+                            <!-- @MAP: newReleases.map(anime => ( -->
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative">
+                                    <div class="absolute top-2 left-2 z-10 bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] text-white text-xs px-2 py-1 rounded-full font-medium">
+                                        NOVO
+                                    </div>
+                                    <!-- A modern anime with cutting-edge animation and stunning visual effects -->
+                                    <img src="https://pixabay.com/get/g42ea2efc124730128153d69b593df3671811326be5a722af529a724f23a8f6bea843c84795c27fc94515bab4e56775566cfd66ee9e4cb2faf9e1d35b47b0903d_1280.jpg" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1">Chainsaw Man</h4>
+                                        <p class="text-xs text-muted-foreground">Ação • Episódio 1 disponível</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Top 10 mais assistidos -->
+                <div class="space-y-4">
+                    <h3 class="text-xl font-semibold">Top 10 mais assistidos</h3>
+                    <div class="relative">
+                        <div class="flex space-x-4 overflow-x-auto hide-scrollbar pb-2 gradient-mask-r">
+                            <!-- @MAP: topAnimes.map((anime, index) => ( -->
+                            <div class="flex-none w-48 group cursor-pointer" data-event="click:navigateToAnime">
+                                <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative">
+                                    <div class="absolute top-2 left-2 z-10 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
+                                        1
+                                    </div>
+                                    <!-- A popular anime with iconic characters and memorable scenes -->
+                                    <img src="https://images.unsplash.com/photo-1586348943529-beaae6c28db9?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=600" alt="Anime cover" class="w-full h-72 object-cover" data-mock="true" />
+                                    <div class="p-4">
+                                        <h4 class="font-semibold text-sm mb-1">Naruto</h4>
+                                        <p class="text-xs text-muted-foreground">Aventura • 720 episódios</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- @END_COMPONENT: SectionRow -->
+
+            <!-- @COMPONENT: MangaSection [Ler Mangás with categories] -->
+            <section class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl md:text-3xl font-semibold">Ler Mangás</h2>
+                    <a href="/mangas" class="text-primary hover:text-primary/80 transition-colors font-medium" data-event="click:navigate">
+                        Ver mais →
+                    </a>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                    <!-- @MAP: mangaCategories.map(category => ( -->
+                    <!-- @COMPONENT: MangaCard [category cards] -->
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToCategory">
+                        <!-- A collection of manga covers displayed in an organized bookshelf setting -->
+                        <img src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" alt="Manga category" class="w-full h-24 object-cover" data-mock="true" />
+                        <div class="p-3">
+                            <h4 class="font-semibold text-sm text-center" data-bind="category.name">Mangás</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToCategory">
+                        <!-- A stack of newly released manga volumes with vibrant covers -->
+                        <img src="https://images.unsplash.com/photo-1535982330050-f1c2fb79ff78?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" alt="Latest releases" class="w-full h-24 object-cover" data-mock="true" />
+                        <div class="p-3">
+                            <h4 class="font-semibold text-sm text-center">Últimos lançamentos</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToCategory">
+                        <!-- A portrait gallery of famous manga artists and their artwork -->
+                        <img src="https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" alt="Manga artists" class="w-full h-24 object-cover" data-mock="true" />
+                        <div class="p-3">
+                            <h4 class="font-semibold text-sm text-center">Mangakás</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToCategory">
+                        <!-- An artistic illustration showcasing manga drawing techniques and tools -->
+                        <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" alt="Art category" class="w-full h-24 object-cover" data-mock="true" />
+                        <div class="p-3">
+                            <h4 class="font-semibold text-sm text-center">Braço</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToCategory">
+                        <!-- A modern digital library with manga collections displayed on screens -->
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" alt="Digital library" class="w-full h-24 object-cover" data-mock="true" />
+                        <div class="p-3">
+                            <h4 class="font-semibold text-sm text-center">Bibliotecas</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToCategory">
+                        <!-- A crowdfunding platform interface showing manga projects seeking support -->
+                        <img src="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=300" alt="Funding projects" class="w-full h-24 object-cover" data-mock="true" />
+                        <div class="p-3">
+                            <h4 class="font-semibold text-sm text-center">Funding</h4>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </section>
+            <!-- @END_COMPONENT: MangaSection -->
+
+            <!-- @COMPONENT: NewsSection [Notícias with 4 categories] -->
+            <section class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl md:text-3xl font-semibold">Notícias</h2>
+                    <a href="/noticias" class="text-muted-foreground hover:text-primary transition-colors text-sm" data-event="click:navigate">
+                        Ver todas as notícias
+                    </a>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- @MAP: newsCategories.map(category => ( -->
+                    <!-- @COMPONENT: NewsCard [news category cards] -->
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToNews">
+                        <!-- A collection of new anime promotional materials and posters -->
+                        <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=200" alt="Anime news" class="w-full h-32 object-cover" data-mock="true" />
+                        <div class="p-4">
+                            <h3 class="font-semibold mb-2" data-bind="category.title">Novidades de animes</h3>
+                            <p class="text-sm text-muted-foreground" data-bind="category.description">Últimas notícias sobre lançamentos e atualizações de animes</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToNews">
+                        <!-- A display of fresh manga releases and upcoming publications -->
+                        <img src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=200" alt="Manga releases" class="w-full h-32 object-cover" data-mock="true" />
+                        <div class="p-4">
+                            <h3 class="font-semibold mb-2">Lançamentos de mangás</h3>
+                            <p class="text-sm text-muted-foreground">Novos capítulos e séries de mangás disponíveis</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToNews">
+                        <!-- A vibrant scene from a geek culture convention with cosplayers and merchandise -->
+                        <img src="https://images.unsplash.com/photo-1560472355-109703aa3edc?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=200" alt="Geek culture" class="w-full h-32 object-cover" data-mock="true" />
+                        <div class="p-4">
+                            <h3 class="font-semibold mb-2">Cultura geek</h3>
+                            <p class="text-sm text-muted-foreground">Tendências e novidades da cultura geek</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" data-event="click:navigateToNews">
+                        <!-- A cosplay competition with elaborate anime character costumes and stage setup -->
+                        <img src="https://images.unsplash.com/photo-1505142468610-359e7d316be0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=200" alt="Cosplay events" class="w-full h-32 object-cover" data-mock="true" />
+                        <div class="p-4">
+                            <h3 class="font-semibold mb-2">Cosplay & Eventos</h3>
+                            <p class="text-sm text-muted-foreground">Eventos e competições de cosplay</p>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </section>
+            <!-- @END_COMPONENT: NewsSection -->
+
+            <!-- @COMPONENT: SocialFeed [Feed Social and Mais ativos] -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2">
+                    <h2 class="text-2xl md:text-3xl font-semibold mb-6">Feed Social</h2>
+                    <div class="space-y-6">
+                        <!-- @MAP: socialPosts.map(post => ( -->
+                        <!-- @COMPONENT: SocialPost [individual social media posts] -->
+                        <div class="bg-card rounded-2xl p-6 shadow-lg" data-post-id="1">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5 flex-shrink-0">
+                                    <div class="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                                        <!-- A profile photo of a user with anime-style avatar -->
+                                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=80&h=80" alt="User avatar" class="w-full h-full rounded-full object-cover" data-mock="true" />
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <h4 class="font-semibold" data-bind="post.user.name">Jan Saibaki</h4>
+                                        <span class="text-xs text-muted-foreground" data-bind="post.timestamp">há 2h</span>
+                                    </div>
+                                    <p class="text-sm mb-4" data-bind="post.content">
+                                        Acabei de assistir o último episódio de Jujutsu Kaisen e estou completamente sem palavras! A animação estava incrível 🔥
+                                    </p>
+                                    <!-- A stunning scene from a popular anime with high-quality animation -->
+                                    <img src="https://images.unsplash.com/photo-1596727147705-61a532a659bd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&h=300" alt="Anime scene" class="w-full h-40 object-cover rounded-xl" data-mock="true" />
+                                    <div class="flex items-center space-x-6 mt-4 text-sm text-muted-foreground">
+                                        <button class="flex items-center space-x-1 hover:text-primary transition-colors" data-event="click:likePost">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                            </svg>
+                                            <span>24</span>
+                                        </button>
+                                        <button class="flex items-center space-x-1 hover:text-primary transition-colors" data-event="click:commentPost">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                            </svg>
+                                            <span>5</span>
+                                        </button>
+                                        <button class="flex items-center space-x-1 hover:text-primary transition-colors" data-event="click:sharePost">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                                            </svg>
+                                            <span>Compartilhar</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-card rounded-2xl p-6 shadow-lg" data-post-id="2">
+                            <div class="flex items-start space-x-4">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5 flex-shrink-0">
+                                    <div class="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                                        <!-- A profile photo of another user participating in anime discussions -->
+                                        <img src="https://pixabay.com/get/g477147f4ab3f80ad73c8312104f196886be5fb8d9257115529e561ad6999b2d08790f2b13849e34e7f987b53727a2dc28f4bb7423e0a598e7dd48112a8ec35d7_1280.jpg" alt="User avatar" class="w-full h-full rounded-full object-cover" data-mock="true" />
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <h4 class="font-semibold">Fanaja scres</h4>
+                                        <span class="text-xs text-muted-foreground">há 4h</span>
+                                    </div>
+                                    <p class="text-sm mb-4">
+                                        Alguém mais está ansioso para a nova temporada de Attack on Titan? As teorias estão cada vez mais intensas! 🔥
+                                    </p>
+                                    <div class="flex items-center space-x-6 mt-4 text-sm text-muted-foreground">
+                                        <button class="flex items-center space-x-1 hover:text-primary transition-colors" data-event="click:likePost">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                            </svg>
+                                            <span>18</span>
+                                        </button>
+                                        <button class="flex items-center space-x-1 hover:text-primary transition-colors" data-event="click:commentPost">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                            </svg>
+                                            <span>12</span>
+                                        </button>
+                                        <button class="flex items-center space-x-1 hover:text-primary transition-colors" data-event="click:sharePost">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                                            </svg>
+                                            <span>Compartilhar</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+                
+                <!-- @COMPONENT: ActiveUsers [sidebar with online users] -->
+                <div class="space-y-6">
+                    <h3 class="text-xl font-semibold">Mais ativos</h3>
+                    <div class="bg-card rounded-2xl p-6 shadow-lg">
+                        <div class="space-y-4">
+                            <!-- @MAP: activeUsers.map(user => ( -->
+                            <div class="flex items-center space-x-3" data-user-id="1">
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5">
+                                        <div class="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                                            <!-- A small profile picture of an active community member -->
+                                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=60&h=60" alt="Active user" class="w-full h-full rounded-full object-cover" data-mock="true" />
+                                        </div>
+                                    </div>
+                                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card" data-bind="user.onlineStatus"></div>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-medium" data-bind="user.name">Iku</h4>
+                                    <p class="text-xs text-muted-foreground" data-bind="user.activity">há 2 min</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3" data-user-id="2">
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5">
+                                        <div class="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                                            <!-- Another active user profile image -->
+                                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=60&h=60" alt="Active user" class="w-full h-full rounded-full object-cover" data-mock="true" />
+                                        </div>
+                                    </div>
+                                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card"></div>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-medium">F no</h4>
+                                    <p class="text-xs text-muted-foreground">há 5 min</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3" data-user-id="3">
+                                <div class="relative">
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-[#8A2BE2] to-[#FF4DD8] p-0.5">
+                                        <div class="w-full h-full rounded-full bg-muted flex items-center justify-center">
+                                            <!-- A third active community member profile -->
+                                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=60&h=60" alt="Active user" class="w-full h-full rounded-full object-cover" data-mock="true" />
+                                        </div>
+                                    </div>
+                                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card"></div>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-medium">Ilya</h4>
+                                    <p class="text-xs text-muted-foreground">há 8 min</p>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: ActiveUsers -->
+            </section>
+            <!-- @END_COMPONENT: SocialFeed -->
+        </div>
+    </main>
+
+    <!-- @COMPONENT: Footer [links and social media] -->
+    <footer class="bg-card border-t border-border mt-16">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+                <div class="flex items-center space-x-6 text-sm text-muted-foreground">
+                    <a href="/faq" class="hover:text-primary transition-colors" data-event="click:navigate">FAQ</a>
+                    <a href="/suporte" class="hover:text-primary transition-colors" data-event="click:navigate">Suporte</a>
+                    <a href="/contrato" class="hover:text-primary transition-colors" data-event="click:navigate">Contrato</a>
+                    <a href="/termos" class="hover:text-primary transition-colors" data-event="click:navigate">Termos</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="text-muted-foreground hover:text-primary transition-colors" data-event="click:socialLink">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                        </svg>
+                        <span class="sr-only">Twitter</span>
+                    </a>
+                    <a href="#" class="text-muted-foreground hover:text-primary transition-colors" data-event="click:socialLink">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.097.118.112.221.083.343-.09.378-.293 1.175-.334 1.339-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.747-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001 12.017.001z"/>
+                        </svg>
+                        <span class="sr-only">Instagram</span>
+                    </a>
+                    <a href="#" class="text-muted-foreground hover:text-primary transition-colors" data-event="click:socialLink">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0002 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1568 2.4189Z"/>
+                        </svg>
+                        <span class="sr-only">Discord</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- @END_COMPONENT: Footer -->
+
+    <!-- Modal for Episode Player (hidden by default) -->
+    <!-- @COMPONENT: EpisodeModal [video player overlay] -->
+    <div id="episodeModal" class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 hidden" data-implementation="Modal should open when episode is clicked">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-card rounded-2xl w-full max-w-4xl mx-auto shadow-2xl overflow-hidden">
+                <div class="flex items-center justify-between p-4 border-b border-border">
+                    <h3 class="text-lg font-semibold" data-bind="selectedEpisode.title">Episódio 1 - Pactos Ocultos</h3>
+                    <button class="p-2 hover:bg-muted rounded-lg transition-colors" data-event="click:closeModal">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="aspect-video bg-muted flex items-center justify-center" data-implementation="Integrate video player component here">
+                    <div class="text-center">
+                        <svg class="w-20 h-20 mx-auto mb-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1a3 3 0 015.83 1M15 14v-1a3 3 0 00-3-3H9v1" />
+                        </svg>
+                        <p class="text-muted-foreground">Player de vídeo seria integrado aqui</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: EpisodeModal -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        (function() {
+            // Horizontal scroll behavior for anime sections
+            const scrollContainers = document.querySelectorAll('.overflow-x-auto');
+            
+            scrollContainers.forEach(container => {
+                let isDown = false;
+                let startX;
+                let scrollLeft;
+
+                container.addEventListener('mousedown', (e) => {
+                    isDown = true;
+                    startX = e.pageX - container.offsetLeft;
+                    scrollLeft = container.scrollLeft;
+                });
+
+                container.addEventListener('mouseleave', () => {
+                    isDown = false;
+                });
+
+                container.addEventListener('mouseup', () => {
+                    isDown = false;
+                });
+
+                container.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - container.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    container.scrollLeft = scrollLeft - walk;
+                });
+            });
+
+            // Modal functionality
+            const modal = document.getElementById('episodeModal');
+            const closeModalBtn = modal?.querySelector('[data-event="click:closeModal"]');
+            
+            closeModalBtn?.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+
+            // Close modal on escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                }
+            });
+
+            // Navigate to anime detail (mock behavior)
+            document.querySelectorAll('[data-event="click:navigateToAnime"]').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const animeId = card.dataset.animeId || '1';
+                    // TODO: Navigate to /animes/[id] in real implementation
+                    console.log(`Would navigate to /animes/${animeId}`);
+                    
+                    // For demo: show the detail view inline
+                    showAnimeDetail(animeId);
+                });
+            });
+
+            // Show anime detail view
+            function showAnimeDetail(animeId) {
+                // TODO: Replace with actual routing in Next.js
+                const detailHTML = `
+                    <div id="animeDetail" class="fixed inset-0 bg-background z-40 overflow-y-auto">
+                        <div class="min-h-screen">
+                            <!-- Anime Detail Header -->
+                            <div class="relative h-[50vh] overflow-hidden">
+                                <div class="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent z-10"></div>
+                                <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1920&h=1080" alt="Night Hunters" class="absolute inset-0 w-full h-full object-cover" />
+                                
+                                <div class="relative z-20 max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-full flex items-center">
+                                    <div class="max-w-2xl">
+                                        <button class="mb-4 text-muted-foreground hover:text-primary transition-colors" onclick="closeAnimeDetail()">
+                                            ← Voltar
+                                        </button>
+                                        <h1 class="text-4xl md:text-5xl font-bold mb-4">Night Hunters</h1>
+                                        <div class="flex items-center space-x-4 mb-4 text-sm text-muted-foreground">
+                                            <span>2023</span>
+                                            <span>•</span>
+                                            <span>Ação</span>
+                                            <span>•</span>
+                                            <span>Sobrenatural • Romance</span>
+                                            <span>•</span>
+                                            <span>AmpleX</span>
+                                        </div>
+                                        <p class="text-lg text-muted-foreground mb-6 max-w-lg">
+                                            Em um mundo tomado pela escuridão sobrenatural, dois caçadores relutantes unem forças para combater forças das sombras e restaurar a paz.
+                                        </p>
+                                        <div class="flex items-center space-x-4">
+                                            <button class="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-8 py-3 font-semibold shadow-[0_0_20px_rgba(176,38,255,0.35)] hover:opacity-95 transition-opacity">
+                                                Assistir agora
+                                            </button>
+                                            <button class="bg-secondary border border-border text-foreground rounded-xl px-6 py-3 font-semibold hover:bg-muted transition-colors flex items-center space-x-2">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                                <span>Adicionar à fila</span>
+                                            </button>
+                                            <button class="p-3 rounded-xl border border-border hover:bg-muted transition-colors">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Episodes Section -->
+                            <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
+                                <h2 class="text-2xl font-semibold mb-6">Episódios</h2>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    ${generateEpisodeGrid()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', detailHTML);
+            }
+
+            // Generate episode grid
+            function generateEpisodeGrid() {
+                const episodes = [
+                    { number: 1, title: "Pactos Ocultos", thumbnail: "https://images.unsplash.com/photo-1578662996442-48f60103fc96" },
+                    { number: 2, title: "Shadows de Amnésia", thumbnail: "https://images.unsplash.com/photo-1596727147705-61a532a659bd" },
+                    { number: 3, title: "A Ascensão da Noite Eterna", thumbnail: "https://images.unsplash.com/photo-1518709268805-4e9042af2176" },
+                    { number: 4, title: "A Invasão dos Vagos", thumbnail: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b" },
+                    { number: 5, title: "Retorno dos Caídos", thumbnail: "https://images.unsplash.com/photo-1606989103931-d4bb3a72d9b6" },
+                    { number: 6, title: "Sombras de Um Novo Horizonte", thumbnail: "https://images.unsplash.com/photo-1606989063908-ae11a0e9f4dd" },
+                    { number: 7, title: "O Preço da Promessa", thumbnail: "https://images.unsplash.com/photo-1612278524671-24164e938b9a" },
+                    { number: 8, title: "No Limiar do Amanhecer", thumbnail: "https://images.unsplash.com/photo-1606989163742-67ed22c26ea1" },
+                    { number: 9, title: "Caminhos Entrelaçados", thumbnail: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9" }
+                ];
+
+                return episodes.map(episode => `
+                    <div class="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group" onclick="openEpisodePlayer('${episode.number}', '${episode.title}')">
+                        <img src="${episode.thumbnail}?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&h=300" alt="Episode ${episode.number}" class="w-full h-40 object-cover" />
+                        <div class="p-4">
+                            <h3 class="font-semibold mb-1">Episódio ${episode.number}</h3>
+                            <p class="text-sm text-muted-foreground">${episode.title}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Global functions for demo
+            window.closeAnimeDetail = function() {
+                const detail = document.getElementById('animeDetail');
+                if (detail) {
+                    detail.remove();
+                }
+            };
+
+            window.openEpisodePlayer = function(episodeNumber, episodeTitle) {
+                const modal = document.getElementById('episodeModal');
+                const titleElement = modal.querySelector('[data-bind="selectedEpisode.title"]');
+                if (titleElement) {
+                    titleElement.textContent = `Episódio ${episodeNumber} - ${episodeTitle}`;
+                }
+                modal.classList.remove('hidden');
+            };
+        })();
+    </script>
+</body>
+</html>
