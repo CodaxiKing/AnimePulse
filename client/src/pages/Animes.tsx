@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Filter, Grid, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, Grid, List, ChevronLeft, ChevronRight, Globe, Tv } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AnimeCard from "@/components/AnimeCard";
+import ScrapedAnimeGrid from "@/components/ScrapedAnimeGrid";
 import { getTrendingAnime } from "@/lib/api";
 
 export default function Animes() {
+  const [activeTab, setActiveTab] = useState("traditional");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("popularity");
   const [filterByStatus, setFilterByStatus] = useState("all");
@@ -76,8 +79,23 @@ export default function Animes() {
             Descubra e explore nossa vasta coleção de animes
           </p>
         </div>
+        
+        {/* Tabs para alternar entre navegação tradicional e scraping */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
+            <TabsTrigger value="traditional" className="flex items-center gap-2">
+              <Tv className="w-4 h-4" />
+              Catálogo
+            </TabsTrigger>
+            <TabsTrigger value="discover" className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              Descobrir
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="traditional" className="mt-8">
 
-        {/* Barra de busca e filtros */}
+            {/* Barra de busca e filtros */}
         <Card className="mb-8">
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -361,12 +379,18 @@ export default function Animes() {
           </div>
         )}
 
-        {/* Informações da página atual */}
-        {!isLoading && filteredAnimes.length > 0 && (
-          <div className="text-center mt-4 text-sm text-muted-foreground">
-            Mostrando {startIndex + 1} a {Math.min(endIndex, filteredAnimes.length)} de {filteredAnimes.length} animes
-          </div>
-        )}
+            {/* Informações da página atual */}
+            {!isLoading && filteredAnimes.length > 0 && (
+              <div className="text-center mt-4 text-sm text-muted-foreground">
+                Mostrando {startIndex + 1} a {Math.min(endIndex, filteredAnimes.length)} de {filteredAnimes.length} animes
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="discover" className="mt-8">
+            <ScrapedAnimeGrid />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

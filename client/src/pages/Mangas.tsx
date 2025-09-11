@@ -32,7 +32,14 @@ export default function Mangas() {
   const [filterByGenre, setFilterByGenre] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
+  const [imageErrors, setImageErrors] = useState<string[]>([]);
   const itemsPerPage = 30;
+  
+  const fallbackImage = "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=600&fit=crop&auto=format&q=80";
+  
+  const handleImageError = (mangaId: string) => {
+    setImageErrors(prev => prev.includes(mangaId) ? prev : [...prev, mangaId]);
+  };
 
   // Buscar mangás
   const { data: mangas = [], isLoading } = useQuery({
@@ -234,9 +241,10 @@ export default function Mangas() {
                   <CardContent className="p-0">
                     <div className="aspect-[3/4] relative overflow-hidden rounded-t-lg">
                       <img
-                        src={manga.image || "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=600&fit=crop"}
+                        src={imageErrors.includes(manga.id) ? fallbackImage : (manga.image || fallbackImage)}
                         alt={manga.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        onError={() => handleImageError(manga.id)}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       
@@ -275,9 +283,10 @@ export default function Mangas() {
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     <img
-                      src={manga.image || "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=600&fit=crop"}
+                      src={imageErrors.includes(manga.id) ? fallbackImage : (manga.image || fallbackImage)}
                       alt={manga.title}
                       className="w-16 h-20 object-cover rounded"
+                      onError={() => handleImageError(manga.id)}
                     />
                     <div className="flex-1">
                       <h3 className="font-semibold text-foreground mb-1">
