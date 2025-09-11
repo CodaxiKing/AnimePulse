@@ -1,5 +1,5 @@
 import type { Anime, Episode, Manga, Chapter, News, AnimeWithProgress, PostWithUser } from "@shared/schema";
-import { getMALTrendingAnime, getMALTopAnime, getMALTopManga, getMALAnimeById, getMALMangaById, searchMALAnime, searchMALManga } from './malApi';
+import { getJikanTrendingAnime, getJikanTopAnime, getJikanTopManga, getJikanAnimeById, getJikanMangaById, searchJikanAnime, searchJikanManga, getJikanSeasonalAnime } from './jikanApi';
 import { 
   mockAnimes, 
   mockEpisodes, 
@@ -13,102 +13,11 @@ import {
   getAnimeById
 } from "./mock-data";
 
-// API configuration
-const KITSU_API_BASE = "https://kitsu.io/api/edge";
-const ANIME_TV_API_BASE = "https://appanimeplus.tk/api-achance.php";
-const OTAKUDESU_API_BASE = import.meta.env.VITE_OTAKUDESU_API || "https://unofficial-otakudesu-api-ruang-kreatif.vercel.app/api";
-const JIKAN_API_BASE = "https://api.jikan.moe/v4"; // Fallback
+// Using only Jikan API for anime and manga data
+const JIKAN_API_BASE = "https://api.jikan.moe/v4";
 
-// APIs de streaming real
-const ANIME_STREAMING_API = 'https://api-anime-rouge.vercel.app';
-const ANBU_API = 'https://anbuanime.onrender.com';
 
-// APIs integradas do GogoAnime via backend
-const API_BASE = import.meta.env.DEV ? 'http://localhost:5000' : '';
 
-// Função removida temporariamente para evitar erros de rede
-// As APIs de streaming externas estão causando problemas de CORS e fetch
-// Futuramente pode ser reimplementada com um proxy backend
-async function searchAnimeInStreamingAPI(title: string): Promise<any> {
-  // Retornar null para evitar erros
-  return null;
-}
-
-// Função para buscar episódios reais com streaming
-async function getStreamingEpisodes(animeId: string, streamingAnimeId?: string): Promise<any[]> {
-  if (!streamingAnimeId) {
-    console.log('📭 No streaming anime ID provided');
-    return [];
-  }
-  
-  try {
-    console.log('🎬 Getting streaming episodes for:', streamingAnimeId);
-    
-    const episodesUrl = `${ANIME_STREAMING_API}/aniwatch/episodes/${streamingAnimeId}`;
-    console.log('🌐 Fetching episodes from:', episodesUrl);
-    
-    const response = await fetch(episodesUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Found', data.episodes?.length || 0, 'streaming episodes');
-      return data.episodes || [];
-    } else {
-      console.warn('⚠️ Episodes API returned status:', response.status);
-    }
-    
-  } catch (error) {
-    console.warn('❌ Error fetching streaming episodes:', error instanceof Error ? error.message : 'Unknown error');
-  }
-  
-  return [];
-}
-
-// Função para buscar link de streaming de um episódio
-async function getEpisodeStreamingLink(episodeId: string): Promise<string | null> {
-  try {
-    console.log('🔗 Getting streaming link for episode:', episodeId);
-    
-    const streamUrl = `${ANIME_STREAMING_API}/aniwatch/episode-srcs?id=${episodeId}&server=vidstreaming&category=sub`;
-    console.log('🌐 Fetching stream from:', streamUrl);
-    
-    const response = await fetch(streamUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      const sources = data.sources || [];
-      
-      // Buscar a melhor qualidade disponível
-      const bestSource = sources.find((s: any) => s.quality === '1080p') || 
-                          sources.find((s: any) => s.quality === '720p') || 
-                          sources[0];
-      
-      if (bestSource) {
-        console.log('✅ Found streaming link:', bestSource.quality);
-        return bestSource.url;
-      }
-    } else {
-      console.warn('⚠️ Streaming sources API returned status:', response.status);
-    }
-    
-  } catch (error) {
-    console.warn('❌ Error fetching streaming link:', error instanceof Error ? error.message : 'Unknown error');
-  }
-  
-  return null;
-}
 
 // Dicionário de traduções comuns de sinopses de anime
 const synopsisTranslations: Record<string, string> = {
@@ -179,72 +88,7 @@ function improveSynopsisInPortuguese(synopsis: string | null | undefined): strin
   return improved;
 }
 
-// Função para buscar animes via Kitsu API
-export async function getAnimesFromKitsuAPI(endpoint: string, limit: number = 25): Promise<Anime[]> {
-  const kitsuUrl = `${KITSU_API_BASE}/${endpoint}?page[limit]=${limit}`;
-  console.log('🌐 Trying Kitsu endpoint:', kitsuUrl);
-  
-  try {
-    const response = await fetch(kitsuUrl, {
-      headers: {
-        'Accept': 'application/vnd.api+json',
-        'Content-Type': 'application/vnd.api+json'
-      }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('📡 Kitsu API Response status:', response.status);
-      
-      if (data.data && Array.isArray(data.data)) {
-        const animes = data.data.map(adaptAnimeFromKitsuAPI);
-        console.log(`✅ Retrieved ${animes.length} animes from Kitsu API`);
-        return animes;
-      }
-    }
-  } catch (error) {
-    console.error('❌ Kitsu API Error:', error);
-  }
-  
-  return [];
-}
 
-// Função para buscar episódios com streaming do Anime TV API
-export async function getEpisodesWithStreamingAPI(animeId: string): Promise<Episode[]> {
-  try {
-    console.log('🎬 Getting episodes with streaming for anime:', animeId);
-    
-    // Busca informações do anime no Anime TV API
-    const searchUrl = `${ANIME_TV_API_BASE}?search=${encodeURIComponent(animeId)}`;
-    const response = await fetch(searchUrl);
-    
-    if (response.ok) {
-      const data = await response.json();
-      
-      if (data && data.length > 0) {
-        const animeData = data[0]; // Pega o primeiro resultado
-        
-        // Busca episódios
-        const episodesUrl = `${ANIME_TV_API_BASE}?episodios=${animeData.id}`;
-        const episodesResponse = await fetch(episodesUrl);
-        
-        if (episodesResponse.ok) {
-          const episodesData = await episodesResponse.json();
-          const episodes = episodesData.map(adaptEpisodeFromAnimeTVAPI);
-          
-          console.log(`✅ Retrieved ${episodes.length} episodes with streaming`);
-          return episodes;
-        }
-      }
-    }
-  } catch (error) {
-    console.error('❌ Anime TV API Error:', error);
-  }
-  
-  // Fallback para dados mock
-  console.log('⚠️ Using fallback episodes for anime:', animeId);
-  return getEpisodesByAnimeId(animeId);
-}
 
 // Generic fetch with error handling
 async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
@@ -379,155 +223,26 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
     return apiCache;
   }
   
-  console.log("⚠️ All API endpoints failed, trying Otakudesu API...");
-  
-  // Tentar API do Otakudesu como último recurso
-  try {
-    const otakuData = await getOtakudesuData().catch(err => {
-      console.warn("❌ Otakudesu API promise rejected:", err instanceof Error ? err.message : String(err));
-      return [];
-    });
-    
-    if (otakuData && otakuData.length > 0) {
-      // Adaptar dados do Otakudesu para o formato esperado
-      const adaptedData = otakuData.map(adaptAnimeFromOtakudesuAPI);
-      apiCache = adaptedData;
-      cacheTimestamp = now;
-      console.log("✅ Using Otakudesu API data:", adaptedData.length, "animes");
-      return adaptedData;
-    }
-  } catch (error) {
-    console.warn("❌ Otakudesu API also failed:", error instanceof Error ? error.message : String(error));
-  }
-  
-  console.log("⚠️ All APIs failed, using fallback data");
+  console.log("⚠️ All Jikan API endpoints failed, using fallback data");
   return [];
 }
 
-// Nova função para buscar animes trending usando GogoAnime API
-export async function getTrendingAnimeFromGogoAPI(): Promise<AnimeWithProgress[]> {
-  try {
-    console.log("🔥 Fetching trending animes from GogoAnime API...");
-    
-    const response = await fetch(`${API_BASE}/api/animes/trending?page=1`);
-    
-    if (response.ok) {
-      const result = await response.json();
-      if (result.data && Array.isArray(result.data)) {
-        console.log(`✅ Got ${result.data.length} trending animes from GogoAnime API`);
-        
-        // Adaptar os dados para o formato esperado
-        const adaptedAnimes = result.data.map(adaptGogoAnimeToAnimeWithProgress);
-        return adaptedAnimes;
-      }
-    } else {
-      console.warn(`⚠️ GogoAnime trending API returned status: ${response.status}`);
-    }
-  } catch (error) {
-    console.error("❌ Error fetching from GogoAnime trending API:", error instanceof Error ? error.message : 'Unknown error');
-  }
-  
-  return [];
-}
 
-// Nova função para buscar episódios recentes usando GogoAnime API  
-export async function getRecentEpisodesFromGogoAPI(): Promise<Episode[]> {
-  try {
-    console.log("📺 Fetching recent episodes from GogoAnime API...");
-    
-    const response = await fetch(`${API_BASE}/api/animes/recent?page=1`);
-    
-    if (response.ok) {
-      const result = await response.json();
-      if (result.data && Array.isArray(result.data)) {
-        console.log(`✅ Got ${result.data.length} recent episodes from GogoAnime API`);
-        
-        // Adaptar os dados para o formato esperado
-        const adaptedEpisodes = result.data.map(adaptGogoEpisodeToEpisode);
-        return adaptedEpisodes;
-      }
-    } else {
-      console.warn(`⚠️ GogoAnime recent API returned status: ${response.status}`);
-    }
-  } catch (error) {
-    console.error("❌ Error fetching from GogoAnime recent API:", error instanceof Error ? error.message : 'Unknown error');
-  }
-  
-  return [];
-}
 
-// Nova função para buscar animes específicos
-export async function searchAnimesFromGogoAPI(query: string): Promise<Anime[]> {
-  try {
-    console.log(`🔎 Searching animes for "${query}" using GogoAnime API...`);
-    
-    const response = await fetch(`${API_BASE}/api/animes/search?q=${encodeURIComponent(query)}&page=1`);
-    
-    if (response.ok) {
-      const result = await response.json();
-      if (result.data && Array.isArray(result.data)) {
-        console.log(`✅ Found ${result.data.length} animes for "${query}"`);
-        
-        // Adaptar os dados para o formato esperado
-        const adaptedAnimes = result.data.map(adaptGogoAnimeToAnime);
-        return adaptedAnimes;
-      }
-    } else {
-      console.warn(`⚠️ GogoAnime search API returned status: ${response.status}`);
-    }
-  } catch (error) {
-    console.error("❌ Error searching animes from GogoAnime API:", error instanceof Error ? error.message : 'Unknown error');
-  }
-  
-  return [];
-}
 
-// Função para buscar link de streaming de um episódio
-export async function getEpisodeStreamingFromGogoAPI(episodeId: string): Promise<string | null> {
-  try {
-    console.log(`🎬 Fetching streaming URL for episode: ${episodeId}`);
-    
-    const response = await fetch(`${API_BASE}/api/episodes/${episodeId}/stream`);
-    
-    if (response.ok) {
-      const result = await response.json();
-      if (result.streamingUrl) {
-        console.log(`✅ Streaming URL obtained for episode: ${episodeId}`);
-        return result.streamingUrl;
-      }
-    } else {
-      console.warn(`⚠️ GogoAnime streaming API returned status: ${response.status}`);
-    }
-  } catch (error) {
-    console.error("❌ Error fetching streaming URL:", error instanceof Error ? error.message : 'Unknown error');
-  }
-  
-  return null;
-}
 
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🔍 Getting trending anime with GogoAnime integration...");
+  console.log("🔍 Getting trending anime with Jikan API...");
   
   try {
-    // Tentar primeiro com a nova API do GogoAnime
-    const gogoAnimes = await getTrendingAnimeFromGogoAPI();
-    if (gogoAnimes.length > 0) {
-      console.log(`✅ Got ${gogoAnimes.length} trending animes from GogoAnime`);
-      return gogoAnimes;
+    // Use Jikan API for trending anime
+    const jikanAnimes = await getJikanTrendingAnime(25);
+    if (jikanAnimes.length > 0) {
+      console.log(`✅ Got ${jikanAnimes.length} trending animes from Jikan`);
+      return getAnimesWithProgress(jikanAnimes);
     }
   } catch (error) {
-    console.log("⚠️ GogoAnime API failed, trying MyAnimeList...");
-  }
-  
-  try {
-    // Tentar com a API oficial do MyAnimeList
-    const malAnimes = await getMALTrendingAnime(25);
-    if (malAnimes.length > 0) {
-      console.log(`✅ Got ${malAnimes.length} trending animes from MyAnimeList`);
-      return getAnimesWithProgress(malAnimes);
-    }
-  } catch (error) {
-    console.log("⚠️ MyAnimeList API failed, using fallback APIs...");
+    console.log("⚠️ Jikan API failed, using fallback APIs...");
   }
   
   // Fallback para APIs existentes
@@ -997,17 +712,17 @@ export async function getAnimesBySeason(season: string = 'now'): Promise<AnimeWi
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🏆 Getting top anime with MyAnimeList integration...");
+  console.log("🏆 Getting top anime with Jikan API...");
   
   try {
-    // Tentar primeiro com a API oficial do MyAnimeList
-    const malAnimes = await getMALTopAnime(10);
-    if (malAnimes.length > 0) {
-      console.log(`✅ Got ${malAnimes.length} top animes from MyAnimeList`);
-      return getAnimesWithProgress(malAnimes);
+    // Use Jikan API for top anime
+    const jikanAnimes = await getJikanTopAnime(10);
+    if (jikanAnimes.length > 0) {
+      console.log(`✅ Got ${jikanAnimes.length} top animes from Jikan`);
+      return getAnimesWithProgress(jikanAnimes);
     }
   } catch (error) {
-    console.log("⚠️ MyAnimeList API failed, using fallback APIs...");
+    console.log("⚠️ Jikan API failed, using fallback APIs...");
   }
   
   const apiData = await getAnimeDataFromAPI();
@@ -1036,49 +751,19 @@ export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
   try {
     console.log("📺 Getting anime details for ID:", id);
     
-    // Se o ID for numérico, tentar primeiro no MyAnimeList
+    // Se o ID for numérico, tentar primeiro no Jikan API
     if (!isNaN(Number(id))) {
       try {
-        const { getMALAnimeDetails } = await import('./malApi');
-        const malAnime = await getMALAnimeDetails(id);
-        if (malAnime) {
-          console.log("✅ Found anime details from MyAnimeList API");
-          return malAnime;
+        const jikanAnime = await getJikanAnimeById(id);
+        if (jikanAnime) {
+          console.log("✅ Found anime details from Jikan API");
+          return jikanAnime;
         }
       } catch (error) {
-        console.warn("⚠️ MyAnimeList API failed, trying fallback APIs");
+        console.warn("⚠️ Jikan API failed, trying fallback APIs");
       }
     }
     
-    // Tentar buscar da API do Otakudesu
-    const otakuResponse = await fetch(`${OTAKUDESU_API_BASE}/anime/${id}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (otakuResponse.ok) {
-      const otakuData = await otakuResponse.json();
-      console.log("✅ Found anime details from Otakudesu API");
-      
-      if (otakuData) {
-        return {
-          id: otakuData.id || id,
-          title: otakuData.title || "Sem título",
-          image: otakuData.thumb || "https://via.placeholder.com/400x600",
-          studio: otakuData.studio || "Estúdio desconhecido",
-          year: parseInt(otakuData.release_year) || new Date().getFullYear(),
-          genres: Array.isArray(otakuData.genre) ? otakuData.genre : [],
-          synopsis: otakuData.synopsis || "Sinopse não disponível",
-          releaseDate: otakuData.release_date || "",
-          status: otakuData.status?.toLowerCase() || "ongoing",
-          totalEpisodes: parseInt(otakuData.total_episode) || 0,
-          rating: otakuData.rating || "0",
-          viewCount: Math.floor(Math.random() * 400000) + 30000,
-        };
-      }
-    }
     
     // Fallback para Jikan API se o ID for numérico (MAL ID)
     if (!isNaN(Number(id))) {
@@ -1313,14 +998,14 @@ export async function getLatestManga(): Promise<Manga[]> {
   console.log("📚 Getting latest manga with MyAnimeList integration...");
   
   try {
-    // Tentar primeiro com a API oficial do MyAnimeList
-    const malMangas = await getMALTopManga(25);
-    if (malMangas.length > 0) {
-      console.log(`✅ Got ${malMangas.length} latest mangas from MyAnimeList`);
-      return malMangas;
+    // Use Jikan API for top manga
+    const jikanMangas = await getJikanTopManga(25);
+    if (jikanMangas.length > 0) {
+      console.log(`✅ Got ${jikanMangas.length} latest mangas from Jikan`);
+      return jikanMangas;
     }
   } catch (error) {
-    console.log("⚠️ MyAnimeList API failed, using fallback sources...");
+    console.log("⚠️ Jikan API failed, using fallback sources...");
   }
   
   console.log("📚 Getting latest manga from fallback sources...");
@@ -1439,11 +1124,11 @@ export async function getMangaByIdAPI(id: string): Promise<Manga> {
   try {
     console.log("📚 Getting manga details for ID:", id);
     
-    // Tentar primeiro com a API oficial do MyAnimeList
-    const malManga = await getMALMangaById(id);
-    if (malManga) {
-      console.log(`✅ Found manga details from MyAnimeList: ${malManga.title}`);
-      return malManga;
+    // Use Jikan API for manga details
+    const jikanManga = await getJikanMangaById(id);
+    if (jikanManga) {
+      console.log(`✅ Found manga details from Jikan: ${jikanManga.title}`);
+      return jikanManga;
     }
     
     // Fallback: tentar buscar da API do Jikan se for ID numérico
@@ -1663,81 +1348,7 @@ function adaptAnimeFromAPI(apiAnime: any): AnimeWithProgress {
 }
 
 // Adapter for Jikan API anime data
-// Função para buscar dados da API do Otakudesu
-async function getOtakudesuData(): Promise<any[]> {
-  try {
-    console.log("🌐 Trying Otakudesu API...");
-    
-    // Primeiro tentar a API da home page que tem todos os animes
-    const homeResponse = await fetch(`${OTAKUDESU_API_BASE}/home`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (homeResponse.ok) {
-      const homeData = await homeResponse.json();
-      console.log("📡 Otakudesu home response status:", homeResponse.status);
-      
-      // Verificar se tem dados na home
-      if (homeData?.ongoing?.length > 0) {
-        console.log("✅ Found", homeData.ongoing.length, "ongoing animes from Otakudesu");
-        return homeData.ongoing;
-      }
-      
-      if (homeData?.complete?.length > 0) {
-        console.log("✅ Found", homeData.complete.length, "complete animes from Otakudesu");
-        return homeData.complete;
-      }
-    } else {
-      console.log("📡 Otakudesu home response failed:", homeResponse.status, homeResponse.statusText);
-    }
-    
-    // Fallback: tentar endpoint ongoing diretamente
-    const ongoingResponse = await fetch(`${OTAKUDESU_API_BASE}/ongoing`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (ongoingResponse.ok) {
-      const ongoingData = await ongoingResponse.json();
-      console.log("📡 Otakudesu ongoing response status:", ongoingResponse.status);
-      
-      if (ongoingData?.results?.length > 0) {
-        console.log("✅ Found", ongoingData.results.length, "animes from Otakudesu ongoing");
-        return ongoingData.results;
-      }
-    }
-    
-    console.log("⚠️ No data found from Otakudesu API");
-    return [];
-  } catch (error) {
-    console.warn("❌ Otakudesu API error:", error instanceof Error ? error.message : String(error));
-    return [];
-  }
-}
 
-// Função para adaptar dados da API do Otakudesu
-function adaptAnimeFromOtakudesuAPI(otakuAnime: any): AnimeWithProgress {
-  return {
-    id: otakuAnime.id || otakuAnime.slug || Math.random().toString(),
-    title: otakuAnime.title || otakuAnime.anime_title || "Sem título",
-    image: otakuAnime.thumb || otakuAnime.poster || "https://via.placeholder.com/400x600",
-    studio: otakuAnime.studio || "Estúdio desconhecido",
-    year: parseInt(otakuAnime.release_year) || new Date().getFullYear(),
-    genres: Array.isArray(otakuAnime.genres) ? otakuAnime.genres : [],
-    synopsis: improveSynopsisInPortuguese(otakuAnime.synopsis || otakuAnime.description),
-    releaseDate: otakuAnime.release_date || otakuAnime.updated_on || "",
-    status: otakuAnime.status?.toLowerCase() || "ongoing",
-    totalEpisodes: parseInt(otakuAnime.total_episode) || 0,
-    rating: otakuAnime.rating || "0",
-    viewCount: Math.floor(Math.random() * 300000) + 25000,
-  };
-}
 
 function adaptAnimeFromJikanAPI(jikanAnime: any): AnimeWithProgress {
   return {
@@ -1827,94 +1438,8 @@ function adaptNewsFromJikanAPI(jikanAnime: any): News {
   };
 }
 
-// Adapter para dados da Kitsu API
-function adaptAnimeFromKitsuAPI(kitsuAnime: any): Anime {
-  const attributes = kitsuAnime.attributes || {};
-  return {
-    id: kitsuAnime.id || Math.random().toString(),
-    title: attributes.titles?.en || attributes.titles?.en_jp || attributes.canonicalTitle || "Sem título",
-    image: attributes.posterImage?.large || attributes.posterImage?.medium || "https://via.placeholder.com/400x600",
-    studio: "Estúdios Diversos", // Kitsu não tem campo direto para estúdio
-    year: attributes.startDate ? new Date(attributes.startDate).getFullYear() : new Date().getFullYear(),
-    genres: attributes.categories?.data?.map((cat: any) => cat.attributes?.title) || [],
-    synopsis: improveSynopsisInPortuguese(attributes.synopsis),
-    releaseDate: attributes.startDate || "",
-    status: attributes.status?.toLowerCase() || "unknown",
-    totalEpisodes: attributes.episodeCount || 0,
-    rating: attributes.averageRating || "0",
-    viewCount: Math.floor(Math.random() * 300000) + 20000, // Add missing viewCount
-  };
-}
 
-// Adapter para episódios da Anime TV API
-function adaptEpisodeFromAnimeTVAPI(episodeData: any): Episode {
-  return {
-    id: episodeData.id?.toString() || Math.random().toString(),
-    animeId: episodeData.anime_id?.toString() || "1",
-    number: parseInt(episodeData.episode_number) || 1,
-    title: episodeData.title || `Episódio ${episodeData.episode_number || 1}`,
-    thumbnail: episodeData.image || "https://via.placeholder.com/400x225",
-    duration: episodeData.duration || "24 min",
-    releaseDate: episodeData.release_date || new Date().toISOString().split('T')[0],
-    streamingUrl: episodeData.video_url || episodeData.stream_url || "",
-    downloadUrl: episodeData.download_url || "",
-  };
-}
 
-// Funções de adaptação para dados do GogoAnime
-function adaptGogoAnimeToAnimeWithProgress(gogoData: any): AnimeWithProgress {
-  return {
-    id: gogoData.id || Math.random().toString(),
-    title: gogoData.title || 'Título não disponível',
-    image: gogoData.image || 'https://via.placeholder.com/400x600',
-    description: gogoData.synopsis || 'Descrição não disponível',
-    rating: parseFloat(gogoData.rating) || 0,
-    year: gogoData.year || new Date().getFullYear(),
-    genres: Array.isArray(gogoData.genres) ? gogoData.genres : ['Ação'],
-    status: gogoData.status || 'unknown',
-    episodes: parseInt(gogoData.totalEpisodes) || 24,
-    studio: gogoData.studio || 'Estúdio Desconhecido',
-    malId: null,
-    progress: {
-      currentEpisode: 0,
-      totalEpisodes: parseInt(gogoData.totalEpisodes) || 24,
-      percentage: 0,
-      lastWatched: null
-    }
-  };
-}
-
-function adaptGogoAnimeToAnime(gogoData: any): Anime {
-  return {
-    id: gogoData.id || Math.random().toString(),
-    title: gogoData.title || 'Título não disponível',
-    image: gogoData.image || 'https://via.placeholder.com/400x600',
-    description: gogoData.synopsis || 'Descrição não disponível',
-    rating: parseFloat(gogoData.rating) || 0,
-    year: gogoData.year || new Date().getFullYear(),
-    genres: Array.isArray(gogoData.genres) ? gogoData.genres : ['Ação'],
-    status: gogoData.status || 'unknown',
-    episodes: parseInt(gogoData.totalEpisodes) || 24,
-    studio: gogoData.studio || 'Estúdio Desconhecido',
-    malId: null
-  };
-}
-
-function adaptGogoEpisodeToEpisode(gogoEpisode: any): Episode {
-  return {
-    id: gogoEpisode.id || Math.random().toString(),
-    animeId: gogoEpisode.animeId || '1',
-    number: parseInt(gogoEpisode.number) || 1,
-    title: gogoEpisode.title || `Episódio ${gogoEpisode.number || 1}`,
-    image: gogoEpisode.thumbnail || 'https://via.placeholder.com/400x225',
-    duration: gogoEpisode.duration || '24 min',
-    releaseDate: gogoEpisode.releaseDate || new Date().toISOString().split('T')[0],
-    streamingUrl: gogoEpisode.streamingUrl || null,
-    downloadUrl: gogoEpisode.downloadUrl || null,
-    description: `Episódio ${gogoEpisode.number || 1} - ${gogoEpisode.title || 'Sem título'}`,
-    subOrDub: gogoEpisode.subOrDub || 'SUB'
-  };
-}
 
 // Função para buscar dados completos dos animes em progresso
 export async function getProgressAnimesWithDetails() {
@@ -1932,9 +1457,8 @@ export async function getProgressAnimesWithDetails() {
     const animesWithDetails = await Promise.all(
       progressData.map(async (progress: any) => {
         try {
-          // Importar função MAL
-          const { getMALAnimeById } = await import('./malApi');
-          const animeDetails = await getMALAnimeById(progress.animeId.toString());
+          // Use Jikan API for anime details
+          const animeDetails = await getJikanAnimeById(progress.animeId.toString());
           
           if (animeDetails) {
             return {
