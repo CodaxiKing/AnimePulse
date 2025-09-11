@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Clock, Calendar, X, Check } from "lucide-react";
-import { isEpisodeWatched } from "@/lib/api";
+import { isEpisodeWatched, removeWatchedEpisode } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 interface EpisodeGridProps {
@@ -71,7 +71,30 @@ const VideoPlayer = ({ episode, isOpen, onClose }: VideoPlayerProps) => {
 };
 
 const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episode: Episode; onClick: () => void; handleMarkAsWatched?: (episode: Episode) => void; animeId?: string }) => {
+  const [forceUpdate, setForceUpdate] = useState(0);
   const isWatched = animeId ? isEpisodeWatched(animeId, episode.number) : false;
+
+  useEffect(() => {
+    const handleEpisodeUnwatched = (event: CustomEvent) => {
+      if (event.detail.animeId === animeId && event.detail.episodeNumber === episode.number) {
+        setForceUpdate(prev => prev + 1); // Força re-renderização
+      }
+    };
+
+    const handleEpisodeWatched = (event: CustomEvent) => {
+      if (event.detail.animeId === animeId && event.detail.episodeNumber === episode.number) {
+        setForceUpdate(prev => prev + 1); // Força re-renderização
+      }
+    };
+
+    window.addEventListener('episodeUnwatched', handleEpisodeUnwatched as EventListener);
+    window.addEventListener('episodeWatched', handleEpisodeWatched as EventListener);
+
+    return () => {
+      window.removeEventListener('episodeUnwatched', handleEpisodeUnwatched as EventListener);
+      window.removeEventListener('episodeWatched', handleEpisodeWatched as EventListener);
+    };
+  }, [animeId, episode.number]);
   
   return (
     <div className={`group relative bg-card rounded-xl overflow-hidden border transition-all duration-200 ${
@@ -158,7 +181,18 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
           <Button
             onClick={(e) => {
               e.stopPropagation();
-              handleMarkAsWatched?.(episode);
+              if (isWatched && animeId) {
+                // Se já está assistido, desmarcar
+                removeWatchedEpisode(animeId, episode.number);
+                console.log(`Desmarcado episódio ${episode.number}!`);
+                // Reforce a atualização do estado
+                window.dispatchEvent(new CustomEvent('episodeUnwatched', { 
+                  detail: { animeId, episodeNumber: episode.number } 
+                }));
+              } else {
+                // Se não está assistido, marcar
+                handleMarkAsWatched?.(episode);
+              }
             }}
             variant={isWatched ? "default" : "ghost"}
             size="sm"
