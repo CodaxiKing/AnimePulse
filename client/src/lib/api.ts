@@ -815,9 +815,39 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
         const animeData = await seasonResponse.json();
         const anime = animeData.data;
         
-        // Remover tentativas de buscar APIs externas que estão causando erros
-        // streamingAnimeData = await searchAnimeInStreamingAPI(anime.title);
-        console.log("📺 Using local episode generation for:", anime.title);
+        // PRIMEIRO: Tentar buscar episódios reais da API do Jikan
+        console.log("🔍 Attempting to fetch REAL episodes from Jikan API for:", anime.title);
+        
+        try {
+          // Buscar episódios reais da API do Jikan
+          const episodesResponse = await fetch(`${JIKAN_API_BASE}/anime/${animeId}/episodes`);
+          if (episodesResponse.ok) {
+            const episodesData = await episodesResponse.json();
+            if (episodesData.data && episodesData.data.length > 0) {
+              console.log(`📺 Found ${episodesData.data.length} REAL episodes from Jikan API!`);
+              
+              const realEpisodes: Episode[] = episodesData.data.map((ep: any, index: number) => ({
+                id: `${animeId}-s${season}-ep-${index + 1}`,
+                animeId: animeId,
+                number: index + 1, // Usar o índice como número do episódio
+                title: ep.title || `Episódio ${index + 1}`,
+                thumbnail: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
+                duration: ep.duration || "24 min",
+                releaseDate: ep.aired || new Date().toISOString(),
+                streamingUrl: `https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4`, // Placeholder até conseguirmos streaming real
+                downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${index + 1}.mp4`,
+              }));
+              
+              console.log("✅ Successfully fetched", realEpisodes.length, "REAL episodes with actual titles!");
+              return realEpisodes;
+            }
+          }
+        } catch (episodeError) {
+          console.log("⚠️ Jikan episodes API failed, trying alternative approach...");
+        }
+        
+        // SEGUNDA TENTATIVA: Buscar informações de episódios específicos
+        console.log("📺 Fetching enhanced episode data from Jikan for:", anime.title);
         
         // Buscar temporadas relacionadas
         const relatedResponse = await fetch(`${JIKAN_API_BASE}/anime/${animeId}/relations`);
