@@ -2,7 +2,7 @@ import { X, Play, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal } from "@/lib/api";
 import { useState, useRef, useEffect } from "react";
-import { getEpisodeVideoUrl } from "@/lib/animeStreaming";
+import { getEpisodeVideoUrl } from "@/lib/scrapingApi";
 import type { Episode } from "@shared/schema";
 
 interface EpisodeModalProps {

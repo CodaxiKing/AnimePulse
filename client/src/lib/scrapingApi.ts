@@ -133,3 +133,48 @@ export async function getScrapedEpisodeStream(siteId: string, episodeId: string,
 export async function checkScrapingApiHealth(): Promise<boolean> {
   return scrapingApi.healthCheck();
 }
+
+// Função adapter para compatibilidade com EpisodeModal
+export async function getEpisodeVideoUrl(animeTitle: string, episodeNumber: number, year?: number): Promise<string | null> {
+  try {
+    console.log(`🎬 Buscando vídeo para: ${animeTitle} - Episódio ${episodeNumber}`);
+    
+    // Buscar animes com título similar
+    const searchResults = await searchScrapedAnimes(animeTitle);
+    
+    if (searchResults.length === 0) {
+      console.log('⚠️ Nenhum anime encontrado na busca');
+      return null;
+    }
+    
+    // Pegar o primeiro resultado
+    const anime = searchResults[0];
+    console.log(`✅ Anime encontrado: ${anime.title} (${anime.siteId})`);
+    
+    // Buscar episódios do anime
+    const episodes = await getScrapedAnimeEpisodes(anime.siteId, anime.id, anime.url);
+    
+    // Encontrar o episódio específico
+    const episode = episodes.find(ep => ep.number === episodeNumber);
+    
+    if (!episode) {
+      console.log(`⚠️ Episódio ${episodeNumber} não encontrado`);
+      return null;
+    }
+    
+    console.log(`✅ Episódio encontrado: ${episode.title}`);
+    
+    // Obter URL de streaming
+    const streamingData = await getScrapedEpisodeStream(anime.siteId, episode.id, episode.url);
+    
+    if (streamingData.streamingUrl) {
+      console.log(`✅ URL de streaming obtida: ${streamingData.streamingUrl.substring(0, 50)}...`);
+      return streamingData.streamingUrl;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Erro ao buscar vídeo:', error);
+    return null;
+  }
+}
