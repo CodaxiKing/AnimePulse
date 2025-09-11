@@ -119,6 +119,48 @@ railway up
 vercel --prod
 ```
 
+### VPS (Servidor Próprio)
+
+#### Opção 1: Com Docker (Recomendado)
+```bash
+# 1. Copie a pasta anime-scraper-api para sua VPS
+# 2. Execute:
+docker-compose up -d
+
+# Ver logs:
+docker-compose logs -f
+
+# Parar:
+docker-compose down
+```
+
+#### Opção 2: Instalação Direta
+```bash
+# 1. Instalar Node.js 18+
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# 2. Instalar dependências
+npm install
+
+# 3. Instalar Playwright
+npx playwright install
+npx playwright install-deps
+
+# 4. Usar PM2 para manter rodando
+sudo npm install -g pm2
+pm2 start index.js --name "anime-scraper"
+pm2 startup
+pm2 save
+```
+
+#### Configurar no Frontend
+No seu projeto React, atualize a URL da API:
+```env
+# .env
+VITE_SCRAPING_API_URL=http://sua-vps-ip:3001
+```
+
 ## Uso com CORS
 
 A API já possui CORS habilitado para aceitar requisições de qualquer origem. Para produção, configure as origens permitidas.

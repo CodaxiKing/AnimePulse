@@ -1,9 +1,7 @@
-const { chromium } = require('playwright-extra');
-const stealth = require('playwright-extra-plugin-stealth');
+const { chromium } = require('playwright');
 const cheerio = require('cheerio');
 
-// Add stealth plugin
-chromium.use(stealth());
+// Remove stealth plugin for now - causing compatibility issues
 
 class AnimeScraper {
   constructor() {
@@ -148,19 +146,69 @@ class AnimeScraper {
             }
           }
 
-          // Try to get episode count
-          const episodeSelectors = ['.episodes', '.ep-count', '[class*="episode"]', '[class*="ep"]'];
+          // Improved episode count detection - only accept numbers clearly associated with episodes
+          const episodeSelectors = [
+            '.episodes', '.ep-count', '.episode-count', '.total-episodes',
+            '[class*="episode"]', '[class*="ep"]', '.info .episodes',
+            '.details .episodes', '.meta .episodes'
+          ];
           let episodeText = '';
+          let totalEpisodes = null;
+          
           for (const selector of episodeSelectors) {
-            const episodeElement = element.querySelector(selector);
-            if (episodeElement) {
-              episodeText = episodeElement.textContent || '';
-              break;
+            const episodeElements = element.querySelectorAll(selector);
+            for (const episodeElement of episodeElements) {
+              const text = episodeElement.textContent?.trim() || '';
+              
+              // Only accept numbers that are clearly episode-related
+              // Must have episode keywords within 20 characters of the number
+              const episodePatterns = [
+                // Patterns with explicit episode keywords
+                /(?:episod|ep)(?:io|e)?s?\s*[:\.\-]?\s*(\d{1,3})(?:\s|$)/i,
+                /(\d{1,3})\s*(?:episod|ep)(?:io|e)?s?(?:\s|$)/i,
+                // Range patterns like "Ep 1-12" or "Episodes 1-24"
+                /(?:episod|ep)(?:io|e)?s?\s*\d+\s*[-–—]\s*(\d{1,3})/i,
+                // Fraction patterns like "5/12 episodes"
+                /(\d{1,3})\s*\/\s*(\d{1,3})\s*(?:episod|ep)(?:io|e)?s?/i,
+                // Total episodes patterns like "Total: 12"
+                /total\s*[:\.\-]?\s*(\d{1,3})(?:\s*episod|ep)?/i
+              ];
+              
+              for (const pattern of episodePatterns) {
+                const match = text.match(pattern);
+                if (match) {
+                  let episodeCount = parseInt(match[1]);
+                  
+                  // For fraction patterns, take the larger number (total)
+                  if (match[2]) {
+                    const num2 = parseInt(match[2]);
+                    episodeCount = Math.max(episodeCount, num2);
+                  }
+                  
+                  // Validate episode count is reasonable (1-500 episodes)
+                  if (episodeCount >= 1 && episodeCount <= 500) {
+                    totalEpisodes = episodeCount;
+                    episodeText = text;
+                    break;
+                  }
+                }
+              }
+              if (totalEpisodes) break;
             }
+            if (totalEpisodes) break;
           }
           
-          const episodeMatch = episodeText.match(/(\d+)/);
-          const totalEpisodes = episodeMatch ? parseInt(episodeMatch[1]) : null;
+          // More restrictive fallback - only if we find explicit episode keywords
+          if (!totalEpisodes) {
+            const fullText = element.textContent || '';
+            const restrictiveMatch = fullText.match(/(?:episod|ep)(?:io|e)?s?\s*[:\.\-]?\s*(\d{1,3})(?:\s|$|\s*eps?)/i);
+            if (restrictiveMatch) {
+              const episodeCount = parseInt(restrictiveMatch[1]);
+              if (episodeCount >= 1 && episodeCount <= 500) {
+                totalEpisodes = episodeCount;
+              }
+            }
+          }
 
           // Try to get genres
           const genreSelectors = ['.genre', '.tag', '.category', '[class*="genre"]', '[class*="tag"]'];
@@ -213,55 +261,217 @@ class AnimeScraper {
       await page.waitForTimeout(3000);
 
       const episodes = await page.evaluate((animeId, siteId) => {
-        // Generic selectors for episodes
+        // More specific selectors for episodes - prioritize episode-specific containers
         const episodeSelectors = [
-          '.episode', '.ep', '.episode-item', '.chapter',
-          '[class*="episode"]', '[class*="ep"]', '.video-item'
+          // Primary episode-specific selectors
+          '.episode', '.ep', '.episode-item', '.episode-card', '.episode-list-item',
+          '.video-episode', '.anime-episode', '.chapter-item',
+          '[class*="episode"]:not([class*="count"]):not([class*="total"])',
+          '[class*="ep-"]:not([class*="count"])', 
+          // Secondary video-related selectors
+          '.video-item', '.video-card', '.watch-item',
+          // Generic selectors with episode validation
+          '.item', '.card', '.list-item'
         ];
         
         let elements = [];
+        let bestSelector = '';
+        let bestScore = 0;
+        
+        // Find the best selector based on episode-specific content, not just quantity
         for (const selector of episodeSelectors) {
           const found = document.querySelectorAll(selector);
-          if (found.length > 0) {
+          if (found.length === 0) continue;
+          
+          // Score based on episode-specific content
+          let episodeScore = 0;
+          let episodeCount = 0;
+          
+          for (let i = 0; i < Math.min(found.length, 10); i++) {
+            const elem = found[i];
+            const text = elem.textContent?.toLowerCase() || '';
+            const hasLink = elem.querySelector('a') || elem.closest('a');
+            
+            // Score factors
+            let itemScore = 0;
+            
+            // Has episode-related keywords
+            if (/(?:episod|ep|chapter|cap)/.test(text)) itemScore += 3;
+            
+            // Has episode numbers
+            if (/(?:episod|ep)\s*\d+|\d+\s*(?:episod|ep)/.test(text)) itemScore += 5;
+            
+            // Has clickable link
+            if (hasLink) itemScore += 2;
+            
+            // Has reasonable text length (not too short/long)
+            if (text.length > 5 && text.length < 200) itemScore += 1;
+            
+            // Penalty for non-episode content
+            if (/(?:comentario|comment|news|noticia|rating|avalia)/.test(text)) itemScore -= 3;
+            
+            if (itemScore > 0) {
+              episodeScore += itemScore;
+              episodeCount++;
+            }
+          }
+          
+          // Calculate final score (average score per element * element count)
+          const finalScore = episodeCount > 0 ? (episodeScore / episodeCount) * Math.min(episodeCount, 50) : 0;
+          
+          if (finalScore > bestScore && episodeCount >= 1) {
+            bestScore = finalScore;
             elements = found;
-            break;
+            bestSelector = selector;
           }
         }
 
-        return Array.from(elements).map((element, index) => {
+        console.log(`Found ${elements.length} episodes using selector: ${bestSelector}`);
+
+        const episodeData = Array.from(elements).map((element, index) => {
           // Try multiple selectors for episode title
-          const titleSelectors = ['.title', '.name', 'h3', 'h4', '.episode-title', 'a'];
+          const titleSelectors = [
+            '.title', '.name', 'h3', 'h4', 'h2', '.episode-title', 
+            '.video-title', 'a[title]', 'span[title]', '.text', '.label'
+          ];
           let title = '';
           
           for (const selector of titleSelectors) {
             const titleElement = element.querySelector(selector);
             if (titleElement) {
               title = titleElement.textContent?.trim() || titleElement.getAttribute('title') || '';
-              if (title) break;
+              if (title && title.length > 1) break;
+            }
+          }
+          
+          // Fallback to element text or parent text
+          if (!title) {
+            title = element.textContent?.trim() || '';
+            if (!title && element.parentElement) {
+              title = element.parentElement.textContent?.trim() || '';
             }
           }
 
-          // Try multiple selectors for episode link
-          const linkElement = element.querySelector('a') || element.closest('a');
+          // Enhanced episode link detection and validation
+          const linkElement = element.querySelector('a') || element.closest('a') || 
+                             element.parentElement?.querySelector('a');
           let url = '';
+          
           if (linkElement) {
             url = linkElement.href || linkElement.getAttribute('href') || '';
-            if (url && !url.startsWith('http')) {
-              url = new URL(url, window.location.origin).href;
+            
+            if (url) {
+              // Convert relative URLs to absolute
+              if (!url.startsWith('http')) {
+                try {
+                  url = new URL(url, window.location.origin).href;
+                } catch (e) {
+                  url = '';
+                }
+              }
+              
+              // Validate that URL looks like an episode link
+              const episodeUrlPatterns = [
+                /\/(?:episode|ep|assistir|watch|ver)\//i,
+                /\/.*\d+.*\//,
+                /[?&](?:ep|episode)=\d+/i,
+                /\/\d+\//
+              ];
+              
+              const isValidEpisodeUrl = episodeUrlPatterns.some(pattern => pattern.test(url)) &&
+                                      !url.includes('#') && // Avoid anchor links
+                                      !url.includes('javascript:') && // Avoid JS links
+                                      url.length > 10; // Reasonable URL length
+              
+              if (!isValidEpisodeUrl) {
+                url = '';
+              }
             }
           }
 
-          // Try to extract episode number
-          const numberMatch = title.match(/(?:ep|episódio|episode)?\s*(\d+)/i) || 
-                             element.textContent?.match(/(\d+)/) || 
-                             [null, index + 1];
-          const episodeNumber = parseInt(numberMatch[1]) || index + 1;
+          // Enhanced episode number extraction
+          let episodeNumber = index + 1; // Default fallback
+          
+          // Improved episode number extraction with proper validation
+          const textSources = [
+            element.getAttribute('data-episode') || '',
+            element.getAttribute('data-ep') || '',
+            title,
+            element.textContent || ''
+          ];
+          
+          let foundValidNumber = false;
+          
+          for (const text of textSources) {
+            if (!text || foundValidNumber) continue;
+            
+            // Prioritized patterns for episode numbers (removed global flag)
+            const patterns = [
+              // Direct episode patterns
+              /(?:ep|episod|episode)(?:io|e)?\s*[:\-\.#]?\s*(\d{1,4})/i,
+              // Number followed by episode keywords
+              /(\d{1,4})\s*(?:ep|episod|episode)(?:io|e)?/i,
+              // Chapter patterns
+              /(?:cap|capitulo|chapter)\s*[:\-\.#]?\s*(\d{1,4})/i,
+              // Simple number patterns (only if no other numbers found)
+              /^\s*(\d{1,4})\s*$/,
+              /\s(\d{1,4})\s/
+            ];
+            
+            for (let i = 0; i < patterns.length; i++) {
+              const pattern = patterns[i];
+              const match = text.match(pattern);
+              
+              if (match) {
+                const num = parseInt(match[1]);
+                
+                // Validate episode number ranges
+                if (num >= 1 && num <= 9999) {
+                  // For the first two patterns (explicit episode keywords), accept immediately
+                  if (i < 2) {
+                    episodeNumber = num;
+                    foundValidNumber = true;
+                    break;
+                  }
+                  // For other patterns, only accept if reasonable range
+                  else if (num >= 1 && num <= 500) {
+                    episodeNumber = num;
+                    foundValidNumber = true;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          
+          // Final validation - ensure episode number is reasonable
+          if (episodeNumber < 1 || episodeNumber > 9999) {
+            episodeNumber = index + 1;
+          }
 
           // Try to get thumbnail
-          const imageElement = element.querySelector('img');
+          const imageSelectors = ['img', '.thumb img', '.poster img', '.cover img'];
           let thumbnail = '';
-          if (imageElement) {
-            thumbnail = imageElement.src || imageElement.getAttribute('data-src') || '';
+          
+          for (const selector of imageSelectors) {
+            const imageElement = element.querySelector(selector);
+            if (imageElement) {
+              thumbnail = imageElement.src || 
+                         imageElement.getAttribute('data-src') || 
+                         imageElement.getAttribute('data-original') || '';
+              if (thumbnail) break;
+            }
+          }
+
+          // Clean up title
+          if (title) {
+            // Remove episode number from title if it's redundant
+            title = title.replace(/^(?:ep|episódio|episode|cap)\s*:?\s*\d+\s*[-:.]?\s*/i, '').trim();
+            if (!title || title.length < 2) {
+              title = `Episódio ${episodeNumber}`;
+            }
+          } else {
+            title = `Episódio ${episodeNumber}`;
           }
 
           return {
@@ -269,13 +479,76 @@ class AnimeScraper {
             animeId,
             siteId,
             number: episodeNumber,
-            title: title || `Episódio ${episodeNumber}`,
+            title,
             url,
             thumbnail,
             duration: '24 min',
-            releaseDate: new Date().toISOString()
+            releaseDate: new Date().toISOString(),
+            _debugInfo: {
+              originalTitle: element.textContent?.trim()?.slice(0, 50),
+              selector: bestSelector,
+              index
+            }
           };
-        }).filter(episode => episode.url);
+        }).filter(episode => {
+          // Enhanced episode validation
+          const hasValidUrl = episode.url && 
+                             episode.url.length > 15 && 
+                             episode.url.startsWith('http') &&
+                             !episode.url.includes('undefined') &&
+                             !episode.url.includes('null');
+          
+          const hasValidNumber = episode.number >= 1 && episode.number <= 9999;
+          
+          const hasValidTitle = episode.title && 
+                               episode.title.length > 1 && 
+                               episode.title !== 'undefined' &&
+                               !episode.title.includes('null');
+          
+          return hasValidUrl && hasValidNumber && hasValidTitle;
+        });
+
+        // Enhanced sorting and deduplication
+        const urlSet = new Set();
+        const numberSet = new Set();
+        const uniqueEpisodes = [];
+        
+        // First sort by episode number
+        episodeData.sort((a, b) => {
+          const numDiff = a.number - b.number;
+          if (numDiff !== 0) return numDiff;
+          // If same number, prefer shorter URL (usually more direct)
+          return a.url.length - b.url.length;
+        });
+        
+        // Remove duplicates prioritizing unique URLs and episode numbers
+        episodeData.forEach(episode => {
+          const normalizedUrl = episode.url.toLowerCase().replace(/[?&#].*$/, '');
+          const urlKey = `${normalizedUrl}-${episode.number}`;
+          
+          if (!urlSet.has(urlKey) && !numberSet.has(episode.number)) {
+            urlSet.add(urlKey);
+            numberSet.add(episode.number);
+            uniqueEpisodes.push(episode);
+          }
+        });
+        
+        // Final sort to ensure proper order
+        uniqueEpisodes.sort((a, b) => a.number - b.number);
+        
+        // Validate episode sequence (remove outliers)
+        if (uniqueEpisodes.length > 1) {
+          const numbers = uniqueEpisodes.map(ep => ep.number);
+          const maxGap = Math.max(...numbers) - Math.min(...numbers);
+          
+          // If there's a huge gap, filter out outliers
+          if (maxGap > uniqueEpisodes.length * 5) {
+            const median = numbers.sort((a, b) => a - b)[Math.floor(numbers.length / 2)];
+            return uniqueEpisodes.filter(ep => Math.abs(ep.number - median) <= 100);
+          }
+        }
+
+        return uniqueEpisodes;
       }, animeId, siteId);
 
       console.log(`✅ Found ${episodes.length} episodes`);
