@@ -32,13 +32,34 @@ export default function Mangas() {
   const [filterByGenre, setFilterByGenre] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
-  const [imageErrors, setImageErrors] = useState<string[]>([]);
+  const [imageErrors, setImageErrors] = useState<Record<string, number>>({});
   const itemsPerPage = 30;
   
-  const fallbackImage = "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=600&fit=crop&auto=format&q=80";
+  // Múltiplas opções de fallback para imagens
+  const getFallbackImages = (mangaId: string, title: string) => [
+    `https://picsum.photos/400/600?random=${mangaId}`,
+    `https://via.placeholder.com/400x600/8A2BE2/FFFFFF?text=${encodeURIComponent(title.slice(0, 15))}`,
+    `https://dummyimage.com/400x600/8A2BE2/FFFFFF&text=${encodeURIComponent(title.slice(0, 15))}`,
+    `https://via.placeholder.com/400x600/FF4DD8/FFFFFF?text=Manga`
+  ];
   
   const handleImageError = (mangaId: string) => {
-    setImageErrors(prev => prev.includes(mangaId) ? prev : [...prev, mangaId]);
+    setImageErrors(prev => {
+      const currentIndex = prev[mangaId] || 0;
+      return { ...prev, [mangaId]: currentIndex + 1 };
+    });
+  };
+  
+  const getMangaImageSrc = (manga: Manga) => {
+    const errorIndex = imageErrors[manga.id] || 0;
+    const fallbacks = getFallbackImages(manga.id, manga.title);
+    
+    if (errorIndex === 0 && manga.image) {
+      return manga.image;
+    }
+    
+    const fallbackIndex = Math.min(errorIndex - 1, fallbacks.length - 1);
+    return fallbacks[Math.max(0, fallbackIndex)];
   };
 
   // Buscar mangás
@@ -241,7 +262,7 @@ export default function Mangas() {
                   <CardContent className="p-0">
                     <div className="aspect-[3/4] relative overflow-hidden rounded-t-lg">
                       <img
-                        src={imageErrors.includes(manga.id) ? fallbackImage : (manga.image || fallbackImage)}
+                        src={getMangaImageSrc(manga)}
                         alt={manga.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         onError={() => handleImageError(manga.id)}
@@ -283,7 +304,7 @@ export default function Mangas() {
                 <CardContent className="p-4">
                   <div className="flex gap-4">
                     <img
-                      src={imageErrors.includes(manga.id) ? fallbackImage : (manga.image || fallbackImage)}
+                      src={getMangaImageSrc(manga)}
                       alt={manga.title}
                       className="w-16 h-20 object-cover rounded"
                       onError={() => handleImageError(manga.id)}

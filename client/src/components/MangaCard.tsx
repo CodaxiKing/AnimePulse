@@ -10,10 +10,32 @@ interface MangaCategoryCardProps {
 
 export default function MangaCard({ category }: MangaCategoryCardProps) {
   const [imageError, setImageError] = useState(false);
-  const fallbackImage = `https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=300&fit=crop&auto=format&q=80`;
+  
+  // URLs de fallback mais confiáveis usando placeholder services
+  const fallbackImages = [
+    `https://picsum.photos/400/300?random=${category.id}`,
+    `https://via.placeholder.com/400x300/8A2BE2/FFFFFF?text=${encodeURIComponent(category.name.slice(0, 10))}`,
+    `https://dummyimage.com/400x300/8A2BE2/FFFFFF&text=${encodeURIComponent(category.name.slice(0, 10))}`
+  ];
+  
+  const [fallbackIndex, setFallbackIndex] = useState(0);
   
   const handleImageError = () => {
-    setImageError(true);
+    if (fallbackIndex < fallbackImages.length - 1) {
+      setFallbackIndex(prev => prev + 1);
+    } else {
+      setImageError(true);
+    }
+  };
+  
+  const getCurrentImageSrc = () => {
+    if (imageError) {
+      return fallbackImages[fallbackImages.length - 1]; // Último fallback
+    }
+    if (fallbackIndex > 0) {
+      return fallbackImages[fallbackIndex];
+    }
+    return category.image || fallbackImages[0];
   };
 
   return (
@@ -22,7 +44,7 @@ export default function MangaCard({ category }: MangaCategoryCardProps) {
       data-testid={`card-manga-category-${category.id}`}
     >
       <img
-        src={imageError ? fallbackImage : (category.image || fallbackImage)}
+        src={getCurrentImageSrc()}
         alt={category.name}
         className="w-full h-24 object-cover"
         onError={handleImageError}
