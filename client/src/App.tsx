@@ -7,6 +7,7 @@ import NotFound from "./pages/not-found";
 import Home from "./pages/Home";
 import Animes from "./pages/Animes";
 import AnimeDetail from "./pages/AnimeDetail";
+import Discover from "./pages/Discover";
 import Mangas from "./pages/Mangas";
 import MangaDetail from "./pages/MangaDetail";
 import ChapterReader from "./pages/ChapterReader";
@@ -37,6 +38,7 @@ function Router() {
               <Route path="/" component={Home} />
               <Route path="/animes" component={Animes} />
               <Route path="/animes/:id" component={AnimeDetail} />
+              <Route path="/descobrir" component={Discover} />
               <Route path="/timeline" component={Timeline} />
               <Route path="/mangas" component={Mangas} />
               <Route path="/mangas/:id" component={MangaDetail} />
