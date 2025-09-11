@@ -106,7 +106,7 @@ async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
 // Cache global para evitar múltiplas chamadas de API
 let apiCache: any[] | null = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 300000; // 5 minutos (cache mais longo para tantos dados)
+const CACHE_DURATION = 600000; // 10 minutos (cache ainda mais longo para melhor UX)
 
 // Função para limpar cache e forçar nova busca
 export function clearAnimeCache() {

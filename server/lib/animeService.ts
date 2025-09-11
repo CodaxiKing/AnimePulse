@@ -113,13 +113,16 @@ export class AnimeStreamingService {
 
     let allAnimes: AnimeData[] = [];
     let processedCount = 0;
-    const maxEndpoints = 50; // Limitar para não sobrecarregar
+    const maxEndpoints = 20; // REDUZIR dramaticamente para melhor performance
+    
+    console.log(`🚀 Buscando animes da API do Jikan (otimizado para velocidade)...`);
 
-    console.log(`🌟 Buscando TODOS os animes disponíveis da API do Jikan (${Math.min(maxEndpoints, jikanEndpoints.length)} endpoints)...`);
+    // Usar apenas os endpoints mais eficientes
+    const priorityEndpoints = jikanEndpoints.slice(0, maxEndpoints);
 
-    for (const endpoint of jikanEndpoints.slice(0, maxEndpoints)) {
+    for (const endpoint of priorityEndpoints) {
       try {
-        const data = await this.fetchWithTimeout(endpoint, 10000);
+        const data = await this.fetchWithTimeout(endpoint, 8000);
         
         if (data?.data && Array.isArray(data.data)) {
           // Converter dados do Jikan para formato interno
@@ -133,14 +136,26 @@ export class AnimeStreamingService {
           });
           
           processedCount++;
-          console.log(`✅ Endpoint ${processedCount}: +${animes.length} animes (Total único: ${allAnimes.length})`);
+          console.log(`⚡ Endpoint ${processedCount}: +${animes.length} animes (Total: ${allAnimes.length})`);
+          
+          // PARAR MAIS CEDO se já temos animes suficientes
+          if (allAnimes.length >= 300) {
+            console.log(`🎯 Atingido limite de 300+ animes, parando busca para otimizar velocidade`);
+            break;
+          }
         }
         
-        // Rate limiting para respeitar a API do Jikan
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Rate limiting mais conservador para evitar 429 errors
+        await new Promise(resolve => setTimeout(resolve, 600));
         
       } catch (error) {
-        console.warn(`❌ Falha no endpoint Jikan:`, error instanceof Error ? error.message : 'Unknown error');
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        if (errorMsg.includes('429')) {
+          console.warn(`⏳ Rate limit atingido, aguardando mais tempo...`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Esperar mais se for rate limit
+        } else {
+          console.warn(`❌ Erro no endpoint:`, errorMsg);
+        }
       }
     }
 
