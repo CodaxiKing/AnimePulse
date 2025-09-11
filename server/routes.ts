@@ -407,67 +407,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Web Scraping Routes
+  // Web Scraping Routes - Deprecated (now using standalone API)
   app.get("/api/scrape/animes", async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      
-      const { webScrapingService } = await import('./lib/webScrapingService');
-      const animes = await webScrapingService.searchAllSites(query);
-      
-      res.json({ data: animes });
-    } catch (error) {
-      console.error("Error scraping animes:", error);
-      res.status(500).json({ error: "Failed to scrape animes" });
-    }
+    res.status(410).json({ 
+      error: "Web scraping is now handled by standalone API", 
+      message: "Use the independent anime-scraper-api server on port 3001" 
+    });
   });
 
   app.get("/api/scrape/episodes/:animeId", async (req, res) => {
-    try {
-      const { animeId } = req.params;
-      const { animeUrl } = req.query;
-      
-      if (!animeUrl) {
-        return res.status(400).json({ error: "animeUrl is required" });
-      }
-      
-      const { webScrapingService } = await import('./lib/webScrapingService');
-      const episodes = await webScrapingService.scrapeEpisodes(animeUrl as string, animeId);
-      
-      res.json({ data: episodes });
-    } catch (error) {
-      console.error("Error scraping episodes:", error);
-      res.status(500).json({ error: "Failed to scrape episodes" });
-    }
+    res.status(410).json({ 
+      error: "Web scraping is now handled by standalone API", 
+      message: "Use the independent anime-scraper-api server on port 3001" 
+    });
   });
 
   app.get("/api/scrape/streaming/:episodeId", async (req, res) => {
-    try {
-      const { episodeId } = req.params;
-      const { episodeUrl } = req.query;
-      
-      if (!episodeUrl) {
-        return res.status(400).json({ error: "episodeUrl is required" });
-      }
-      
-      const { webScrapingService } = await import('./lib/webScrapingService');
-      const streamingUrl = await webScrapingService.getStreamingUrl(episodeUrl as string);
-      
-      if (!streamingUrl) {
-        return res.status(404).json({ error: "Streaming URL not found" });
-      }
-      
-      res.json({ 
-        streamingUrl,
-        headers: {
-          'Referer': episodeUrl,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-    } catch (error) {
-      console.error("Error getting streaming URL:", error);
-      res.status(500).json({ error: "Failed to get streaming URL" });
-    }
+    res.status(410).json({ 
+      error: "Web scraping is now handled by standalone API", 
+      message: "Use the independent anime-scraper-api server on port 3001" 
+    });
   });
 
   // Manga routes
