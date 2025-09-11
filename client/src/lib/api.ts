@@ -106,7 +106,7 @@ async function fetchWithFallback<T>(url: string, fallbackData: T): Promise<T> {
 // Cache global para evitar múltiplas chamadas de API
 let apiCache: any[] | null = null;
 let cacheTimestamp = 0;
-const CACHE_DURATION = 60000; // 1 minuto
+const CACHE_DURATION = 300000; // 5 minutos (cache mais longo para tantos dados)
 
 // Função para limpar cache e forçar nova busca
 export function clearAnimeCache() {
@@ -125,63 +125,71 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
     return apiCache;
   }
   
-  // Tentar MUITOS endpoints diferentes para obter o máximo de animes possível
+  // Buscar TODOS os animes disponíveis na API do Jikan - expandindo para CENTENAS de páginas
   const apiEndpoints = [
-    // Top animes (múltiplas páginas)
-    `${JIKAN_API_BASE}/top/anime?limit=25&page=1`,
-    `${JIKAN_API_BASE}/top/anime?limit=25&page=2`,
-    `${JIKAN_API_BASE}/top/anime?limit=25&page=3`,
-    `${JIKAN_API_BASE}/top/anime?limit=25&page=4`,
-    `${JIKAN_API_BASE}/top/anime?limit=25&page=5`,
+    // Top animes (MUITAS páginas - até 100 páginas)
+    ...Array.from({length: 100}, (_, i) => `${JIKAN_API_BASE}/top/anime?limit=25&page=${i + 1}`),
     
-    // Temporadas atuais
-    `${JIKAN_API_BASE}/seasons/now?limit=25&page=1`,
-    `${JIKAN_API_BASE}/seasons/now?limit=25&page=2`,
-    `${JIKAN_API_BASE}/seasons/now?limit=25&page=3`,
+    // Temporadas atuais (mais páginas)
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/now?limit=25&page=${i + 1}`),
     
-    // Ordenação por popularidade
-    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=1`,
-    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=2`,
-    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=3`,
-    `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=4`,
+    // Ordenação por popularidade (MUITO mais páginas)
+    ...Array.from({length: 200}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=popularity&limit=25&page=${i + 1}`),
     
-    // Ordenação por score
-    `${JIKAN_API_BASE}/anime?order_by=score&limit=25&page=1`,
-    `${JIKAN_API_BASE}/anime?order_by=score&limit=25&page=2`,
-    `${JIKAN_API_BASE}/anime?order_by=score&limit=25&page=3`,
+    // Ordenação por score (mais páginas)
+    ...Array.from({length: 100}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=score&limit=25&page=${i + 1}`),
     
-    // Ordenação por membros
-    `${JIKAN_API_BASE}/anime?order_by=members&limit=25&page=1`,
-    `${JIKAN_API_BASE}/anime?order_by=members&limit=25&page=2`,
-    `${JIKAN_API_BASE}/anime?order_by=members&limit=25&page=3`,
+    // Ordenação por membros (mais páginas)
+    ...Array.from({length: 100}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=members&limit=25&page=${i + 1}`),
     
-    // Diferentes temporadas de 2024
-    `${JIKAN_API_BASE}/seasons/2024/fall?limit=25&page=1`,
-    `${JIKAN_API_BASE}/seasons/2024/fall?limit=25&page=2`,
-    `${JIKAN_API_BASE}/seasons/2024/summer?limit=25&page=1`,
-    `${JIKAN_API_BASE}/seasons/2024/summer?limit=25&page=2`,
-    `${JIKAN_API_BASE}/seasons/2024/spring?limit=25&page=1`,
-    `${JIKAN_API_BASE}/seasons/2024/spring?limit=25&page=2`,
-    `${JIKAN_API_BASE}/seasons/2024/winter?limit=25&page=1`,
+    // Ordenação por ranking (MUITAS páginas)
+    ...Array.from({length: 300}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=rank&limit=25&page=${i + 1}`),
     
-    // Temporadas de 2023
-    `${JIKAN_API_BASE}/seasons/2023/fall?limit=25`,
-    `${JIKAN_API_BASE}/seasons/2023/summer?limit=25`,
-    `${JIKAN_API_BASE}/seasons/2023/spring?limit=25`,
-    `${JIKAN_API_BASE}/seasons/2023/winter?limit=25`,
+    // Ordenação por favoritos
+    ...Array.from({length: 50}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=favorites&limit=25&page=${i + 1}`),
     
-    // Temporadas de 2022
-    `${JIKAN_API_BASE}/seasons/2022/fall?limit=25`,
-    `${JIKAN_API_BASE}/seasons/2022/summer?limit=25`,
-    `${JIKAN_API_BASE}/seasons/2022/spring?limit=25`,
-    `${JIKAN_API_BASE}/seasons/2022/winter?limit=25`,
+    // Temporadas completas de múltiplos anos (2024)
+    ...Array.from({length: 10}, (_, i) => `${JIKAN_API_BASE}/seasons/2024/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 10}, (_, i) => `${JIKAN_API_BASE}/seasons/2024/summer?limit=25&page=${i + 1}`),
+    ...Array.from({length: 10}, (_, i) => `${JIKAN_API_BASE}/seasons/2024/spring?limit=25&page=${i + 1}`),
+    ...Array.from({length: 10}, (_, i) => `${JIKAN_API_BASE}/seasons/2024/winter?limit=25&page=${i + 1}`),
     
-    // Diferentes tipos de ordenação
-    `${JIKAN_API_BASE}/anime?order_by=start_date&limit=25&page=1`,
-    `${JIKAN_API_BASE}/anime?order_by=end_date&limit=25&page=1`,
-    `${JIKAN_API_BASE}/anime?order_by=episodes&limit=25&page=1`,
-    `${JIKAN_API_BASE}/anime?order_by=rank&limit=25&page=1`,
-    `${JIKAN_API_BASE}/anime?order_by=rank&limit=25&page=2`
+    // Temporadas de 2023 (mais páginas)
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/2023/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/2023/summer?limit=25&page=${i + 1}`),
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/2023/spring?limit=25&page=${i + 1}`),
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/2023/winter?limit=25&page=${i + 1}`),
+    
+    // Temporadas de 2022 (mais páginas)
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/2022/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/2022/summer?limit=25&page=${i + 1}`),
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/2022/spring?limit=25&page=${i + 1}`),
+    ...Array.from({length: 15}, (_, i) => `${JIKAN_API_BASE}/seasons/2022/winter?limit=25&page=${i + 1}`),
+    
+    // Temporadas de anos anteriores
+    ...Array.from({length: 12}, (_, i) => `${JIKAN_API_BASE}/seasons/2021/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 12}, (_, i) => `${JIKAN_API_BASE}/seasons/2021/summer?limit=25&page=${i + 1}`),
+    ...Array.from({length: 12}, (_, i) => `${JIKAN_API_BASE}/seasons/2021/spring?limit=25&page=${i + 1}`),
+    ...Array.from({length: 12}, (_, i) => `${JIKAN_API_BASE}/seasons/2021/winter?limit=25&page=${i + 1}`),
+    
+    ...Array.from({length: 10}, (_, i) => `${JIKAN_API_BASE}/seasons/2020/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 10}, (_, i) => `${JIKAN_API_BASE}/seasons/2020/summer?limit=25&page=${i + 1}`),
+    ...Array.from({length: 10}, (_, i) => `${JIKAN_API_BASE}/seasons/2020/spring?limit=25&page=${i + 1}`),
+    ...Array.from({length: 10}, (_, i) => `${JIKAN_API_BASE}/seasons/2020/winter?limit=25&page=${i + 1}`),
+    
+    // Temporadas de 2019-2015 (para pegar animes clássicos)
+    ...Array.from({length: 8}, (_, i) => `${JIKAN_API_BASE}/seasons/2019/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 8}, (_, i) => `${JIKAN_API_BASE}/seasons/2019/summer?limit=25&page=${i + 1}`),
+    ...Array.from({length: 8}, (_, i) => `${JIKAN_API_BASE}/seasons/2018/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 8}, (_, i) => `${JIKAN_API_BASE}/seasons/2017/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 6}, (_, i) => `${JIKAN_API_BASE}/seasons/2016/fall?limit=25&page=${i + 1}`),
+    ...Array.from({length: 6}, (_, i) => `${JIKAN_API_BASE}/seasons/2015/fall?limit=25&page=${i + 1}`),
+    
+    // Diferentes tipos de ordenação (mais páginas)
+    ...Array.from({length: 50}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=start_date&limit=25&page=${i + 1}`),
+    ...Array.from({length: 50}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=end_date&limit=25&page=${i + 1}`),
+    ...Array.from({length: 30}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=episodes&limit=25&page=${i + 1}`),
+    ...Array.from({length: 30}, (_, i) => `${JIKAN_API_BASE}/anime?order_by=title&limit=25&page=${i + 1}`)
   ];
   
   let allAnimeData: any[] = [];
@@ -208,8 +216,8 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
         }
       }
       
-      // Aguardar menos tempo para acelerar o carregamento
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Rate limiting ajustado para grande volume de dados
+      await new Promise(resolve => setTimeout(resolve, 250));
     } catch (error) {
       console.warn("❌ Failed endpoint:", endpoint, error);
     }
@@ -232,31 +240,34 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
 
 
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🔍 Getting trending anime with Jikan API...");
+  console.log("🔍 Getting TODOS os animes disponíveis da API do Jikan...");
   
-  try {
-    // Use Jikan API for trending anime
-    const jikanAnimes = await getJikanTrendingAnime(25);
-    if (jikanAnimes.length > 0) {
-      console.log(`✅ Got ${jikanAnimes.length} trending animes from Jikan`);
-      return getAnimesWithProgress(jikanAnimes);
-    }
-  } catch (error) {
-    console.log("⚠️ Jikan API failed, using fallback APIs...");
-  }
-  
-  // Fallback para APIs existentes
+  // SEMPRE usar a função que busca de TODOS os endpoints para obter o catálogo completo
+  console.log("📥 Forçando busca de TODOS os animes disponíveis...");
   clearAnimeCache();
   const apiData = await getAnimeDataFromAPI();
+  
   if (apiData.length > 0) {
     // Verificar se os dados são do Jikan API ou Otakudesu
     const isJikanData = apiData[0]?.mal_id !== undefined;
-    // Usar TODOS os animes disponíveis, não apenas 8
-    const trendingAnimes = apiData.map(anime => 
+    // Usar TODOS os animes disponíveis do catálogo completo
+    const allAnimes = apiData.map(anime => 
       isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
     );
-    console.log("✅ Returning", trendingAnimes.length, "trending animes from fallback API cache");
-    return getAnimesWithProgress(trendingAnimes);
+    console.log("✅ Returning TOTAL of", allAnimes.length, "animes from complete Jikan catalog");
+    return getAnimesWithProgress(allAnimes);
+  }
+  
+  // Só usar fallback se realmente não conseguir buscar nada
+  try {
+    console.log("⚠️ Fallback: Trying limited Jikan trending...");
+    const jikanAnimes = await getJikanTrendingAnime(25);
+    if (jikanAnimes.length > 0) {
+      console.log(`⚠️ Using limited fallback: ${jikanAnimes.length} trending animes from Jikan`);
+      return getAnimesWithProgress(jikanAnimes);
+    }
+  } catch (error) {
+    console.log("❌ Even fallback Jikan API failed:", error);
   }
   
   // Fallback: usar TODOS os dados mock disponíveis para maximizar a coleção

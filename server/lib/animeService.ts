@@ -99,31 +99,57 @@ export class AnimeStreamingService {
 
   // Buscar animes em alta (trending/airing)
   async getTrendingAnime(page: number = 1): Promise<AnimeData[]> {
-    const endpoints = [
-      `${this.CONSUMET_API}/anime/gogoanime/top-airing?page=${page}`,
-      `${this.ANBU_API}/popular?page=${page}`,
-      `${this.BACKUP_API}/popular?page=${page}`
+    // Usar API do Jikan para buscar TODOS os animes disponíveis
+    const jikanEndpoints = [
+      // Top animes (muitas páginas)
+      ...Array.from({length: 100}, (_, i) => `https://api.jikan.moe/v4/top/anime?limit=25&page=${i + 1}`),
+      // Ordenação por popularidade
+      ...Array.from({length: 100}, (_, i) => `https://api.jikan.moe/v4/anime?order_by=popularity&limit=25&page=${i + 1}`),
+      // Ordenação por score
+      ...Array.from({length: 50}, (_, i) => `https://api.jikan.moe/v4/anime?order_by=score&limit=25&page=${i + 1}`),
+      // Temporadas atuais
+      ...Array.from({length: 10}, (_, i) => `https://api.jikan.moe/v4/seasons/now?limit=25&page=${i + 1}`),
     ];
 
-    for (const endpoint of endpoints) {
+    let allAnimes: AnimeData[] = [];
+    let processedCount = 0;
+    const maxEndpoints = 50; // Limitar para não sobrecarregar
+
+    console.log(`🌟 Buscando TODOS os animes disponíveis da API do Jikan (${Math.min(maxEndpoints, jikanEndpoints.length)} endpoints)...`);
+
+    for (const endpoint of jikanEndpoints.slice(0, maxEndpoints)) {
       try {
-        console.log(`🔥 Tentando buscar animes trending de: ${endpoint}`);
+        const data = await this.fetchWithTimeout(endpoint, 10000);
         
-        const data = await this.fetchWithTimeout(endpoint);
-        
-        if (data && (data.results || Array.isArray(data))) {
-          const results = data.results || data;
-          const animes = results.map((anime: any) => this.adaptAnimeData(anime));
+        if (data?.data && Array.isArray(data.data)) {
+          // Converter dados do Jikan para formato interno
+          const animes = data.data.map((anime: any) => this.adaptJikanAnimeData(anime));
           
-          console.log(`✅ Sucesso! Encontrados ${animes.length} animes trending`);
-          return animes;
+          // Adicionar apenas animes únicos
+          animes.forEach(anime => {
+            if (!allAnimes.find(existing => existing.id === anime.id)) {
+              allAnimes.push(anime);
+            }
+          });
+          
+          processedCount++;
+          console.log(`✅ Endpoint ${processedCount}: +${animes.length} animes (Total único: ${allAnimes.length})`);
         }
+        
+        // Rate limiting para respeitar a API do Jikan
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
       } catch (error) {
-        console.warn(`❌ Falha no endpoint ${endpoint}:`, error instanceof Error ? error.message : 'Unknown error');
+        console.warn(`❌ Falha no endpoint Jikan:`, error instanceof Error ? error.message : 'Unknown error');
       }
     }
 
-    console.log('⚠️ Todos os endpoints falharam, retornando dados mock');
+    if (allAnimes.length > 0) {
+      console.log(`🎉 SUCESSO! Coletados ${allAnimes.length} animes únicos da API do Jikan`);
+      return allAnimes;
+    }
+
+    console.log('⚠️ Fallback para dados mock');
     return this.getMockAnimeData();
   }
 
@@ -256,6 +282,27 @@ export class AnimeStreamingService {
       type: apiData.type || 'TV',
       subOrDub: apiData.subOrDub || 'SUB',
       url: apiData.url || apiData.animeUrl
+    };
+  }
+
+  // Adaptar dados específicos da API do Jikan (MyAnimeList)
+  private adaptJikanAnimeData(jikanData: any): AnimeData {
+    return {
+      id: jikanData.mal_id?.toString() || Math.random().toString(),
+      title: jikanData.title || jikanData.title_english || 'Título não disponível',
+      image: jikanData.images?.jpg?.large_image_url || jikanData.images?.jpg?.image_url || 'https://via.placeholder.com/400x600',
+      studio: jikanData.studios?.[0]?.name || 'Estúdio não informado',
+      year: jikanData.year || (jikanData.aired?.from ? new Date(jikanData.aired.from).getFullYear() : new Date().getFullYear()),
+      genres: jikanData.genres?.map((g: any) => g.name) || [],
+      synopsis: jikanData.synopsis || 'Sinopse não disponível',
+      releaseDate: jikanData.aired?.from || '',
+      status: jikanData.status?.toLowerCase() || 'unknown',
+      totalEpisodes: jikanData.episodes || 0,
+      rating: jikanData.score?.toString() || '0',
+      viewCount: jikanData.members || Math.floor(Math.random() * 100000),
+      type: jikanData.type || 'TV',
+      subOrDub: 'SUB',
+      url: jikanData.url || ''
     };
   }
 
