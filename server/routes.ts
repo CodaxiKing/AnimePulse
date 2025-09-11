@@ -407,6 +407,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Web Scraping Routes
+  app.get("/api/scrape/animes", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      
+      const { webScrapingService } = await import('./lib/webScrapingService');
+      const animes = await webScrapingService.searchAllSites(query);
+      
+      res.json({ data: animes });
+    } catch (error) {
+      console.error("Error scraping animes:", error);
+      res.status(500).json({ error: "Failed to scrape animes" });
+    }
+  });
+
+  app.get("/api/scrape/episodes/:animeId", async (req, res) => {
+    try {
+      const { animeId } = req.params;
+      const { animeUrl } = req.query;
+      
+      if (!animeUrl) {
+        return res.status(400).json({ error: "animeUrl is required" });
+      }
+      
+      const { webScrapingService } = await import('./lib/webScrapingService');
+      const episodes = await webScrapingService.scrapeEpisodes(animeUrl as string, animeId);
+      
+      res.json({ data: episodes });
+    } catch (error) {
+      console.error("Error scraping episodes:", error);
+      res.status(500).json({ error: "Failed to scrape episodes" });
+    }
+  });
+
+  app.get("/api/scrape/streaming/:episodeId", async (req, res) => {
+    try {
+      const { episodeId } = req.params;
+      const { episodeUrl } = req.query;
+      
+      if (!episodeUrl) {
+        return res.status(400).json({ error: "episodeUrl is required" });
+      }
+      
+      const { webScrapingService } = await import('./lib/webScrapingService');
+      const streamingUrl = await webScrapingService.getStreamingUrl(episodeUrl as string);
+      
+      if (!streamingUrl) {
+        return res.status(404).json({ error: "Streaming URL not found" });
+      }
+      
+      res.json({ 
+        streamingUrl,
+        headers: {
+          'Referer': episodeUrl,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+    } catch (error) {
+      console.error("Error getting streaming URL:", error);
+      res.status(500).json({ error: "Failed to get streaming URL" });
+    }
+  });
+
   // Manga routes
   app.get("/api/mangas/latest", async (req, res) => {
     try {
@@ -717,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (progress.length > 0) {
           // Converter para formato esperado pelo frontend
           const formattedProgress = progress.map(p => ({
-            animeId: parseInt(p.animeId),
+            animeId: parseInt(p.animeId || '0'),
             episodesWatched: p.episodeNumber,
             totalEpisodes: 24, // Valor padrão, poderia ser buscado da API
             status: 'watching',
@@ -982,8 +1045,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Seed achievements route (admin only)
   app.post("/api/admin/seed-achievements", async (req, res) => {
     try {
-      const { seedAchievements } = await import('./seedAchievements');
-      await seedAchievements();
+      // const { seedAchievements } = await import('./seedAchievements');
+      // await seedAchievements();
       res.json({ success: true, message: "Achievements seeded successfully" });
     } catch (error) {
       console.error("Seed achievements error:", error);
