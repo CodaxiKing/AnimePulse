@@ -240,34 +240,25 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
 
 
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🔍 Getting TODOS os animes disponíveis da API do Jikan...");
+  console.log("🚀 Getting trending anime from optimized server...");
   
-  // SEMPRE usar a função que busca de TODOS os endpoints para obter o catálogo completo
-  console.log("📥 Forçando busca de TODOS os animes disponíveis...");
-  clearAnimeCache();
-  const apiData = await getAnimeDataFromAPI();
-  
-  if (apiData.length > 0) {
-    // Verificar se os dados são do Jikan API ou Otakudesu
-    const isJikanData = apiData[0]?.mal_id !== undefined;
-    // Usar TODOS os animes disponíveis do catálogo completo
-    const allAnimes = apiData.map(anime => 
-      isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
-    );
-    console.log("✅ Returning TOTAL of", allAnimes.length, "animes from complete Jikan catalog");
-    return getAnimesWithProgress(allAnimes);
-  }
-  
-  // Só usar fallback se realmente não conseguir buscar nada
   try {
-    console.log("⚠️ Fallback: Trying limited Jikan trending...");
-    const jikanAnimes = await getJikanTrendingAnime(25);
-    if (jikanAnimes.length > 0) {
-      console.log(`⚠️ Using limited fallback: ${jikanAnimes.length} trending animes from Jikan`);
-      return getAnimesWithProgress(jikanAnimes);
+    // Usar o servidor otimizado que já faz a busca eficiente
+    const response = await fetch('/api/animes/trending');
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ Got ${data.data.length} trending animes from server`);
+      return getAnimesWithProgress(data.data);
     }
   } catch (error) {
-    console.log("❌ Even fallback Jikan API failed:", error);
+    console.log("⚠️ Server failed, using Jikan API directly...");
+    
+    // Fallback direto para Jikan API (limitado para não sobrecarregar)
+    const jikanAnimes = await getJikanTrendingAnime(25);
+    if (jikanAnimes.length > 0) {
+      console.log(`✅ Using ${jikanAnimes.length} trending animes from Jikan`);
+      return getAnimesWithProgress(jikanAnimes);
+    }
   }
   
   // Fallback: usar TODOS os dados mock disponíveis para maximizar a coleção
@@ -723,34 +714,29 @@ export async function getAnimesBySeason(season: string = 'now'): Promise<AnimeWi
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🏆 Getting top anime with Jikan API...");
+  console.log("🏆 Getting top anime from optimized server...");
   
   try {
-    // Use Jikan API for top anime
-    const jikanAnimes = await getJikanTopAnime(10);
-    if (jikanAnimes.length > 0) {
-      console.log(`✅ Got ${jikanAnimes.length} top animes from Jikan`);
-      return getAnimesWithProgress(jikanAnimes);
+    // Usar o servidor que já busca os top animes da API do Jikan
+    const response = await fetch('/api/animes/trending'); // Servidor já retorna top animes
+    if (response.ok) {
+      const data = await response.json();
+      // Pegar os top 10 baseado no rating
+      const topAnimes = data.data
+        .sort((a: any, b: any) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'))
+        .slice(0, 10);
+      console.log(`✅ Got ${topAnimes.length} top rated animes from server`);
+      return getAnimesWithProgress(topAnimes);
     }
   } catch (error) {
-    console.log("⚠️ Jikan API failed, using fallback APIs...");
-  }
-  
-  const apiData = await getAnimeDataFromAPI();
-  if (apiData.length > 0) {
-    // Verificar se os dados são do Jikan API ou Otakudesu
-    const isJikanData = apiData[0]?.mal_id !== undefined;
-    const allAnimes = apiData.map(anime => 
-      isJikanData ? adaptAnimeFromJikanAPI(anime) : anime
-    );
+    console.log("⚠️ Server failed, using Jikan API directly...");
     
-    // Ordenar por viewCount em ordem decrescente e pegar apenas os top 10
-    const topAnimes = allAnimes
-      .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-      .slice(0, 10);
-    
-    console.log("✅ Returning top 10 animes ordered by viewCount from fallback");
-    return getAnimesWithProgress(topAnimes);
+    // Fallback para Jikan API 
+    const jikanAnimes = await getJikanTopAnime(10);
+    if (jikanAnimes.length > 0) {
+      console.log(`✅ Using ${jikanAnimes.length} top animes from Jikan`);
+      return getAnimesWithProgress(jikanAnimes);
+    }
   }
   
   // Fallback: ordenar dados mock por viewCount
