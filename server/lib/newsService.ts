@@ -53,6 +53,30 @@ export class AnimeNewsService {
 
   private readonly JIKAN_API_BASE = 'https://api.jikan.moe/v4';
   private readonly ANN_API_BASE = 'https://cdn.animenewsnetwork.com/encyclopedia';
+  
+  // Rate limiting for API calls
+  private lastApiCall: number = 0;
+  private readonly MIN_API_DELAY = 1000; // 1 second between API calls
+  
+  // Add delay to prevent rate limiting
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  
+  // Rate-limited fetch method
+  private async rateLimitedFetch(url: string, options?: any): Promise<any> {
+    const now = Date.now();
+    const timeSinceLastCall = now - this.lastApiCall;
+    
+    if (timeSinceLastCall < this.MIN_API_DELAY) {
+      const waitTime = this.MIN_API_DELAY - timeSinceLastCall;
+      console.log(`⏳ Rate limiting: waiting ${waitTime}ms before API call...`);
+      await this.delay(waitTime);
+    }
+    
+    this.lastApiCall = Date.now();
+    return fetch(url, options);
+  }
 
   // Método para buscar notícias reais do RSS da Anime News Network
   private async getRSSNews(
@@ -167,7 +191,7 @@ export class AnimeNewsService {
       console.log(`📰 Buscando notícias baseadas na temporada atual do MyAnimeList via Jikan API... (limite: ${limit})`);
       
       // Usar o endpoint da temporada atual que sabemos que funciona
-      const response = await fetch(`${this.JIKAN_API_BASE}/seasons/now?limit=${Math.min(limit, 25)}`);
+      const response = await this.rateLimitedFetch(`${this.JIKAN_API_BASE}/seasons/now?limit=${Math.min(limit, 25)}`);
       
       if (!response.ok) {
         throw new Error(`Erro ${response.status}: ${response.statusText}`);
@@ -224,7 +248,7 @@ export class AnimeNewsService {
       console.log(`📰 Simulando notícias baseadas em animes populares... (limite: ${limit})`);
       
       // Como fallback, usar dados dos animes para criar notícias simuladas
-      const response = await fetch(`${this.JIKAN_API_BASE}/top/anime?limit=${Math.min(limit, 25)}`);
+      const response = await this.rateLimitedFetch(`${this.JIKAN_API_BASE}/top/anime?limit=${Math.min(limit, 25)}`);
       
       if (!response.ok) {
         throw new Error(`Erro ${response.status}: ${response.statusText}`);
