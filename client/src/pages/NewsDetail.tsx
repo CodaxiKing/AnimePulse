@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { 
@@ -78,8 +78,10 @@ async function fetchNewsById(id: string): Promise<NewsDetailData | null> {
 
 export default function NewsDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const [isBookmarked, setIsBookmarked] = useState(false);
+  
+  const navigate = (url: string) => setLocation(url);
 
   const { data: news, isLoading, error } = useQuery({
     queryKey: ['news-detail', id],
