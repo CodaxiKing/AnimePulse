@@ -134,84 +134,47 @@ export async function checkScrapingApiHealth(): Promise<boolean> {
   return scrapingApi.healthCheck();
 }
 
-// Sistema de vídeos de demonstração para episódios
-const DEMO_VIDEOS = [
-  {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    title: 'Big Buck Bunny - Episódio de Demonstração',
-    duration: '10:34'
-  },
-  {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    title: 'Elephants Dream - Episódio de Demonstração',
-    duration: '10:53'
-  },
-  {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    title: 'For Bigger Blazes - Episódio de Demonstração',
-    duration: '00:15'
-  },
-  {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    title: 'For Bigger Escapes - Episódio de Demonstração',
-    duration: '00:15'
-  },
-  {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-    title: 'Sintel - Episódio de Demonstração',
-    duration: '14:48'
-  },
-  {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Subaru.mp4',
-    title: 'Subaru - Episódio de Demonstração',
-    duration: '00:30'
-  },
-  {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-    title: 'Tears of Steel - Episódio de Demonstração',
-    duration: '12:14'
-  }
-];
-
 // Função adapter para compatibilidade com EpisodeModal
 export async function getEpisodeVideoUrl(animeTitle: string, episodeNumber: number, year?: number): Promise<string | null> {
   try {
-    console.log(`🎬 Buscando vídeo de demonstração para: ${animeTitle} - Episódio ${episodeNumber}`);
+    console.log(`🎬 Buscando vídeo para: ${animeTitle} - Episódio ${episodeNumber}`);
     
-    // Tentar buscar da API de scraping primeiro (se disponível)
-    try {
-      const searchResults = await searchScrapedAnimes(animeTitle);
-      
-      if (searchResults.length > 0) {
-        const anime = searchResults[0];
-        const episodes = await getScrapedAnimeEpisodes(anime.siteId, anime.id, anime.url);
-        const episode = episodes.find(ep => ep.number === episodeNumber);
-        
-        if (episode) {
-          const streamingData = await getScrapedEpisodeStream(anime.siteId, episode.id, episode.url);
-          if (streamingData.streamingUrl) {
-            console.log(`✅ URL de streaming real obtida da API de scraping`);
-            return streamingData.streamingUrl;
-          }
-        }
-      }
-    } catch (scrapingError) {
-      console.log('ℹ️ API de scraping não disponível, usando vídeo de demonstração');
+    // Buscar animes com título similar
+    const searchResults = await searchScrapedAnimes(animeTitle);
+    
+    if (searchResults.length === 0) {
+      console.log('⚠️ Nenhum anime encontrado na busca');
+      return null;
     }
     
-    // Usar vídeo de demonstração baseado no número do episódio
-    const demoVideoIndex = (episodeNumber - 1) % DEMO_VIDEOS.length;
-    const demoVideo = DEMO_VIDEOS[demoVideoIndex];
+    // Pegar o primeiro resultado
+    const anime = searchResults[0];
+    console.log(`✅ Anime encontrado: ${anime.title} (${anime.siteId})`);
     
-    console.log(`🎥 Usando vídeo de demonstração: ${demoVideo.title}`);
-    console.log(`📺 Para usar episódios reais, configure uma API de streaming externa`);
+    // Buscar episódios do anime
+    const episodes = await getScrapedAnimeEpisodes(anime.siteId, anime.id, anime.url);
     
-    return demoVideo.url;
+    // Encontrar o episódio específico
+    const episode = episodes.find(ep => ep.number === episodeNumber);
+    
+    if (!episode) {
+      console.log(`⚠️ Episódio ${episodeNumber} não encontrado`);
+      return null;
+    }
+    
+    console.log(`✅ Episódio encontrado: ${episode.title}`);
+    
+    // Obter URL de streaming
+    const streamingData = await getScrapedEpisodeStream(anime.siteId, episode.id, episode.url);
+    
+    if (streamingData.streamingUrl) {
+      console.log(`✅ URL de streaming obtida: ${streamingData.streamingUrl.substring(0, 50)}...`);
+      return streamingData.streamingUrl;
+    }
+    
+    return null;
   } catch (error) {
     console.error('❌ Erro ao buscar vídeo:', error);
-    
-    // Fallback para o primeiro vídeo de demonstração
-    console.log('🔄 Usando vídeo de demonstração como fallback');
-    return DEMO_VIDEOS[0].url;
+    return null;
   }
 }

@@ -109,19 +109,16 @@ export default function EpisodeWatch() {
       
       if (url) {
         setVideoUrl(url);
-        console.log(`✅ URL do vídeo carregada com sucesso`);
-        
-        // Verificar se é um vídeo de demonstração
-        if (url.includes('commondatastorage.googleapis.com')) {
-          setVideoError('🎬 Vídeo de demonstração - Configure uma API de streaming para episódios reais');
-        }
+        console.log(`✅ URL do vídeo encontrada`);
       } else {
-        console.warn('⚠️ Nenhuma URL de vídeo encontrada');
-        setVideoError('Nenhum episódio disponível para reprodução');
+        console.warn('⚠️ Nenhuma URL de vídeo encontrada, usando placeholder');
+        setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
+        setVideoError('Episódio real não disponível - Usando vídeo de demonstração');
       }
     } catch (error) {
       console.error('❌ Erro ao buscar vídeo:', error);
-      setVideoError('Erro ao carregar episódio');
+      setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
+      setVideoError('Erro ao buscar episódio - Usando vídeo de demonstração');
     } finally {
       setIsLoadingVideo(false);
     }
@@ -362,36 +359,22 @@ export default function EpisodeWatch() {
                       </div>
                     </>
                   ) : (
-                    <div className="relative w-full h-full">
-                      <video
-                        ref={videoRef}
-                        className="w-full h-full"
-                        controls
-                        autoPlay
-                        onEnded={handleVideoEnd}
-                        key={videoUrl}
-                      >
-                        {videoUrl && (
-                          <source 
-                            src={videoUrl} 
-                            type="video/mp4" 
-                          />
-                        )}
-                        Seu navegador não suporta reprodução de vídeo.
-                      </video>
-                      
-                      {videoError && videoError.includes('demonstração') && (
-                        <div className="absolute top-4 right-4 bg-blue-500/90 text-white px-3 py-2 rounded-lg text-sm max-w-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-blue-300 rounded-full animate-pulse"></div>
-                            <span>Modo Demonstração</span>
-                          </div>
-                          <p className="text-xs mt-1 opacity-90">
-                            Configure uma API de streaming para episódios reais
-                          </p>
-                        </div>
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full"
+                      controls
+                      autoPlay
+                      onEnded={handleVideoEnd}
+                      key={videoUrl}
+                    >
+                      {videoUrl && (
+                        <source 
+                          src={videoUrl} 
+                          type="video/mp4" 
+                        />
                       )}
-                    </div>
+                      Seu navegador não suporta reprodução de vídeo.
+                    </video>
                   )}
                 </div>
               </CardContent>
