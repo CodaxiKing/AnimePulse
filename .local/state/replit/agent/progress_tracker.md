@@ -14,3 +14,4 @@
 [x] 14. Completely removed all placeholder/demo videos (BigBuckBunny, etc.) from both client and server - only real scraped videos will be used
 [x] 15. Fixed API connection issue and permanently eliminated BigBuckBunny video - server now returns 404 when no real video is available
 [x] 16. Adicionada aba de episódios na página de detalhes do anime com navegação para o player de vídeo
+[x] 17. Substituído o modal de notícias por navegação para páginas dedicadas - cards de notícias agora redirecionam para `/noticias/:id` em vez de abrir modal
