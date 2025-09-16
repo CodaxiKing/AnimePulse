@@ -36,39 +36,39 @@ interface NewsDetailData extends JikanNewsItem {
   content?: string;
 }
 
-// Função para buscar notícias do Jikan API
-async function fetchJikanNews(): Promise<JikanNewsItem[]> {
+// Função para buscar uma notícia específica do backend
+async function fetchNewsById(id: string): Promise<NewsDetailData | null> {
   try {
-    console.log("📰 Buscando notícias do Jikan API...");
-    const response = await fetch('https://api.jikan.moe/v4/news');
+    console.log(`🔍 Buscando notícia do backend - ID: ${id}`);
+    const response = await fetch(`/api/news/${id}`);
     
     if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`❌ Notícia não encontrada para ID: ${id}`);
+        return null;
+      }
       throw new Error(`Erro ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json();
-    console.log(`✅ ${data.data?.length || 0} notícias encontradas no Jikan`);
+    const news = await response.json();
+    console.log(`✅ Notícia encontrada: ${news.title}`);
     
-    return data.data || [];
-  } catch (error) {
-    console.error("❌ Erro ao buscar notícias do Jikan:", error);
-    return [];
-  }
-}
-
-// Função para buscar uma notícia específica
-async function fetchNewsById(id: string): Promise<NewsDetailData | null> {
-  try {
-    const allNews = await fetchJikanNews();
-    const news = allNews.find(item => item.mal_id.toString() === id);
-    
-    if (!news) {
-      return null;
-    }
-    
+    // Adaptar para o formato esperado, mantendo compatibilidade
     return {
-      ...news,
-      content: news.excerpt // Por agora, usar excerpt como conteúdo
+      mal_id: parseInt(id) || 0,
+      url: news.link || '#',
+      title: news.title || 'Título não disponível',
+      date: news.publishedDate || new Date().toISOString(),
+      author_username: news.author || 'MyAnimeList',
+      author_url: '#',
+      forum_url: '#',
+      images: {
+        jpg: {
+          image_url: news.thumbnail || ''
+        }
+      },
+      excerpt: news.description || '',
+      content: news.content || news.description || ''
     };
   } catch (error) {
     console.error("❌ Erro ao buscar notícia por ID:", error);

@@ -125,7 +125,7 @@ export default function News() {
           {/* Grid de notícias */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {news?.map((newsItem) => {
-              // Convert API response to NewsItem format
+              // Mapear dados do backend para o formato NewsItem
               const newsItemFormatted: NewsItem = {
                 id: newsItem.id,
                 title: newsItem.title,
@@ -134,7 +134,7 @@ export default function News() {
                 publishedDate: newsItem.publishedAt?.toISOString() || new Date().toISOString(),
                 category: newsItem.category,
                 thumbnail: newsItem.image || undefined,
-                author: newsItem.source || undefined
+                author: newsItem.source || 'MyAnimeList'
               };
               
               return (
