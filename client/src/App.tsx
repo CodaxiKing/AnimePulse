@@ -13,6 +13,7 @@ import Mangas from "./pages/Mangas";
 import MangaDetail from "./pages/MangaDetail";
 import ChapterReader from "./pages/ChapterReader";
 import News from "./pages/News";
+import NewsDetail from "./pages/NewsDetail";
 import Community from "./pages/Community";
 import Timeline from "./pages/Timeline";
 import Login from "./pages/Login";
@@ -46,6 +47,7 @@ function Router() {
               <Route path="/mangas/:id" component={MangaDetail} />
               <Route path="/mangas/:mangaId/chapter/:chapterNumber" component={ChapterReader} />
               <Route path="/noticias" component={News} />
+              <Route path="/noticias/:id" component={NewsDetail} />
               <Route path="/comunidade" component={Community} />
               <Route path="/perfil" component={Profile} />
               <Route path="/estatisticas" component={Statistics} />
