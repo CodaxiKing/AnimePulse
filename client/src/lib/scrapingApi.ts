@@ -1,6 +1,6 @@
 // Cliente para a API de Web Scraping dos sites de anime
 
-const API_BASE_URL = import.meta.env.VITE_SCRAPING_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_SCRAPING_API_URL || 'http://localhost:5000';
 
 export interface ScrapedAnime {
   id: string;
@@ -81,7 +81,7 @@ class ScrapingApiClient {
     if (query) params.append('q', query);
     if (site) params.append('site', site);
     
-    const endpoint = `/api/animes${params.toString() ? `?${params.toString()}` : ''}`;
+    const endpoint = `/api/scraping/animes${params.toString() ? `?${params.toString()}` : ''}`;
     return this.makeRequest<ScrapedAnime[]>(endpoint);
   }
 
@@ -90,7 +90,7 @@ class ScrapingApiClient {
     const params = new URLSearchParams();
     params.append('animeUrl', animeUrl);
     
-    const endpoint = `/api/animes/${siteId}/${animeId}/episodes?${params.toString()}`;
+    const endpoint = `/api/scraping/animes/${siteId}/${animeId}/episodes?${params.toString()}`;
     return this.makeRequest<ScrapedEpisode[]>(endpoint);
   }
 
@@ -99,7 +99,7 @@ class ScrapingApiClient {
     const params = new URLSearchParams();
     params.append('episodeUrl', episodeUrl);
     
-    const endpoint = `/api/episodes/${siteId}/${episodeId}/stream?${params.toString()}`;
+    const endpoint = `/api/scraping/episodes/${siteId}/${episodeId}/stream?${params.toString()}`;
     return this.makeRequest<StreamingData>(endpoint);
   }
 
