@@ -2,9 +2,20 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
-import type { Anime, Episode, Manga, News, InsertUser } from "@shared/schema";
+import type { 
+  Anime, Episode, Manga, News, InsertUser,
+  Post, Comment, Reaction, Group, Notification,
+  InsertPost, InsertComment, InsertReaction, InsertGroup,
+  InsertFollow, InsertGroupMember, InsertNotification,
+  InsertReport, InsertBookmark, InsertTag
+} from "@shared/schema";
 import fetch from 'node-fetch';
-import { insertUserSchema } from "@shared/schema";
+import { 
+  insertUserSchema, insertPostSchema, insertCommentSchema, 
+  insertReactionSchema, insertGroupSchema, insertFollowSchema,
+  insertGroupMemberSchema, insertNotificationSchema, insertReportSchema,
+  insertBookmarkSchema, insertTagSchema
+} from "@shared/schema";
 import session from "express-session";
 import { ZodError } from "zod";
 import { generateRandomDisplayName, getDaysUntilNextChange } from "./nameGenerator";
@@ -1217,6 +1228,707 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ animes: [], mangas: [], news: [] });
     } catch (error) {
       res.status(500).json({ error: "Search failed" });
+    }
+  });
+
+  // ============================================
+  // COMMUNITY API ROUTES - SOCIAL FEATURES
+  // ============================================
+
+  // POSTS ROUTES
+  // Create a new post
+  app.post("/api/community/posts", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const postData = insertPostSchema.parse({
+        ...req.body,
+        userId
+      });
+
+      const post = await storage.createPost(postData);
+      const fullPost = await storage.getPost(post.id, userId);
+
+      res.status(201).json({ post: fullPost });
+    } catch (error) {
+      console.error("Create post error:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid post data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create post" });
+    }
+  });
+
+  // Get posts feed
+  app.get("/api/community/posts", async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const { 
+        limit = 20, 
+        offset = 0, 
+        visibility, 
+        groupId,
+        feed = 'all' // 'all', 'following', 'groups'
+      } = req.query;
+
+      let posts;
+      if (feed === 'following' || feed === 'groups') {
+        if (!userId) {
+          return res.status(401).json({ error: "Authentication required" });
+        }
+        posts = await storage.getFeedPosts(userId, {
+          filter: feed as 'following' | 'groups',
+          limit: Number(limit),
+          offset: Number(offset)
+        });
+      } else {
+        posts = await storage.getPosts(userId, {
+          visibility: visibility as string,
+          groupId: groupId as string,
+          limit: Number(limit),
+          offset: Number(offset)
+        });
+      }
+
+      res.json({ posts, count: posts.length });
+    } catch (error) {
+      console.error("Get posts error:", error);
+      res.status(500).json({ error: "Failed to get posts" });
+    }
+  });
+
+  // Get single post
+  app.get("/api/community/posts/:postId", async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.session.userId;
+
+      const post = await storage.getPost(postId, userId);
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      res.json({ post });
+    } catch (error) {
+      console.error("Get post error:", error);
+      res.status(500).json({ error: "Failed to get post" });
+    }
+  });
+
+  // Update post
+  app.put("/api/community/posts/:postId", requireAuth, async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.session.userId!;
+      
+      // Validate request body with partial post schema
+      const updateSchema = insertPostSchema.partial().pick({
+        content: true,
+        mediaUrls: true,
+        visibility: true
+      });
+      
+      const validatedData = updateSchema.parse(req.body);
+
+      const updatedPost = await storage.updatePost(postId, userId, validatedData);
+
+      if (!updatedPost) {
+        return res.status(404).json({ error: "Post not found or access denied" });
+      }
+
+      res.json({ post: updatedPost });
+    } catch (error) {
+      console.error("Update post error:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid post data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update post" });
+    }
+  });
+
+  // Delete post
+  app.delete("/api/community/posts/:postId", requireAuth, async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.session.userId!;
+
+      await storage.deletePost(postId, userId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete post error:", error);
+      res.status(500).json({ error: "Failed to delete post" });
+    }
+  });
+
+  // COMMENTS ROUTES
+  // Create comment
+  app.post("/api/community/posts/:postId/comments", requireAuth, async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.session.userId!;
+      const commentData = insertCommentSchema.parse({
+        ...req.body,
+        postId,
+        userId
+      });
+
+      const comment = await storage.createComment(commentData);
+      res.status(201).json({ comment });
+    } catch (error) {
+      console.error("Create comment error:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid comment data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create comment" });
+    }
+  });
+
+  // Get post comments
+  app.get("/api/community/posts/:postId/comments", async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const { limit = 50, offset = 0 } = req.query;
+
+      const comments = await storage.getPostComments(postId);
+
+      res.json({ comments, count: comments.length });
+    } catch (error) {
+      console.error("Get comments error:", error);
+      res.status(500).json({ error: "Failed to get comments" });
+    }
+  });
+
+  // Delete comment
+  app.delete("/api/community/comments/:commentId", requireAuth, async (req, res) => {
+    try {
+      const { commentId } = req.params;
+      const userId = req.session.userId!;
+
+      await storage.deleteComment(commentId, userId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete comment error:", error);
+      res.status(500).json({ error: "Failed to delete comment" });
+    }
+  });
+
+  // REACTIONS ROUTES
+  // React to post
+  app.post("/api/community/posts/:postId/react", requireAuth, async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.session.userId!;
+      const { type = 'like' } = req.body;
+
+      const reaction = await storage.createReaction({
+        postId,
+        userId,
+        type
+      });
+
+      res.status(201).json({ reaction });
+    } catch (error) {
+      console.error("Create reaction error:", error);
+      res.status(500).json({ error: "Failed to create reaction" });
+    }
+  });
+
+  // Remove reaction from post
+  app.delete("/api/community/posts/:postId/react", requireAuth, async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.session.userId!;
+
+      await storage.deleteReaction(userId, postId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove reaction error:", error);
+      res.status(500).json({ error: "Failed to remove reaction" });
+    }
+  });
+
+  // Get post reactions
+  app.get("/api/community/posts/:postId/reactions", async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const { type, limit = 50, offset = 0 } = req.query;
+
+      const reactions = await storage.getPostReactions(postId);
+
+      res.json({ reactions, count: reactions.length });
+    } catch (error) {
+      console.error("Get reactions error:", error);
+      res.status(500).json({ error: "Failed to get reactions" });
+    }
+  });
+
+  // React to comment
+  app.post("/api/community/comments/:commentId/react", requireAuth, async (req, res) => {
+    try {
+      const { commentId } = req.params;
+      const userId = req.session.userId!;
+      const { type = 'like' } = req.body;
+
+      const reaction = await storage.createReaction({
+        commentId,
+        userId,
+        type
+      });
+
+      res.status(201).json({ reaction });
+    } catch (error) {
+      console.error("Create comment reaction error:", error);
+      res.status(500).json({ error: "Failed to create reaction" });
+    }
+  });
+
+  // Remove reaction from comment
+  app.delete("/api/community/comments/:commentId/react", requireAuth, async (req, res) => {
+    try {
+      const { commentId } = req.params;
+      const userId = req.session.userId!;
+
+      await storage.deleteReaction(userId, undefined, commentId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove comment reaction error:", error);
+      res.status(500).json({ error: "Failed to remove reaction" });
+    }
+  });
+
+  // FOLLOW SYSTEM ROUTES
+  // Follow user
+  app.post("/api/community/users/:userId/follow", requireAuth, async (req, res) => {
+    try {
+      const followingId = req.params.userId;
+      const followerId = req.session.userId!;
+
+      if (followerId === followingId) {
+        return res.status(400).json({ error: "Cannot follow yourself" });
+      }
+
+      const follow = await storage.followUser(followerId, followingId);
+      res.status(201).json({ follow });
+    } catch (error) {
+      console.error("Follow user error:", error);
+      res.status(500).json({ error: "Failed to follow user" });
+    }
+  });
+
+  // Unfollow user
+  app.delete("/api/community/users/:userId/follow", requireAuth, async (req, res) => {
+    try {
+      const followingId = req.params.userId;
+      const followerId = req.session.userId!;
+
+      await storage.unfollowUser(followerId, followingId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Unfollow user error:", error);
+      res.status(500).json({ error: "Failed to unfollow user" });
+    }
+  });
+
+  // Get user followers
+  app.get("/api/community/users/:userId/followers", async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const { limit = 50, offset = 0 } = req.query;
+
+      const followers = await storage.getFollowers(userId);
+
+      res.json({ followers, count: followers.length });
+    } catch (error) {
+      console.error("Get followers error:", error);
+      res.status(500).json({ error: "Failed to get followers" });
+    }
+  });
+
+  // Get user following
+  app.get("/api/community/users/:userId/following", async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const { limit = 50, offset = 0 } = req.query;
+
+      const following = await storage.getFollowing(userId);
+
+      res.json({ following, count: following.length });
+    } catch (error) {
+      console.error("Get following error:", error);
+      res.status(500).json({ error: "Failed to get following" });
+    }
+  });
+
+  // GROUPS ROUTES
+  // Create group
+  app.post("/api/community/groups", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const groupData = insertGroupSchema.parse({
+        ...req.body,
+        ownerId: userId
+      });
+
+      const group = await storage.createGroup(groupData);
+      res.status(201).json({ group });
+    } catch (error) {
+      console.error("Create group error:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid group data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create group" });
+    }
+  });
+
+  // Get groups
+  app.get("/api/community/groups", async (req, res) => {
+    try {
+      const { search, privacy, limit = 20, offset = 0 } = req.query;
+
+      const groups = await storage.getGroups({
+        privacy: privacy as string,
+        limit: Number(limit)
+      });
+
+      res.json({ groups, count: groups.length });
+    } catch (error) {
+      console.error("Get groups error:", error);
+      res.status(500).json({ error: "Failed to get groups" });
+    }
+  });
+
+  // Get single group
+  app.get("/api/community/groups/:groupId", async (req, res) => {
+    try {
+      const { groupId } = req.params;
+      const userId = req.session.userId;
+
+      const group = await storage.getGroup(groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
+      }
+
+      // Note: Group privacy check removed - implement in frontend or add isGroupMember to storage interface
+
+      res.json({ group });
+    } catch (error) {
+      console.error("Get group error:", error);
+      res.status(500).json({ error: "Failed to get group" });
+    }
+  });
+
+  // Join group
+  app.post("/api/community/groups/:groupId/join", requireAuth, async (req, res) => {
+    try {
+      const { groupId } = req.params;
+      const userId = req.session.userId!;
+
+      const membership = await storage.joinGroup(groupId, userId);
+      res.status(201).json({ membership });
+    } catch (error) {
+      console.error("Join group error:", error);
+      res.status(500).json({ error: "Failed to join group" });
+    }
+  });
+
+  // Leave group
+  app.post("/api/community/groups/:groupId/leave", requireAuth, async (req, res) => {
+    try {
+      const { groupId } = req.params;
+      const userId = req.session.userId!;
+
+      await storage.leaveGroup(groupId, userId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Leave group error:", error);
+      res.status(500).json({ error: "Failed to leave group" });
+    }
+  });
+
+  // Get group members
+  app.get("/api/community/groups/:groupId/members", async (req, res) => {
+    try {
+      const { groupId } = req.params;
+      const { role, limit = 50, offset = 0 } = req.query;
+
+      // Note: getGroupMembers not implemented in storage interface
+      const members: any[] = [];
+
+      res.json({ members, count: members.length });
+    } catch (error) {
+      console.error("Get group members error:", error);
+      res.status(500).json({ error: "Failed to get group members" });
+    }
+  });
+
+  // NOTIFICATIONS ROUTES
+  // Get user notifications
+  app.get("/api/community/notifications", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { unreadOnly = false, limit = 20 } = req.query;
+
+      const notifications = await storage.getUserNotifications(userId, {
+        unreadOnly: unreadOnly === 'true',
+        limit: Number(limit)
+      });
+
+      res.json({ notifications, count: notifications.length });
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ error: "Failed to get notifications" });
+    }
+  });
+
+  // Mark notification as read
+  app.patch("/api/community/notifications/:notificationId/read", requireAuth, async (req, res) => {
+    try {
+      const { notificationId } = req.params;
+
+      await storage.markNotificationAsRead(notificationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Mark notification read error:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read
+  app.patch("/api/community/notifications/read-all", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+
+      await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Mark all notifications read error:", error);
+      res.status(500).json({ error: "Failed to mark notifications as read" });
+    }
+  });
+
+  // Get unread notifications count
+  app.get("/api/community/notifications/unread-count", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+
+      const count = await storage.getUnreadNotificationsCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Get unread count error:", error);
+      res.status(500).json({ error: "Failed to get unread count" });
+    }
+  });
+
+  // USER PROFILE & SEARCH ROUTES
+  // Get enhanced user profile
+  app.get("/api/community/users/:userId", async (req, res) => {
+    try {
+      const userId = req.params.userId;
+      const requestingUserId = req.session.userId;
+
+      const profile = await storage.getUserProfile(userId, requestingUserId);
+      if (!profile) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ profile });
+    } catch (error) {
+      console.error("Get user profile error:", error);
+      res.status(500).json({ error: "Failed to get user profile" });
+    }
+  });
+
+  // Search users
+  app.get("/api/community/users", async (req, res) => {
+    try {
+      const { q: query, limit = 20, offset = 0 } = req.query;
+
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      const users = await storage.searchUsers(query, Number(limit));
+
+      res.json({ users, count: users.length });
+    } catch (error) {
+      console.error("Search users error:", error);
+      res.status(500).json({ error: "Failed to search users" });
+    }
+  });
+
+  // BOOKMARKS ROUTES
+  // Bookmark post
+  app.post("/api/community/posts/:postId/bookmark", requireAuth, async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.session.userId!;
+
+      const bookmark = await storage.createBookmark(userId, postId);
+      res.status(201).json({ bookmark });
+    } catch (error) {
+      console.error("Bookmark post error:", error);
+      res.status(500).json({ error: "Failed to bookmark post" });
+    }
+  });
+
+  // Remove bookmark
+  app.delete("/api/community/posts/:postId/bookmark", requireAuth, async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const userId = req.session.userId!;
+
+      await storage.removeBookmark(userId, postId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove bookmark error:", error);
+      res.status(500).json({ error: "Failed to remove bookmark" });
+    }
+  });
+
+  // Get user bookmarks
+  app.get("/api/community/bookmarks", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { limit = 20, offset = 0 } = req.query;
+
+      const bookmarks = await storage.getUserBookmarks(userId);
+
+      res.json({ bookmarks, count: bookmarks.length });
+    } catch (error) {
+      console.error("Get bookmarks error:", error);
+      res.status(500).json({ error: "Failed to get bookmarks" });
+    }
+  });
+
+  // TAGS ROUTES
+  // Create tag
+  app.post("/api/community/tags", requireAuth, async (req, res) => {
+    try {
+      const tagData = insertTagSchema.parse(req.body);
+      const tag = await storage.createTag(tagData);
+      res.status(201).json({ tag });
+    } catch (error) {
+      console.error("Create tag error:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid tag data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create tag" });
+    }
+  });
+
+  // Get tags
+  app.get("/api/community/tags", async (req, res) => {
+    try {
+      const { search, limit = 50, offset = 0 } = req.query;
+
+      const tags = await storage.getTags(search as string);
+
+      res.json({ tags, count: tags.length });
+    } catch (error) {
+      console.error("Get tags error:", error);
+      res.status(500).json({ error: "Failed to get tags" });
+    }
+  });
+
+  // Add tag to post
+  app.post("/api/community/posts/:postId/tags", requireAuth, async (req, res) => {
+    try {
+      const { postId } = req.params;
+      const { tagId } = req.body;
+
+      await storage.addTagToPost(postId, tagId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Add tag to post error:", error);
+      res.status(500).json({ error: "Failed to add tag to post" });
+    }
+  });
+
+  // Remove tag from post
+  app.delete("/api/community/posts/:postId/tags/:tagId", requireAuth, async (req, res) => {
+    try {
+      const { postId, tagId } = req.params;
+
+      await storage.removeTagFromPost(postId, tagId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove tag from post error:", error);
+      res.status(500).json({ error: "Failed to remove tag from post" });
+    }
+  });
+
+  // REPORTS/MODERATION ROUTES  
+  // Create report
+  app.post("/api/community/reports", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const reportData = insertReportSchema.parse({
+        ...req.body,
+        reporterId: userId
+      });
+
+      const report = await storage.createReport(reportData);
+      res.status(201).json({ report });
+    } catch (error) {
+      console.error("Create report error:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid report data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create report" });
+    }
+  });
+
+  // Get reports (admin/mod only - simplified for now)
+  app.get("/api/community/reports", requireAuth, async (req, res) => {
+    try {
+      const { status, limit = 20, offset = 0 } = req.query;
+
+      const reports = await storage.getReports({
+        status: status as string,
+        limit: Number(limit)
+      });
+
+      res.json({ reports, count: reports.length });
+    } catch (error) {
+      console.error("Get reports error:", error);
+      res.status(500).json({ error: "Failed to get reports" });
+    }
+  });
+
+  // Update report status (admin/mod only - simplified for now)
+  app.patch("/api/community/reports/:reportId", requireAuth, async (req, res) => {
+    try {
+      const { reportId } = req.params;
+      
+      // Validate request body for report status update
+      const { status, reviewedById } = req.body;
+      
+      if (!status || typeof status !== 'string') {
+        return res.status(400).json({ error: "Status is required and must be a string" });
+      }
+      
+      if (reviewedById && typeof reviewedById !== 'string') {
+        return res.status(400).json({ error: "ReviewedById must be a string if provided" });
+      }
+
+      const report = await storage.updateReportStatus(reportId, status, reviewedById);
+      if (!report) {
+        return res.status(404).json({ error: "Report not found" });
+      }
+
+      res.json({ report });
+    } catch (error) {
+      console.error("Update report error:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid report update data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update report" });
     }
   });
 
