@@ -457,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   ];
 
   // Search scraped animes
-  app.get("/api/animes", async (req, res) => {
+  app.get("/api/scraping/animes", async (req, res) => {
     try {
       const { q: query, site } = req.query;
       
@@ -491,7 +491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get episodes for a specific scraped anime
-  app.get("/api/animes/:siteId/:animeId/episodes", async (req, res) => {
+  app.get("/api/scraping/animes/:siteId/:animeId/episodes", async (req, res) => {
     try {
       const { siteId, animeId } = req.params;
       const { animeUrl } = req.query;
@@ -537,7 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get streaming URL for a scraped episode
-  app.get("/api/episodes/:siteId/:episodeId/stream", async (req, res) => {
+  app.get("/api/scraping/episodes/:siteId/:episodeId/stream", async (req, res) => {
     try {
       const { siteId, episodeId } = req.params;
       const { episodeUrl } = req.query;
