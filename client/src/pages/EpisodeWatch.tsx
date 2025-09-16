@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Play, Loader2, ChevronLeft, ChevronRight, Calendar, Clock, MessageCircle, LogIn } from "lucide-react";
+import { ArrowLeft, Play, Loader2, ChevronLeft, ChevronRight, Calendar, Clock, MessageCircle, LogIn, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { getEpisodeVideoUrl } from "@/lib/scrapingApi";
-import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal, getAnimeByIdAPI, getEpisodesByAnimeIdAPI } from "@/lib/api";
+import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal, getAnimeByIdAPI, getEpisodesByAnimeIdAPI, isEpisodeWatched } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 
@@ -37,6 +37,7 @@ export default function EpisodeWatch() {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState<Comment[]>([]);
+  const [watchedEpisodes, setWatchedEpisodes] = useState<Set<number>>(new Set());
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Buscar dados do anime
@@ -60,6 +61,24 @@ export default function EpisodeWatch() {
       setCurrentEpisode(episode || null);
     }
   }, [episodeNumber, episodes]);
+
+  // Carregar episódios assistidos para este anime
+  useEffect(() => {
+    if (animeId) {
+      const watched = new Set<number>();
+      
+      // Verificar quais episódios foram assistidos
+      if (episodes) {
+        episodes.forEach(episode => {
+          if (isEpisodeWatched(animeId, episode.number)) {
+            watched.add(episode.number);
+          }
+        });
+      }
+      
+      setWatchedEpisodes(watched);
+    }
+  }, [animeId, episodes]);
 
   // Carregar URL do vídeo quando episódio muda
   useEffect(() => {
@@ -140,6 +159,9 @@ export default function EpisodeWatch() {
       );
       
       console.log('✅ Episódio marcado como assistido automaticamente!', result);
+      
+      // Atualizar estado local dos episódios assistidos
+      setWatchedEpisodes(prev => new Set(prev).add(currentEpisode.number));
       
       if (result.completed) {
         console.log('🎉 Anime completado! Mostrando parabéns...');
@@ -428,36 +450,56 @@ export default function EpisodeWatch() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {episodes?.map((episode) => (
-                    <button
-                      key={episode.id}
-                      onClick={() => navigateToEpisode(episode.number)}
-                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                        episode.number === currentEpisode.number
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:bg-muted/50'
-                      }`}
-                    >
-                      <div className="flex gap-3">
-                        <img
-                          src={episode.thumbnail || "https://via.placeholder.com/400x225"}
-                          alt={episode.title}
-                          className="w-16 h-9 object-cover rounded"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            Episódio {episode.number}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {episode.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {episode.duration}
-                          </p>
+                  {episodes?.map((episode) => {
+                    const isWatched = watchedEpisodes.has(episode.number);
+                    const isCurrent = episode.number === currentEpisode.number;
+                    
+                    return (
+                      <button
+                        key={episode.id}
+                        onClick={() => navigateToEpisode(episode.number)}
+                        className={`w-full text-left p-3 rounded-lg border transition-colors relative ${
+                          isCurrent
+                            ? 'border-primary bg-primary/10'
+                            : isWatched
+                            ? 'border-green-500/50 bg-green-500/5 hover:bg-green-500/10'
+                            : 'border-border hover:bg-muted/50'
+                        }`}
+                        data-testid={`episode-${episode.number}`}
+                      >
+                        <div className="flex gap-3">
+                          <div className="relative">
+                            <img
+                              src={episode.thumbnail || "https://via.placeholder.com/400x225"}
+                              alt={episode.title}
+                              className={`w-16 h-9 object-cover rounded ${isWatched ? 'opacity-80' : ''}`}
+                            />
+                            {isWatched && (
+                              <div className="absolute inset-0 bg-black/40 rounded flex items-center justify-center">
+                                <Check className="w-4 h-4 text-green-400" data-testid={`check-episode-${episode.number}`} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`font-medium text-sm truncate ${isWatched ? 'text-green-400' : ''}`}>
+                                Episódio {episode.number}
+                              </p>
+                              {isWatched && (
+                                <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {episode.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {episode.duration}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
