@@ -1,5 +1,26 @@
 import type { Anime, Episode, Manga, Chapter, News, AnimeWithProgress, PostWithUser } from "@shared/schema";
-import { getJikanTrendingAnime, getJikanTopAnime, getJikanTopManga, getJikanAnimeById, getJikanMangaById, searchJikanAnime, searchJikanManga, getJikanSeasonalAnime } from './jikanApi';
+// AniList API (Principal) e Jikan API (Fallback)
+import { 
+  getAniListTrendingAnime, 
+  getAniListTopAnime, 
+  getAniListTopManga, 
+  getAniListAnimeById, 
+  getAniListMangaById, 
+  searchAniListAnime, 
+  searchAniListManga, 
+  getAniListSeasonalAnime,
+  getAniListTrendingAnimeMultiPage
+} from './anilistApi';
+import { 
+  getJikanTrendingAnime, 
+  getJikanTopAnime, 
+  getJikanTopManga, 
+  getJikanAnimeById, 
+  getJikanMangaById, 
+  searchJikanAnime, 
+  searchJikanManga, 
+  getJikanSeasonalAnime 
+} from './jikanApi';
 import { 
   mockAnimes, 
   mockEpisodes, 
@@ -13,7 +34,8 @@ import {
   getAnimeById
 } from "./mock-data";
 
-// Using only Jikan API for anime and manga data
+// Using AniList API as primary and Jikan API as fallback for anime and manga data
+const ANILIST_API_BASE = "https://graphql.anilist.co";
 const JIKAN_API_BASE = "https://api.jikan.moe/v4";
 
 
@@ -240,10 +262,22 @@ async function getAnimeDataFromAPI(): Promise<any[]> {
 
 
 export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🚀 Getting trending anime from optimized server...");
+  console.log("🚀 Getting trending anime - AniList API as primary, Jikan as fallback...");
   
   try {
-    // Usar o servidor otimizado que já faz a busca eficiente
+    // 1. Tentar AniList API primeiro (PRINCIPAL)
+    console.log("🌟 Trying AniList API (primary)...");
+    const anilistAnimes = await getAniListTrendingAnime(50); // Mais animes da AniList
+    if (anilistAnimes.length > 0) {
+      console.log(`✅ Got ${anilistAnimes.length} trending animes from AniList (primary)`);
+      return getAnimesWithProgress(anilistAnimes);
+    }
+  } catch (anilistError) {
+    console.log("⚠️ AniList API failed, trying Jikan API as fallback...");
+  }
+  
+  try {
+    // 2. Se AniList falhar, usar servidor otimizado
     const response = await fetch('/api/animes/trending');
     if (response.ok) {
       const data = await response.json();
@@ -252,13 +286,17 @@ export async function getTrendingAnime(): Promise<AnimeWithProgress[]> {
     }
   } catch (error) {
     console.log("⚠️ Server failed, using Jikan API directly...");
-    
-    // Fallback direto para Jikan API (limitado para não sobrecarregar)
+  }
+
+  try {
+    // 3. Fallback para Jikan API direto
     const jikanAnimes = await getJikanTrendingAnime(25);
     if (jikanAnimes.length > 0) {
       console.log(`✅ Using ${jikanAnimes.length} trending animes from Jikan`);
       return getAnimesWithProgress(jikanAnimes);
     }
+  } catch (jikanError) {
+    console.log("⚠️ All APIs failed, using mock data...");
   }
   
   // Fallback: usar TODOS os dados mock disponíveis para maximizar a coleção
@@ -778,11 +816,27 @@ export async function getAnimesBySeason(season: string = 'now'): Promise<AnimeWi
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🏆 Getting top anime from optimized server...");
+  console.log("🏆 Getting top anime - AniList API as primary, Jikan as fallback...");
   
   try {
-    // Usar o servidor que já busca os top animes da API do Jikan
-    const response = await fetch('/api/animes/trending'); // Servidor já retorna top animes
+    // 1. Tentar AniList API primeiro (PRINCIPAL)
+    console.log("🌟 Trying AniList API (primary) for top anime...");
+    const anilistAnimes = await getAniListTopAnime(25);
+    if (anilistAnimes.length > 0) {
+      // Pegar os top 10 baseado no rating
+      const topAnimes = anilistAnimes
+        .sort((a: any, b: any) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'))
+        .slice(0, 10);
+      console.log(`✅ Got ${topAnimes.length} top rated animes from AniList (primary)`);
+      return getAnimesWithProgress(topAnimes);
+    }
+  } catch (anilistError) {
+    console.log("⚠️ AniList API failed, trying server as fallback...");
+  }
+  
+  try {
+    // 2. Usar o servidor como fallback
+    const response = await fetch('/api/animes/trending');
     if (response.ok) {
       const data = await response.json();
       // Pegar os top 10 baseado no rating
@@ -794,13 +848,17 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
     }
   } catch (error) {
     console.log("⚠️ Server failed, using Jikan API directly...");
-    
-    // Fallback para Jikan API 
+  }
+  
+  try {
+    // 3. Fallback final para Jikan API 
     const jikanAnimes = await getJikanTopAnime(10);
     if (jikanAnimes.length > 0) {
       console.log(`✅ Using ${jikanAnimes.length} top animes from Jikan`);
       return getAnimesWithProgress(jikanAnimes);
     }
+  } catch (jikanError) {
+    console.log("⚠️ All APIs failed, using mock data...");
   }
   
   // Fallback: ordenar dados mock por viewCount
@@ -810,9 +868,21 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
 
 export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
   try {
-    console.log("📺 Getting anime details for ID:", id);
+    console.log("📺 Getting anime details for ID:", id, "- AniList API as primary, Jikan as fallback");
     
-    // Se o ID for numérico, tentar primeiro no Jikan API
+    // 1. Tentar AniList API primeiro (PRINCIPAL)
+    try {
+      console.log("🌟 Trying AniList API (primary) for anime details...");
+      const anilistAnime = await getAniListAnimeById(id);
+      if (anilistAnime) {
+        console.log(`✅ Found anime details from AniList (primary): ${anilistAnime.title}`);
+        return anilistAnime;
+      }
+    } catch (anilistError) {
+      console.log("⚠️ AniList API failed, trying Jikan API as fallback...");
+    }
+    
+    // 2. Se AniList falhar e ID for numérico, tentar Jikan API
     if (!isNaN(Number(id))) {
       try {
         const jikanAnime = await getJikanAnimeById(id);
@@ -1058,16 +1128,28 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
 
 // Manga API functions
 export async function getLatestManga(): Promise<Manga[]> {
-  console.log("📚 Getting latest manga with MyAnimeList integration...");
+  console.log("📚 Getting latest manga - AniList API as primary, Jikan as fallback...");
   
   try {
-    // Use Jikan API for top manga
+    // 1. Tentar AniList API primeiro (PRINCIPAL)
+    console.log("🌟 Trying AniList API (primary) for manga...");
+    const anilistMangas = await getAniListTopManga(50);
+    if (anilistMangas.length > 0) {
+      console.log(`✅ Got ${anilistMangas.length} latest mangas from AniList (primary)`);
+      return anilistMangas;
+    }
+  } catch (anilistError) {
+    console.log("⚠️ AniList API failed, trying Jikan API as fallback...");
+  }
+  
+  try {
+    // 2. Fallback para Jikan API
     const jikanMangas = await getJikanTopManga(25);
     if (jikanMangas.length > 0) {
       console.log(`✅ Got ${jikanMangas.length} latest mangas from Jikan`);
       return jikanMangas;
     }
-  } catch (error) {
+  } catch (jikanError) {
     console.log("⚠️ Jikan API failed, using fallback sources...");
   }
   
@@ -1185,9 +1267,21 @@ export async function getLatestManga(): Promise<Manga[]> {
 
 export async function getMangaByIdAPI(id: string): Promise<Manga> {
   try {
-    console.log("📚 Getting manga details for ID:", id);
+    console.log("📚 Getting manga details for ID:", id, "- AniList API as primary, Jikan as fallback");
     
-    // Use Jikan API for manga details
+    // 1. Tentar AniList API primeiro (PRINCIPAL)
+    try {
+      console.log("🌟 Trying AniList API (primary) for manga details...");
+      const anilistManga = await getAniListMangaById(id);
+      if (anilistManga) {
+        console.log(`✅ Found manga details from AniList (primary): ${anilistManga.title}`);
+        return anilistManga;
+      }
+    } catch (anilistError) {
+      console.log("⚠️ AniList API failed, trying Jikan API as fallback...");
+    }
+    
+    // 2. Fallback para Jikan API
     const jikanManga = await getJikanMangaById(id);
     if (jikanManga) {
       console.log(`✅ Found manga details from Jikan: ${jikanManga.title}`);

@@ -214,10 +214,7 @@ function convertJikanMangaToManga(jikanManga: JikanManga): Manga {
     genres: jikanManga.genres?.map(g => g.name) || [],
     synopsis: jikanManga.synopsis || 'Sinopse não disponível',
     status: jikanManga.status?.toLowerCase() || 'unknown',
-    rating: jikanManga.score?.toString() || '0',
-    year: new Date(jikanManga.published?.from || '').getFullYear() || new Date().getFullYear(),
-    type: 'Manga',
-    readCount: jikanManga.members || 0
+    rating: jikanManga.score?.toString() || '0'
   };
 }
 

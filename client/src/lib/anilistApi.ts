@@ -536,10 +536,7 @@ function convertAniListMangaToManga(anilistManga: AniListManga): Manga {
     genres: anilistManga.genres || [],
     synopsis: anilistManga.description?.replace(/<[^>]*>/g, '') || 'Sinopse não disponível',
     status: anilistManga.status?.toLowerCase() || 'unknown',
-    rating: (anilistManga.averageScore || anilistManga.meanScore || 0).toString(),
-    year,
-    type: anilistManga.format || 'Manga',
-    readCount: anilistManga.popularity || 0
+    rating: (anilistManga.averageScore || anilistManga.meanScore || 0).toString()
   };
 }
 

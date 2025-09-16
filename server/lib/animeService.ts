@@ -129,7 +129,7 @@ export class AnimeStreamingService {
           const animes = data.data.map((anime: any) => this.adaptJikanAnimeData(anime));
           
           // Adicionar apenas animes únicos
-          animes.forEach(anime => {
+          animes.forEach((anime: any) => {
             if (!allAnimes.find(existing => existing.id === anime.id)) {
               allAnimes.push(anime);
             }
