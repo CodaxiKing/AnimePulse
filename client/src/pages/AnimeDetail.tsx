@@ -4,25 +4,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp, Trophy, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import EpisodeModal from "@/components/EpisodeModal";
-import EpisodeGrid from "@/components/EpisodeGrid";
 import MilestoneModal from "@/components/MilestoneModal";
 import TrailerModal from "@/components/TrailerModal";
-import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, saveWatchProgress, removeWatchedEpisode, isEpisodeWatched, areAllEpisodesWatched, calculateAnimePoints, markEpisodeWatchedFromPlayer } from "@/lib/api";
+import { getAnimeByIdAPI } from "@/lib/api";
 import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
-import type { Episode } from "@shared/schema";
 import type { MilestoneData } from "@/lib/milestones";
 
 export default function AnimeDetail() {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState("1");
-  const [refreshKey, setRefreshKey] = useState(0);
   const [showCongrats, setShowCongrats] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [milestones, setMilestones] = useState<MilestoneData[]>([]);
@@ -30,51 +23,6 @@ export default function AnimeDetail() {
   const [trailerModalOpen, setTrailerModalOpen] = useState(false);
   const [selectedTrailer, setSelectedTrailer] = useState<{ animeTitle: string; trailerUrl: string } | null>(null);
 
-  const handleMarkEpisode = async (episode: Episode) => {
-    if (anime) {
-      const isWatched = isEpisodeWatched(anime.id, episode.number);
-      
-      if (isWatched) {
-        // Desmarcar episódio se já estiver assistido
-        removeWatchedEpisode(anime.id, episode.number);
-        console.log(`Desmarcado episódio ${episode.number}!`);
-      } else {
-        // Marcar como assistido quando clicar no botão Assistir
-        const result = await markEpisodeWatchedFromPlayer(
-          anime.id, 
-          episode.number, 
-          anime.title, 
-          anime.image, 
-          anime.totalEpisodes || episodes?.length || 12
-        );
-        
-        // TAMBÉM salvar como progresso para aparecer em "Continue Assistindo"
-        saveWatchProgress(
-          anime.id, 
-          anime.title, 
-          anime.image, 
-          episode.number, 
-          anime.totalEpisodes || episodes?.length || 12, 
-          100 // 100% assistido
-        );
-        
-        // Verificar se completou o anime e mostrar modal de parabéns
-        if (result.completed) {
-          setEarnedPoints(result.points);
-          setShowCongrats(true);
-          console.log(`🎉 Anime completado: ${anime.title}! Mostrando modal com ${result.points} pontos!`);
-        }
-        
-        console.log(`✅ Marcado episódio ${episode.number} como assistido E adicionado ao Continue Assistindo!`);
-      }
-      
-      // Forçar atualização da interface
-      setRefreshKey(prev => prev + 1);
-      
-      // Invalidar queries relacionadas para atualizar seção "Continue assistindo"
-      queryClient.invalidateQueries({ queryKey: ['continue'] });
-    }
-  };
   
   // Função para truncar sinopse
   const truncateSynopsis = (text: string, maxLength: number = 200) => {
@@ -561,56 +509,6 @@ export default function AnimeDetail() {
           </div>
         )}
 
-        {/* Seção de Episódios */}
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Episódios</h2>
-            {getAvailableSeasons().length > 1 && (
-              <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-                <SelectTrigger className="w-[180px]" data-testid="select-season">
-                  <SelectValue placeholder="Selecione a temporada" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getAvailableSeasons().map((season) => (
-                    <SelectItem key={season.value} value={season.value}>
-                      {season.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          
-          {loadingEpisodes ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-video rounded-xl" />
-              ))}
-            </div>
-          ) : (
-            <EpisodeGrid 
-              key={refreshKey}
-              episodes={episodes || []} 
-              animeTitle={anime.title}
-              animeId={id}
-              totalEpisodes={anime.totalEpisodes || undefined}
-              onMarkAsWatched={(episode) => handleMarkEpisode(episode)}
-              onEpisodeClick={(episode) => setSelectedEpisode(episode)}
-            />
-          )}
-        </div>
-        
-        <EpisodeModal
-          episode={selectedEpisode}
-          isOpen={!!selectedEpisode}
-          onClose={() => setSelectedEpisode(null)}
-          animeTitle={anime?.title}
-          animeImage={anime?.image}
-          animeId={anime?.id}
-          totalEpisodes={anime?.totalEpisodes || undefined}
-          episodes={episodes || []}
-          onEpisodeChange={setSelectedEpisode}
-        />
 
         {/* Modal de Parabéns Animado */}
         <Dialog open={showCongrats} onOpenChange={setShowCongrats}>
