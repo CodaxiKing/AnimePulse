@@ -1,19 +1,23 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp, Trophy, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp, Trophy, Star, ChevronLeft, ChevronRight, Calendar, Clock, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import MilestoneModal from "@/components/MilestoneModal";
 import TrailerModal from "@/components/TrailerModal";
-import { getAnimeByIdAPI } from "@/lib/api";
+import { getAnimeByIdAPI, getEpisodesByAnimeIdAPI, isEpisodeWatched } from "@/lib/api";
 import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
 import type { MilestoneData } from "@/lib/milestones";
+import type { Episode } from "@shared/schema";
 
 export default function AnimeDetail() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showCongrats, setShowCongrats] = useState(false);
@@ -74,6 +78,13 @@ export default function AnimeDetail() {
   const { data: anime, isLoading: loadingAnime } = useQuery({
     queryKey: ["anime", id],
     queryFn: () => getAnimeByIdAPI(id!),
+    enabled: !!id,
+  });
+
+  // Buscar episódios do anime
+  const { data: episodes, isLoading: loadingEpisodes } = useQuery({
+    queryKey: ["episodes", id, "1"],
+    queryFn: () => getEpisodesByAnimeIdAPI(id!, "1"),
     enabled: !!id,
   });
 
@@ -280,6 +291,250 @@ export default function AnimeDetail() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Seção de Episódios e Informações */}
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
+          <Tabs defaultValue="episodes" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="episodes">
+                Episódios {episodes && `(${episodes.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="related">Relacionados</TabsTrigger>
+              <TabsTrigger value="characters">Personagens</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="episodes" className="mt-6">
+              {loadingEpisodes ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="bg-card rounded-xl overflow-hidden border">
+                      <Skeleton className="aspect-video w-full" />
+                      <div className="p-3 space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : episodes && episodes.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold">
+                      Episódios de {anime?.title}
+                    </h3>
+                    <span className="text-sm text-muted-foreground">
+                      {episodes.length} episódio{episodes.length !== 1 ? 's' : ''} disponíveis
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {episodes.map((episode) => {
+                      const isWatched = id ? isEpisodeWatched(id, episode.number) : false;
+                      return (
+                        <Card key={episode.id} className={`group relative overflow-hidden border transition-all duration-200 hover:shadow-lg ${
+                          isWatched 
+                            ? 'border-green-500/50 bg-green-50/10 dark:bg-green-900/10' 
+                            : 'border-border hover:border-primary/20'
+                        }`}>
+                          <CardContent className="p-0">
+                            <div className="aspect-video relative overflow-hidden">
+                              <img
+                                src={episode.thumbnail || anime?.image || "https://via.placeholder.com/400x225"}
+                                alt={episode.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                              
+                              {/* Overlay com botão de play */}
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                                <Button
+                                  onClick={() => setLocation(`/animes/${id}/episodes/${episode.number}`)}
+                                  size="lg"
+                                  className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-full p-4 anime-glow"
+                                >
+                                  <Play className="w-6 h-6" />
+                                </Button>
+                              </div>
+                              
+                              {/* Número do episódio */}
+                              <div className={`absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-medium ${
+                                isWatched 
+                                  ? 'bg-green-500/90 text-white' 
+                                  : 'bg-black/80 text-white'
+                              }`}>
+                                EP {episode.number}
+                              </div>
+                              
+                              {/* Indicador de assistido */}
+                              {isWatched && (
+                                <div className="absolute top-2 right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+                                  <Check className="w-3 h-3" />
+                                </div>
+                              )}
+                              
+                              {/* Duração */}
+                              <div className="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {episode.duration || '24 min'}
+                              </div>
+                            </div>
+                            
+                            <div className="p-3">
+                              <h4 className="font-medium text-sm mb-2 line-clamp-2">
+                                {episode.title}
+                              </h4>
+                              
+                              <div className="flex items-center text-xs text-muted-foreground mb-2">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {episode.releaseDate ? new Date(episode.releaseDate).toLocaleDateString('pt-BR') : 'Em breve'}
+                              </div>
+                              
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  onClick={() => setLocation(`/animes/${id}/episodes/${episode.number}`)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 text-xs"
+                                >
+                                  <Play className="w-3 h-3 mr-1" />
+                                  Assistir
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Play className="w-16 h-16 mx-auto mb-4 opacity-50 text-muted-foreground" />
+                  <h3 className="text-lg font-medium mb-2">Nenhum episódio disponível</h3>
+                  <p className="text-muted-foreground">
+                    Os episódios serão adicionados em breve.
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="related" className="mt-6">
+              {anime?.relations && anime.relations.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold mb-4">Animes e Mangás Relacionados</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {anime.relations.slice(0, 20).map((relationStr, index) => {
+                      const relation = JSON.parse(relationStr);
+                      return (
+                        <Card key={index} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all duration-300">
+                          <CardContent className="p-0">
+                            <div className="aspect-[3/4] relative overflow-hidden">
+                              <img
+                                src={relation.image}
+                                alt={relation.title}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                onError={(e) => {
+                                  e.currentTarget.src = "https://via.placeholder.com/300x400?text=No+Image";
+                                }}
+                              />
+                              <div className="absolute top-2 left-2">
+                                <span className="bg-primary/90 backdrop-blur-sm text-primary-foreground px-2 py-1 rounded-full text-xs font-medium capitalize">
+                                  {relation.type}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="p-3">
+                              <h4 className="font-semibold text-sm line-clamp-2 mb-2">
+                                {relation.title}
+                              </h4>
+                              <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                                {relation.format}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <h3 className="text-lg font-medium mb-2">Nenhum relacionado encontrado</h3>
+                  <p className="text-muted-foreground">
+                    Não há animes ou mangás relacionados disponíveis.
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="characters" className="mt-6">
+              {anime?.characters && anime.characters.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold mb-4">Personagens Principais</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {anime.characters.slice(0, 16).map((characterStr, index) => {
+                      const character = JSON.parse(characterStr);
+                      return (
+                        <Card key={index} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all duration-300">
+                          <CardContent className="p-4">
+                            <div className="flex flex-col items-center text-center">
+                              <div className="relative mb-4">
+                                <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-primary/20 group-hover:border-primary/60 transition-all duration-300">
+                                  <img
+                                    src={character.image}
+                                    alt={character.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.src = "https://via.placeholder.com/80x80?text=?";
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              
+                              <h4 className="font-bold text-sm mb-1 line-clamp-2">
+                                {character.name}
+                              </h4>
+                              
+                              <span className="inline-block bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium border border-primary/20 mb-2">
+                                {character.role}
+                              </span>
+                              
+                              {character.voiceActor && (
+                                <div className="pt-2 border-t border-border/50 w-full">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <div className="w-6 h-6 rounded-full overflow-hidden border border-muted">
+                                      <img
+                                        src={character.voiceActor.image}
+                                        alt={character.voiceActor.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          e.currentTarget.src = "https://via.placeholder.com/24x24?text=?";
+                                        }}
+                                      />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {character.voiceActor.name}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <h3 className="text-lg font-medium mb-2">Nenhum personagem encontrado</h3>
+                  <p className="text-muted-foreground">
+                    Não há informações de personagens disponíveis.
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Seção de Relacionados */}
