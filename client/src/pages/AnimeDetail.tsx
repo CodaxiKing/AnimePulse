@@ -475,46 +475,65 @@ export default function AnimeDetail() {
                     {anime.characters.slice(0, 16).map((characterStr, index) => {
                       const character = JSON.parse(characterStr);
                       return (
-                        <Card key={index} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all duration-300">
-                          <CardContent className="p-4">
-                            <div className="flex flex-col items-center text-center">
-                              <div className="relative mb-4">
-                                <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-primary/20 group-hover:border-primary/60 transition-all duration-300">
-                                  <img
-                                    src={character.image}
-                                    alt={character.name}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      e.currentTarget.src = "https://via.placeholder.com/80x80?text=?";
-                                    }}
-                                  />
+                        <Card key={index} className="group cursor-pointer overflow-hidden border border-border/50 hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-2 bg-gradient-to-br from-card via-card to-card/90 hover:from-card/95 hover:via-primary/5 hover:to-primary/10">
+                          <CardContent className="p-6 relative">
+                            {/* Efeito de brilho sutil no hover */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg" />
+                            
+                            <div className="relative flex flex-col items-center text-center">
+                              <div className="relative mb-6">
+                                {/* Container da imagem com animações */}
+                                <div className="relative">
+                                  <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-primary/20 group-hover:border-primary/80 transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/30">
+                                    <img
+                                      src={character.image}
+                                      alt={character.name}
+                                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                      onError={(e) => {
+                                        e.currentTarget.src = "https://via.placeholder.com/80x80?text=?";
+                                      }}
+                                    />
+                                  </div>
+                                  {/* Estrela flutuante animada */}
+                                  <div className="absolute -top-1 -right-1 w-7 h-7 bg-gradient-to-r from-primary via-primary/90 to-primary/80 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-125 group-hover:rotate-12 shadow-lg">
+                                    <span className="text-xs text-primary-foreground">⭐</span>
+                                  </div>
+                                  {/* Círculo de brilho no hover */}
+                                  <div className="absolute inset-0 rounded-full bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" />
                                 </div>
                               </div>
                               
-                              <h4 className="font-bold text-sm mb-1 line-clamp-2">
+                              {/* Nome do personagem com animação de cor */}
+                              <h4 className="font-bold text-sm mb-3 line-clamp-2 group-hover:text-primary transition-colors duration-300 leading-tight">
                                 {character.name}
                               </h4>
                               
-                              <span className="inline-block bg-primary/10 text-primary px-2 py-1 rounded-full text-xs font-medium border border-primary/20 mb-2">
-                                {character.role}
-                              </span>
+                              {/* Badge do role com animações */}
+                              <div className="mb-4">
+                                <span className="inline-block bg-primary/10 group-hover:bg-primary/20 text-primary px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 group-hover:border-primary/40 transition-all duration-300 group-hover:scale-105 group-hover:shadow-md">
+                                  {character.role}
+                                </span>
+                              </div>
                               
+                              {/* Seção do dublador com animações */}
                               {character.voiceActor && (
-                                <div className="pt-2 border-t border-border/50 w-full">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <div className="w-6 h-6 rounded-full overflow-hidden border border-muted">
+                                <div className="pt-3 border-t border-border/50 group-hover:border-primary/30 w-full transition-colors duration-300">
+                                  <div className="flex items-center justify-center gap-3">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-muted group-hover:border-primary/60 transition-all duration-300 group-hover:scale-110">
                                       <img
                                         src={character.voiceActor.image}
                                         alt={character.voiceActor.name}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                                         onError={(e) => {
-                                          e.currentTarget.src = "https://via.placeholder.com/24x24?text=?";
+                                          e.currentTarget.src = "https://via.placeholder.com/32x32?text=?";
                                         }}
                                       />
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate">
-                                      {character.voiceActor.name}
-                                    </p>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium text-muted-foreground group-hover:text-primary/80 truncate transition-colors duration-300">
+                                        🎙️ {character.voiceActor.name}
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
                               )}
