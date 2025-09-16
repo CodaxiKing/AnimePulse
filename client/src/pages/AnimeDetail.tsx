@@ -250,7 +250,7 @@ export default function AnimeDetail() {
                       </div>
                       <div className="flex items-center">
                         <span className="font-medium text-muted-foreground w-24">Avaliação:</span>
-                        <span data-testid="text-anime-rating">⭐ {anime.rating}/10</span>
+                        <span data-testid="text-anime-rating">⭐ {anime.rating && anime.rating !== '0' ? (parseFloat(anime.rating) / 10).toFixed(1) : 'N/A'}/10</span>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -387,7 +387,7 @@ export default function AnimeDetail() {
               episodes={episodes || []} 
               animeTitle={anime.title}
               animeId={id}
-              totalEpisodes={anime.totalEpisodes}
+              totalEpisodes={anime.totalEpisodes || undefined}
               onMarkAsWatched={(episode) => handleMarkEpisode(episode)}
               onEpisodeClick={(episode) => setSelectedEpisode(episode)}
             />
