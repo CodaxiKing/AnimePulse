@@ -88,7 +88,7 @@ export default function News() {
         {/* Indicador da fonte */}
         <div className="flex items-center gap-2 mb-6">
           <Badge variant="secondary" className="text-xs">
-            Fonte: Anime News Network
+            Fonte: MyAnimeList
           </Badge>
           <Badge variant="outline" className="text-xs">
             {news?.length || 0} notícias
@@ -131,10 +131,10 @@ export default function News() {
                 title: newsItem.title,
                 description: newsItem.summary || newsItem.content || '',
                 link: newsItem.source || '#',
-                publishedDate: newsItem.publishedAt?.toISOString() || new Date().toISOString(),
+                publishedDate: newsItem.publishedAt ? new Date(newsItem.publishedAt).toISOString() : new Date().toISOString(),
                 category: newsItem.category,
                 thumbnail: newsItem.image || undefined,
-                author: newsItem.source || 'MyAnimeList'
+                author: 'MyAnimeList'
               };
               
               return (

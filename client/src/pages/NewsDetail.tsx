@@ -55,20 +55,20 @@ async function fetchNewsById(id: string): Promise<NewsDetailData | null> {
     
     // Adaptar para o formato esperado, mantendo compatibilidade
     return {
-      mal_id: parseInt(id) || 0,
+      mal_id: parseInt(news.id.replace(/\D/g, '')) || 0, // Extrair números do ID
       url: news.link || '#',
       title: news.title || 'Título não disponível',
       date: news.publishedDate || new Date().toISOString(),
       author_username: news.author || 'MyAnimeList',
       author_url: '#',
-      forum_url: '#',
+      forum_url: news.link || '#',
       images: {
         jpg: {
           image_url: news.thumbnail || ''
         }
       },
       excerpt: news.description || '',
-      content: news.content || news.description || ''
+      content: news.content || news.description || 'Conteúdo completo não disponível.'
     };
   } catch (error) {
     console.error("❌ Erro ao buscar notícia por ID:", error);
