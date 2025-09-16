@@ -17,3 +17,5 @@
 [x] 16. Adicionada aba de episódios na página de detalhes do anime com navegação para o player de vídeo
 [x] 17. Substituído o modal de notícias por navegação para páginas dedicadas - cards de notícias agora redirecionam para `/noticias/:id` em vez de abrir modal
 [x] 18. Configurada aba de notícias para usar API real do MyAnimeList via Jikan como método primário
+[x] 19. Redesigned Community interface inspired by Otanix with enhanced layout, left profile sidebar, right sidebar features, improved search, and better visual design
+[x] 20. Enhanced SocialPost component with card layout, better media grid, anime references, and improved interaction design
