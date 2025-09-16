@@ -898,7 +898,7 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
                 thumbnail: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
                 duration: ep.duration || "24 min",
                 releaseDate: ep.aired || new Date().toISOString(),
-                streamingUrl: `https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4`, // Placeholder até conseguirmos streaming real
+                streamingUrl: null, // Será buscada via API de scraping quando necessário
                 downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${index + 1}.mp4`,
               }));
               
@@ -978,19 +978,7 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
         // Gerar episódios baseados nos dados reais da API Jikan
         console.log("📺 Generating episodes for", anime.title, "with", totalEpisodes, "episodes");
 
-        // Lista de vídeos de exemplo variados para simular diferentes episódios
-        const sampleVideos = [
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", 
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
-          "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"
-        ];
+        // URLs de vídeo serão buscadas via API de scraping quando necessário
 
         // Gerar episódios realistas para esta temporada específica
         const episodes: Episode[] = [];
@@ -999,9 +987,7 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
           const episodeIndex = (i - 1) % episodeTitles.length;
           const episodeTitle = episodeTitles[episodeIndex] || `Aventura Continua`;
           
-          // Usar vídeo diferente para cada episódio baseado no número do episódio
-          const videoIndex = (i - 1) % sampleVideos.length;
-          const episodeVideo = sampleVideos[videoIndex];
+          // Vídeo será buscado via API de scraping quando necessário
           
           episodes.push({
             id: `${animeId}-s${season}-ep-${i}`,
@@ -1011,8 +997,8 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
             thumbnail: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
             duration: "24 min",
             releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
-            // Usar vídeo específico para este episódio
-            streamingUrl: episodeVideo,
+            // Será buscado via API de scraping quando necessário
+            streamingUrl: null,
             downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${i}.mp4`,
           });
         }
@@ -1035,19 +1021,7 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
       "Lágrimas e Sorrisos", "O Verdadeiro Inimigo", "Força Interior", "Sacrifício", "O Passado Revelado"
     ];
     
-    // Lista de vídeos diversos para fallback também
-    const sampleVideos = [
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", 
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4",
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"
-    ];
+    // URLs de vídeo serão buscadas via API de scraping quando necessário
 
     // Gerar episódios com base no fallback
     const episodes: Episode[] = [];
@@ -1056,9 +1030,7 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
       const episodeIndex = (i - 1) % fallbackTitles.length;
       const episodeTitle = fallbackTitles[episodeIndex] || `Aventura Continua`;
       
-      // Usar vídeo diferente para cada episódio também no fallback
-      const videoIndex = (i - 1) % sampleVideos.length;
-      const episodeVideo = sampleVideos[videoIndex];
+      // Vídeo será buscado via API de scraping quando necessário
       
       episodes.push({
         id: `${animeId}-s${season}-ep-${i}`,
@@ -1068,7 +1040,7 @@ export async function getEpisodesByAnimeIdAPI(animeId: string, season: string = 
         thumbnail: anime.image || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=300&fit=crop",
         duration: "24 min",
         releaseDate: new Date(Date.now() - (totalEpisodes - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        streamingUrl: episodeVideo,
+        streamingUrl: null,
         downloadUrl: `https://example.com/download/${animeId}-s${season}-ep-${i}.mp4`,
       });
     }

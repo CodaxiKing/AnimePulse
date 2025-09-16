@@ -446,15 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   ];
 
-  const demoStreamingUrls = [
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Subaru.mp4'
-  ];
+  // Demo streaming URLs removed - only real scraping will be used
 
   // Search scraped animes
   app.get("/api/scraping/animes", async (req, res) => {
@@ -544,31 +536,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`🎥 Getting streaming URL for scraped episode: ${episodeId} from site: ${siteId}`);
       
-      // Get episode number from episodeId or use random
-      const episodeMatch = episodeId.match(/ep-(\d+)/) || episodeId.match(/(\d+)/);
-      const episodeNumber = episodeMatch ? parseInt(episodeMatch[1]) : 1;
+      // Real streaming scraping would go here
+      // For now, return error since no real streaming is available
       
-      // Select a demo stream based on episode number
-      const streamIndex = (episodeNumber - 1) % demoStreamingUrls.length;
-      const streamingUrl = demoStreamingUrls[streamIndex];
-      
-      const streamingData = {
-        streamingUrl: streamingUrl,
-        referer: 'https://example.com',
-        headers: {
-          'Referer': 'https://example.com',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        external: false
-      };
-      
-      res.json({
-        success: true,
-        data: streamingData,
-        episodeId,
-        siteId,
-        timestamp: new Date().toISOString()
+      res.status(404).json({
+        success: false,
+        error: 'Episode stream not available',
+        message: 'Real streaming not implemented yet'
       });
+      return;
+      
+      // This will not be reached due to early return above
       
     } catch (error) {
       console.error('❌ Error getting scraped streaming URL:', error);
