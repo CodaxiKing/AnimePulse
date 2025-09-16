@@ -32,6 +32,7 @@ interface EpisodeData {
 
 export class AnimeStreamingService {
   // URLs das principais APIs de anime
+  private readonly ANILIST_API = 'https://graphql.anilist.co';
   private readonly CONSUMET_API = 'https://api.consumet.org';
   private readonly ANBU_API = 'https://anbuanime.onrender.com';
   private readonly BACKUP_API = 'https://gogoanime.consumet.stream';
@@ -97,9 +98,23 @@ export class AnimeStreamingService {
     );
   }
 
-  // Buscar animes em alta (trending/airing)
+  // Buscar animes em alta (trending/airing) - AniList como primário, Jikan como fallback
   async getTrendingAnime(page: number = 1): Promise<AnimeData[]> {
-    // Usar API do Jikan para buscar TODOS os animes disponíveis
+    console.log("🚀 Getting trending anime from server - AniList API as primary, Jikan as fallback...");
+    
+    // 1. Tentar AniList API primeiro (PRINCIPAL)
+    try {
+      console.log("🌟 Trying AniList API (primary) on server...");
+      const anilistAnimes = await this.getAniListTrendingAnime(50);
+      if (anilistAnimes.length > 0) {
+        console.log(`✅ Got ${anilistAnimes.length} trending animes from AniList (primary) on server`);
+        return anilistAnimes;
+      }
+    } catch (anilistError) {
+      console.log("⚠️ AniList API failed on server, trying Jikan API as fallback...");
+    }
+    
+    // 2. Fallback para API do Jikan para buscar TODOS os animes disponíveis
     const jikanEndpoints = [
       // Top animes (muitas páginas)
       ...Array.from({length: 100}, (_, i) => `https://api.jikan.moe/v4/top/anime?limit=25&page=${i + 1}`),
@@ -166,6 +181,124 @@ export class AnimeStreamingService {
 
     console.log('⚠️ Fallback para dados mock');
     return this.getMockAnimeData();
+  }
+
+  // Método para buscar trending animes da AniList API
+  private async getAniListTrendingAnime(perPage: number = 50): Promise<AnimeData[]> {
+    const query = `
+      query($page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+          media(type: ANIME, sort: [TRENDING_DESC, POPULARITY_DESC]) {
+            id
+            title {
+              romaji
+              english
+              native
+            }
+            coverImage {
+              large
+              medium
+            }
+            studios {
+              nodes {
+                name
+              }
+            }
+            startDate {
+              year
+            }
+            genres
+            description
+            status
+            episodes
+            averageScore
+            popularity
+            type
+            format
+          }
+        }
+      }
+    `;
+
+    try {
+      const data = await this.anilistRequest(query, { page: 1, perPage });
+      if (data?.Page?.media) {
+        return data.Page.media.map((anime: any) => this.adaptAniListAnimeData(anime));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching from AniList:', error);
+      throw error;
+    }
+  }
+
+  // Fazer requisição GraphQL para AniList
+  private async anilistRequest(query: string, variables: any = {}): Promise<any> {
+    try {
+      const response = await fetch(this.ANILIST_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const json = await response.json();
+      if (json.errors) {
+        throw new Error(json.errors[0].message);
+      }
+
+      return json.data;
+    } catch (error) {
+      console.error('AniList API request failed:', error);
+      throw error;
+    }
+  }
+
+  // Adaptar dados da AniList API para formato interno
+  private adaptAniListAnimeData(anilistData: any): AnimeData {
+    return {
+      id: anilistData.id?.toString() || Math.random().toString(),
+      title: anilistData.title?.english || anilistData.title?.romaji || anilistData.title?.native || 'Título não disponível',
+      image: anilistData.coverImage?.large || anilistData.coverImage?.medium || 'https://via.placeholder.com/400x600',
+      studio: anilistData.studios?.nodes?.[0]?.name || 'Estúdio não informado',
+      year: anilistData.startDate?.year || new Date().getFullYear(),
+      genres: anilistData.genres || [],
+      synopsis: this.stripHtmlTags(anilistData.description) || 'Sinopse não disponível',
+      releaseDate: anilistData.startDate ? `${anilistData.startDate.year || ''}-${anilistData.startDate.month || '01'}-${anilistData.startDate.day || '01'}` : '',
+      status: this.convertAniListStatus(anilistData.status),
+      totalEpisodes: anilistData.episodes || 0,
+      rating: anilistData.averageScore ? (anilistData.averageScore / 10).toString() : '0',
+      viewCount: anilistData.popularity || Math.floor(Math.random() * 100000),
+      type: anilistData.format || anilistData.type || 'TV',
+      subOrDub: 'SUB'
+    };
+  }
+
+  // Remover tags HTML das descrições
+  private stripHtmlTags(html: string): string {
+    if (!html) return '';
+    return html.replace(/<[^>]*>/g, '').trim();
+  }
+
+  // Converter status da AniList para formato interno
+  private convertAniListStatus(status: string): string {
+    switch (status) {
+      case 'FINISHED': return 'completed';
+      case 'RELEASING': return 'ongoing';
+      case 'NOT_YET_RELEASED': return 'upcoming';
+      case 'CANCELLED': return 'cancelled';
+      case 'HIATUS': return 'paused';
+      default: return 'unknown';
+    }
   }
 
   // Buscar episódios recentes
