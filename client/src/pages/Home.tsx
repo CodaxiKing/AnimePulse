@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState, useEffect } from "react";
 import HeroCarousel from "@/components/HeroCarousel";
 import AnimeCard from "@/components/AnimeCard";
 import MangaCard from "@/components/MangaCard";
@@ -26,6 +26,8 @@ import {
 
 function ContinueWatchingSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+  
   const { data: continueAnimes, isLoading } = useQuery({
     queryKey: ['continue'],
     queryFn: async () => {
@@ -33,6 +35,19 @@ function ContinueWatchingSection() {
       return getContinueWatching();
     },
   });
+
+  useEffect(() => {
+    const handleContinueWatchingUpdate = () => {
+      // Invalidar o cache para atualizar a seção Continue assistindo
+      queryClient.invalidateQueries({ queryKey: ['continue'] });
+    };
+
+    window.addEventListener('continueWatchingUpdated', handleContinueWatchingUpdate);
+    
+    return () => {
+      window.removeEventListener('continueWatchingUpdated', handleContinueWatchingUpdate);
+    };
+  }, [queryClient]);
 
   const scrollLeft = () => {
     if (scrollRef.current) {

@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Play, Clock, Calendar, X, Check, CheckCheck } from "lucide-react";
-import { isEpisodeWatched, removeWatchedEpisode } from "@/lib/api";
+import { isEpisodeWatched, unmarkEpisodeAsWatched } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 interface EpisodeGridProps {
   episodes: Episode[];
   animeTitle?: string;
   animeId?: string;
+  totalEpisodes?: number;
   onMarkAsWatched?: (episode: Episode) => void;
   onEpisodeClick?: (episode: Episode) => void;
 }
@@ -71,7 +72,7 @@ const VideoPlayer = ({ episode, isOpen, onClose }: VideoPlayerProps) => {
   );
 };
 
-const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episode: Episode; onClick: () => void; handleMarkAsWatched?: (episode: Episode) => void; animeId?: string }) => {
+const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId, totalEpisodes }: { episode: Episode; onClick: () => void; handleMarkAsWatched?: (episode: Episode) => void; animeId?: string; totalEpisodes?: number }) => {
   const [, setLocation] = useLocation();
   const [forceUpdate, setForceUpdate] = useState(0);
   const isWatched = animeId ? isEpisodeWatched(animeId, episode.number) : false;
@@ -188,13 +189,21 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
               onClick={(e) => {
                 e.stopPropagation();
                 if (animeId) {
-                  // Desmarcar como assistido
-                  removeWatchedEpisode(animeId, episode.number);
+                  // Desmarcar como assistido E remover da seção Continue Assistindo
+                  unmarkEpisodeAsWatched(
+                    animeId, 
+                    episode.number, 
+                    episode.title || "Episódio " + episode.number,
+                    episode.thumbnail || "",
+                    totalEpisodes || 1
+                  );
                   console.log(`Desmarcado episódio ${episode.number}!`);
                   // Reforce a atualização do estado
                   window.dispatchEvent(new CustomEvent('episodeUnwatched', { 
                     detail: { animeId, episodeNumber: episode.number } 
                   }));
+                  // Disparar evento para invalidar cache da seção Continue Assistindo
+                  window.dispatchEvent(new CustomEvent('continueWatchingUpdated'));
                 }
               }}
               variant="default"
@@ -212,7 +221,7 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
   );
 };
 
-export default function EpisodeGrid({ episodes, animeTitle, animeId, onMarkAsWatched, onEpisodeClick }: EpisodeGridProps) {
+export default function EpisodeGrid({ episodes, animeTitle, animeId, totalEpisodes, onMarkAsWatched, onEpisodeClick }: EpisodeGridProps) {
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null);
 
   const handleEpisodeClick = (episode: Episode) => {
@@ -254,6 +263,7 @@ export default function EpisodeGrid({ episodes, animeTitle, animeId, onMarkAsWat
             onClick={() => onEpisodeClick?.(episode)}
             handleMarkAsWatched={onMarkAsWatched}
             animeId={animeId}
+            totalEpisodes={totalEpisodes || episodes.length}
           />
         ))}
       </div>
