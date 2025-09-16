@@ -251,7 +251,7 @@ export default function EpisodeGrid({ episodes, animeTitle, animeId, totalEpisod
           Episódios {animeTitle && `de ${animeTitle}`}
         </h2>
         <span className="text-sm text-muted-foreground">
-          {episodes.length} episódio{episodes.length !== 1 ? 's' : ''}
+          {totalEpisodes || episodes.length} episódio{(totalEpisodes || episodes.length) !== 1 ? 's' : ''} {totalEpisodes ? 'disponíveis' : 'encontrados'}
         </span>
       </div>
       

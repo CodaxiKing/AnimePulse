@@ -387,6 +387,7 @@ export default function AnimeDetail() {
               episodes={episodes || []} 
               animeTitle={anime.title}
               animeId={id}
+              totalEpisodes={anime.totalEpisodes}
               onMarkAsWatched={(episode) => handleMarkEpisode(episode)}
               onEpisodeClick={(episode) => setSelectedEpisode(episode)}
             />
