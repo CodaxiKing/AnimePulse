@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Play, Clock, Calendar, X, Check } from "lucide-react";
 import { isEpisodeWatched, removeWatchedEpisode } from "@/lib/api";
@@ -71,6 +72,7 @@ const VideoPlayer = ({ episode, isOpen, onClose }: VideoPlayerProps) => {
 };
 
 const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episode: Episode; onClick: () => void; handleMarkAsWatched?: (episode: Episode) => void; animeId?: string }) => {
+  const [, setLocation] = useLocation();
   const [forceUpdate, setForceUpdate] = useState(0);
   const isWatched = animeId ? isEpisodeWatched(animeId, episode.number) : false;
 
@@ -164,7 +166,10 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
         <div className="flex gap-2 mt-3">
           <Button
             onClick={() => {
-              onClick();
+              // Navegar para a nova página de assistir episódio
+              if (animeId) {
+                setLocation(`/animes/${animeId}/episodes/${episode.number}`);
+              }
               // Marcar como assistindo quando clicar no botão Assistir
               if (!isWatched) {
                 handleMarkAsWatched?.(episode);
