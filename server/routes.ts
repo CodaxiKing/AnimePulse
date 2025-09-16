@@ -407,26 +407,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Web Scraping Routes - Deprecated (now using standalone API)
-  app.get("/api/scrape/animes", async (req, res) => {
-    res.status(410).json({ 
-      error: "Web scraping is now handled by standalone API", 
-      message: "Use the independent anime-scraper-api server on port 3001" 
-    });
+  // Integrated Anime Scraping API Routes
+  
+  // Demo data for scraping simulation
+  const demoScrapedAnimes = [
+    {
+      id: 'demo-1',
+      siteId: 'demo',
+      title: 'Fullmetal Alchemist: Brotherhood',
+      url: 'https://example.com/fullmetal-alchemist-brotherhood',
+      thumbnail: 'https://cdn.myanimelist.net/images/anime/1223/96541.jpg',
+      totalEpisodes: 64,
+      genres: ['Action', 'Adventure', 'Drama'],
+      status: 'Completed',
+      year: 2009
+    },
+    {
+      id: 'demo-2',
+      siteId: 'demo',
+      title: 'Attack on Titan',
+      url: 'https://example.com/attack-on-titan',
+      thumbnail: 'https://cdn.myanimelist.net/images/anime/10/47347.jpg',
+      totalEpisodes: 25,
+      genres: ['Action', 'Drama', 'Fantasy'],
+      status: 'Completed',
+      year: 2013
+    },
+    {
+      id: 'demo-3',
+      siteId: 'demo',
+      title: 'One Piece',
+      url: 'https://example.com/one-piece',
+      thumbnail: 'https://cdn.myanimelist.net/images/anime/6/73245.jpg',
+      totalEpisodes: 1000,
+      genres: ['Adventure', 'Comedy', 'Drama'],
+      status: 'Ongoing',
+      year: 1999
+    }
+  ];
+
+  const demoStreamingUrls = [
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Subaru.mp4'
+  ];
+
+  // Search scraped animes
+  app.get("/api/animes", async (req, res) => {
+    try {
+      const { q: query, site } = req.query;
+      
+      console.log(`🔍 Searching scraped animes${query ? ` for: "${query}"` : ''}`);
+      
+      let results = demoScrapedAnimes;
+      
+      // Simple filtering based on query
+      if (query && typeof query === 'string') {
+        results = demoScrapedAnimes.filter(anime => 
+          anime.title.toLowerCase().includes(query.toLowerCase())
+        );
+      }
+      
+      res.json({
+        success: true,
+        data: results,
+        count: results.length,
+        query: query || null,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Error searching scraped animes:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal Server Error',
+        message: 'Failed to search animes'
+      });
+    }
   });
 
-  app.get("/api/scrape/episodes/:animeId", async (req, res) => {
-    res.status(410).json({ 
-      error: "Web scraping is now handled by standalone API", 
-      message: "Use the independent anime-scraper-api server on port 3001" 
-    });
+  // Get episodes for a specific scraped anime
+  app.get("/api/animes/:siteId/:animeId/episodes", async (req, res) => {
+    try {
+      const { siteId, animeId } = req.params;
+      const { animeUrl } = req.query;
+      
+      console.log(`🎬 Getting episodes for scraped anime: ${animeId} from site: ${siteId}`);
+      
+      // Generate episodes for the requested anime
+      const episodes = [];
+      const baseAnime = demoScrapedAnimes.find(a => a.id === animeId) || demoScrapedAnimes[0];
+      const totalEpisodes = baseAnime.totalEpisodes || 12;
+      
+      for (let i = 1; i <= Math.min(totalEpisodes, 12); i++) {
+        episodes.push({
+          id: `ep-${i}`,
+          animeId: animeId,
+          siteId: siteId,
+          number: i,
+          title: `Episódio ${i}`,
+          url: `https://example.com/${animeId}/episode-${i}`,
+          thumbnail: 'https://via.placeholder.com/640x360',
+          duration: '24 min',
+          releaseDate: new Date(2024, 0, i).toISOString().split('T')[0]
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: episodes,
+        count: episodes.length,
+        animeId,
+        siteId,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Error getting scraped episodes:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal Server Error',
+        message: 'Failed to get episodes'
+      });
+    }
   });
 
-  app.get("/api/scrape/streaming/:episodeId", async (req, res) => {
-    res.status(410).json({ 
-      error: "Web scraping is now handled by standalone API", 
-      message: "Use the independent anime-scraper-api server on port 3001" 
-    });
+  // Get streaming URL for a scraped episode
+  app.get("/api/episodes/:siteId/:episodeId/stream", async (req, res) => {
+    try {
+      const { siteId, episodeId } = req.params;
+      const { episodeUrl } = req.query;
+      
+      console.log(`🎥 Getting streaming URL for scraped episode: ${episodeId} from site: ${siteId}`);
+      
+      // Get episode number from episodeId or use random
+      const episodeMatch = episodeId.match(/ep-(\d+)/) || episodeId.match(/(\d+)/);
+      const episodeNumber = episodeMatch ? parseInt(episodeMatch[1]) : 1;
+      
+      // Select a demo stream based on episode number
+      const streamIndex = (episodeNumber - 1) % demoStreamingUrls.length;
+      const streamingUrl = demoStreamingUrls[streamIndex];
+      
+      const streamingData = {
+        streamingUrl: streamingUrl,
+        referer: 'https://example.com',
+        headers: {
+          'Referer': 'https://example.com',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        external: false
+      };
+      
+      res.json({
+        success: true,
+        data: streamingData,
+        episodeId,
+        siteId,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Error getting scraped streaming URL:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal Server Error',
+        message: 'Failed to get streaming URL'
+      });
+    }
   });
 
   // Manga routes

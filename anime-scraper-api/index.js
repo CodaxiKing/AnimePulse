@@ -6,7 +6,7 @@ const { RateLimiterMemory } = require('rate-limiter-flexible');
 const AnimeScraper = require('./lib/AnimeScraper');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = 3001;
 
 // Rate limiting
 const rateLimiter = new RateLimiterMemory({
