@@ -8,3 +8,5 @@
 [x] 8. Added visual indicators for watched episodes in episode list with green checkmarks and styling
 [x] 9. Created PostgreSQL database and configured all tables
 [x] 10. Created admin user with credentials: username="admin", password="admin123", displayName="Admin Admin"
+[x] 11. Evaluated AniAPI integration and confirmed current Jikan API + scraping setup is optimal
+[x] 12. Verified all anime data fetching and streaming functionality is working properly
