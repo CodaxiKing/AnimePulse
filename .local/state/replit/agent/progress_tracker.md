@@ -4,3 +4,4 @@
 [x] 4. Inform user the import is completed and they can start building, mark the import as completed using the complete_project_import tool
 [x] 5. Remove 'Descobrir' tab from navigation and integrate ScrapedAnimeGrid into Animes page
 [x] 6. Fix manga image loading by adding proper error handling and fallback images
+[x] 7. Verified episode watch tracking functionality works correctly - episodes only marked as watched when video finishes playing
