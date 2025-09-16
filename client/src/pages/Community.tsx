@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import SocialPost from "@/components/SocialPost";
 import PostComposer from "@/components/PostComposer";
 import ActiveUsers from "@/components/ActiveUsers";
+import { ChatList } from '@/components/ChatList';
 import { getSocialPosts, getActiveUsers } from "@/lib/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
@@ -47,11 +48,6 @@ export default function Community() {
     { title: "Como começar a ler mangá", views: "1.2k", category: "Iniciantes" }
   ];
 
-  const publicChats = [
-    { name: "Anime em iOS", members: 11, status: "online" },
-    { name: "Sistemas de Revidão", members: 8, status: "online" },
-    { name: "FBI - Departamento de forças", members: 6, status: "online" }
-  ];
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-6">
@@ -264,27 +260,7 @@ export default function Community() {
         {/* Right Sidebar */}
         <div className="lg:col-span-3 space-y-6">
           {/* Public Chats */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MessageCircle className="w-5 h-5" />
-                Chats Públicos
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-3">
-                {publicChats.map((chat, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
-                    <div>
-                      <h4 className="font-medium text-sm">{chat.name}</h4>
-                      <p className="text-xs text-muted-foreground">{chat.members} Membros Online</p>
-                    </div>
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <ChatList />
 
           {/* Trending Topics */}
           <Card className="border-0 shadow-lg">
