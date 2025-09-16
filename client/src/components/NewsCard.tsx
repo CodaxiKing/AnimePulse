@@ -7,6 +7,12 @@ interface NewsItem {
   category?: string;
   thumbnail?: string;
   author?: string;
+  // Campos do banco de dados também suportados
+  image?: string | null;
+  summary?: string | null;
+  content?: string | null;
+  source?: string | null;
+  publishedAt?: Date | null;
 }
 
 interface NewsCardProps {
@@ -28,7 +34,7 @@ export default function NewsCard({ news, onClick }: NewsCardProps) {
       data-testid={`card-news-${news.id}`}
     >
       <img
-        src={news.thumbnail || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop"}
+        src={news.thumbnail || news.image || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop"}
         alt={news.title}
         className="w-full h-32 object-cover"
         data-testid={`img-news-${news.id}`}
@@ -38,11 +44,11 @@ export default function NewsCard({ news, onClick }: NewsCardProps) {
           {news.title}
         </h3>
         <p className="text-sm text-muted-foreground line-clamp-3" data-testid={`text-news-summary-${news.id}`}>
-          {news.description}
+          {news.description || news.summary}
         </p>
         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-          <span>{news.author || 'Anime News Network'}</span>
-          <span>{new Date(news.publishedDate).toLocaleDateString('pt-BR')}</span>
+          <span>{news.author || news.source || 'Anime News Network'}</span>
+          <span>{new Date(news.publishedDate || news.publishedAt || new Date()).toLocaleDateString('pt-BR')}</span>
         </div>
       </div>
     </div>

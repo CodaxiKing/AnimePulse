@@ -35,7 +35,7 @@ function ContinueWatchingSection() {
       return getContinueWatching();
     },
     staleTime: 0, // Sempre considerar dados como stale para força re-fetch
-    cacheTime: 0, // Não fazer cache dos dados
+    gcTime: 0, // Não fazer cache dos dados (novo nome para cacheTime no v5)
   });
 
   useEffect(() => {
