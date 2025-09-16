@@ -38,14 +38,26 @@ function ContinueWatchingSection() {
 
   useEffect(() => {
     const handleContinueWatchingUpdate = () => {
-      // Invalidar o cache para atualizar a seção Continue assistindo
-      queryClient.invalidateQueries({ queryKey: ['continue'] });
+      // Pequeno delay para garantir que o localStorage foi atualizado
+      setTimeout(() => {
+        // Invalidar o cache para atualizar a seção Continue assistindo
+        queryClient.invalidateQueries({ queryKey: ['continue'] });
+      }, 100);
+    };
+
+    // Também escutar eventos de episódios desmarcados
+    const handleEpisodeUnwatched = () => {
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['continue'] });
+      }, 100);
     };
 
     window.addEventListener('continueWatchingUpdated', handleContinueWatchingUpdate);
+    window.addEventListener('episodeUnwatched', handleEpisodeUnwatched);
     
     return () => {
       window.removeEventListener('continueWatchingUpdated', handleContinueWatchingUpdate);
+      window.removeEventListener('episodeUnwatched', handleEpisodeUnwatched);
     };
   }, [queryClient]);
 
