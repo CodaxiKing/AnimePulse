@@ -1,4 +1,4 @@
-import type { Anime, Episode, Manga, Chapter, News, AnimeWithProgress, PostWithUser } from "@shared/schema";
+import type { Anime, Episode, Manga, Chapter, News, AnimeWithProgress, PostWithUser, User } from "@shared/schema";
 // AniList API (Principal) e Jikan API (Fallback)
 import { 
   getAniListTrendingAnime, 
@@ -1468,14 +1468,151 @@ export async function getNewsByCategory(category: string): Promise<News[]> {
   return mockNews.filter(news => news.category === category);
 }
 
-// Social API functions
-export async function getSocialPosts(): Promise<PostWithUser[]> {
-  return getPostsWithUsers();
+// ============================================
+// COMMUNITY API FUNCTIONS
+// ============================================
+
+// Get community posts feed
+export async function getSocialPosts(options?: { 
+  limit?: number; 
+  offset?: number; 
+  feed?: 'all' | 'following' | 'groups'; 
+}): Promise<PostWithUser[]> {
+  console.log("📱 Getting social posts...", options);
+  try {
+    const params = new URLSearchParams();
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.offset) params.append('offset', options.offset.toString());
+    if (options?.feed) params.append('feed', options.feed);
+
+    const response = await fetch(`/api/community/posts?${params.toString()}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const data = await response.json();
+    return data.posts || [];
+  } catch (error) {
+    console.error("❌ Error getting social posts:", error);
+    return getPostsWithUsers(); // Fallback to mock data
+  }
 }
 
-export async function getActiveUsers() {
-  const { mockUsers } = await import("./mock-data");
-  return mockUsers.filter(user => user.online);
+// Get active/online users
+export async function getActiveUsers(): Promise<User[]> {
+  console.log("👥 Getting active users...");
+  try {
+    const response = await fetch('/api/community/users?limit=10');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const data = await response.json();
+    return data.users || [];
+  } catch (error) {
+    console.error("❌ Error getting active users:", error);
+    // Fallback mock data
+    const { mockUsers } = await import("./mock-data");
+    return mockUsers.filter(user => user.online);
+  }
+}
+
+// Create a new post
+export async function createPost(postData: {
+  content: string;
+  mediaUrls?: string[];
+  animeId?: string;
+  animeTitle?: string;
+  animeImage?: string;
+  visibility?: string;
+  groupId?: string;
+}) {
+  const response = await fetch('/api/community/posts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(postData)
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to create post');
+  }
+  
+  return response.json();
+}
+
+// Toggle post reaction (like/unlike)
+export async function togglePostReaction(postId: string, type: string = 'like') {
+  const response = await fetch(`/api/community/posts/${postId}/react`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ type })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to toggle reaction');
+  }
+  
+  return response.json();
+}
+
+// Remove post reaction
+export async function removePostReaction(postId: string) {
+  const response = await fetch(`/api/community/posts/${postId}/react`, {
+    method: 'DELETE',
+    credentials: 'include'
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to remove reaction');
+  }
+  
+  return response.json();
+}
+
+// Get post comments
+export async function getPostComments(postId: string, options?: { limit?: number; offset?: number }) {
+  const params = new URLSearchParams();
+  if (options?.limit) params.append('limit', options.limit.toString());
+  if (options?.offset) params.append('offset', options.offset.toString());
+
+  const response = await fetch(`/api/community/posts/${postId}/comments?${params.toString()}`);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  
+  const data = await response.json();
+  return data.comments || [];
+}
+
+// Create a comment
+export async function createComment(postId: string, content: string, parentCommentId?: string) {
+  const response = await fetch(`/api/community/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ content, parentCommentId })
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to create comment');
+  }
+  
+  return response.json();
+}
+
+// Get user notifications
+export async function getUserNotifications(unreadOnly?: boolean) {
+  const params = new URLSearchParams();
+  if (unreadOnly) params.append('unreadOnly', 'true');
+
+  const response = await fetch(`/api/community/notifications?${params.toString()}`, {
+    credentials: 'include'
+  });
+  
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  
+  const data = await response.json();
+  return data.notifications || [];
 }
 
 // Search function
