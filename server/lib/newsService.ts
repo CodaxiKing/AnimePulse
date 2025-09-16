@@ -54,6 +54,42 @@ export class AnimeNewsService {
   private readonly JIKAN_API_BASE = 'https://api.jikan.moe/v4';
   private readonly ANN_API_BASE = 'https://cdn.animenewsnetwork.com/encyclopedia';
 
+  // Método para buscar notícias reais do RSS da Anime News Network
+  private async getRSSNews(
+    category: 'all' | 'news' | 'reviews' | 'features',
+    limit: number = 20
+  ): Promise<NewsItem[]> {
+    try {
+      const feedUrl = this.RSS_FEEDS[category];
+      const feed = await this.rssParser.parseURL(feedUrl);
+      if (!feed.items?.length) return [];
+
+      return feed.items.slice(0, limit).map((item, index) => {
+        const contentEncoded = (item as any)['content:encoded'] as string | undefined;
+        const rawContent = contentEncoded || item.content || item.summary || item.description || '';
+        const cleanDesc = (item.contentSnippet || item.summary || item.description || '').replace(/<[^>]*>/g, '').trim();
+        const description = cleanDesc.substring(0, 200) + (cleanDesc.length > 200 ? '...' : '');
+        const thumbMatch = rawContent.match(/<img[^>]+src=["']([^"'>]+)["']/i);
+        const published = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+
+        return {
+          id: (item.guid as string) || `${category}-${index}-${item.link || item.title || 'item'}`,
+          title: item.title || 'Título não disponível',
+          description,
+          content: rawContent,
+          link: item.link || '#',
+          publishedDate: published,
+          category: item.categories?.[0] || category,
+          thumbnail: thumbMatch?.[1],
+          author: (item as any).creator || item.author || 'Anime News Network',
+        } satisfies NewsItem;
+      });
+    } catch (err) {
+      console.error(`❌ Erro ao carregar RSS (${category}):`, err);
+      return [];
+    }
+  }
+
   // Método para buscar notícias da API oficial da Anime News Network
   async getAnnApiNews(limit: number = 20): Promise<NewsItem[]> {
     try {
@@ -184,89 +220,33 @@ export class AnimeNewsService {
   }
 
   async getNews(category: 'all' | 'news' | 'reviews' | 'features' = 'news', limit: number = 20): Promise<NewsItem[]> {
-    // 1. Tentar API oficial da ANN primeiro (mais autêntica)
-    console.log(`📰 Tentando API oficial da Anime News Network primeiro...`);
+    // 1. Tentar RSS da ANN primeiro (notícias reais)
+    console.log(`📰 Buscando notícias reais do RSS da Anime News Network...`);
     try {
-      const annNews = await this.getAnnApiNews(limit);
-      if (annNews.length > 0) {
-        console.log(`✅ Usando ${annNews.length} notícias da API da ANN`);
-        return annNews;
+      const rssNews = await this.getRSSNews(category, limit);
+      if (rssNews.length > 0) {
+        console.log(`✅ Usando ${rssNews.length} notícias reais do RSS da ANN`);
+        return rssNews;
       }
-    } catch (annError) {
-      console.log("⚠️ API da ANN falhou, tentando RSS como fallback...");
+    } catch (rssError) {
+      console.log("⚠️ RSS da ANN falhou, tentando Jikan API como fallback...");
     }
 
     // 2. Fallback para API do Jikan (notícias simuladas)
-    console.log(`📰 Tentando Jikan API como segunda opção...`);
+    console.log(`📰 Tentando Jikan API como fallback...`);
     try {
       const jikanNews = await this.getJikanNews(limit);
       if (jikanNews.length > 0) {
-        console.log(`✅ Usando ${jikanNews.length} notícias do Jikan API`);
+        console.log(`✅ Usando ${jikanNews.length} notícias simuladas do Jikan API`);
         return jikanNews;
       }
     } catch (jikanError) {
-      console.log("⚠️ Jikan API falhou, tentando RSS como último fallback...");
-    }
-
-    // 2. Fallback para RSS da Anime News Network
-    try {
-      const feedUrl = this.RSS_FEEDS[category];
-      
-      console.log(`📰 Buscando notícias da categoria: ${category} - URL: ${feedUrl}`);
-      
-      const feed = await this.rssParser.parseURL(feedUrl);
-      
-      console.log(`✅ RSS feed carregado: ${feed.title} - ${feed.items?.length || 0} items`);
-      
-      if (!feed.items) {
-        console.log("⚠️ RSS não retornou items, retornando array vazio");
-        return [];
-      }
-
-      const newsItems: NewsItem[] = feed.items.slice(0, limit).map((item, index) => {
-        // Extrair thumbnail se disponível no content
-        const thumbnailMatch = item.content?.match(/<img[^>]+src="([^">]+)"/);
-        const thumbnail = thumbnailMatch ? thumbnailMatch[1] : undefined;
-
-        // Extrair conteúdo completo e descrição com debug
-        const fullContent = (item as any)['content:encoded'] || item.content || item.description || item.summary || '';
-        const cleanDescription = item.contentSnippet || item.description || '';
-        const description = cleanDescription.replace(/<[^>]*>/g, '').trim();
-        
-        // Debug: log dos dados disponíveis
-        if (index < 2) { // Log apenas os primeiros 2 itens para não poluir
-          console.log(`🔍 Debug notícia ${index + 1}:`);
-          console.log('- Title:', item.title);
-          console.log('- Content keys:', Object.keys(item));
-          console.log('- Content:', item.content ? 'Presente' : 'Ausente');
-          console.log('- Content:encoded:', (item as any)['content:encoded'] ? 'Presente' : 'Ausente');
-          console.log('- Description length:', (item.description || '').length);
-          console.log('- Full content length:', fullContent.length);
-        }
-
-        return {
-          id: item.guid || `${category}-${index}`,
-          title: item.title || 'Título não disponível',
-          description: description.substring(0, 200) + (description.length > 200 ? '...' : ''),
-          content: fullContent.length > description.length ? fullContent : description, // Usar o maior conteúdo disponível
-          link: item.link || '#',
-          publishedDate: item.pubDate || new Date().toISOString(),
-          category: item.categories?.[0] || category,
-          thumbnail,
-          author: item.creator || item.author || 'Anime News Network'
-        };
-      });
-
-      console.log(`✅ ${newsItems.length} notícias processadas da categoria ${category}`);
-      return newsItems;
-      
-    } catch (error) {
-      console.error(`❌ Erro ao buscar notícias da categoria ${category}:`, error);
-      
-      // Retornar dados mock em caso de erro para manter a aplicação funcionando
-      console.log("⚠️ Todas as APIs falharam, usando dados mock como fallback final");
+      console.log("⚠️ Jikan API falhou, usando dados mock como fallback final");
       return this.getMockNews(limit);
     }
+
+    // Se chegou até aqui, retornar dados mock
+    return this.getMockNews(limit);
   }
 
   private getMockNews(limit: number): NewsItem[] {
