@@ -171,10 +171,6 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId, totalEpis
               if (animeId) {
                 setLocation(`/animes/${animeId}/episodes/${episode.number}`);
               }
-              // Marcar como assistindo quando clicar no botão Assistir
-              if (!isWatched) {
-                handleMarkAsWatched?.(episode);
-              }
             }}
             variant="outline"
             size="sm"
