@@ -140,7 +140,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     cookie: {
       secure: false, // Set to true in production with HTTPS
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+      sameSite: 'lax' // Importante para o Replit
     }
   });
   
