@@ -4,7 +4,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import NewsCard from "@/components/NewsCard";
-import NewsModal from "@/components/NewsModal";
 import CreateNewsModal from "@/components/CreateNewsModal";
 import { getLatestNews, getNewsByCategory } from "@/lib/api";
 import { Newspaper, TrendingUp, Star, Film, Plus } from "lucide-react";
@@ -29,8 +28,6 @@ const newsCategories = [
 
 export default function News() {
   const [activeCategory, setActiveCategory] = useState('all');
-  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
-  const [isNewsModalOpen, setIsNewsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: news, isLoading, error } = useQuery({
@@ -132,22 +129,18 @@ export default function News() {
               const newsItemFormatted: NewsItem = {
                 id: newsItem.id,
                 title: newsItem.title,
-                description: newsItem.description || newsItem.summary || '',
-                link: newsItem.link || '#',
-                publishedDate: newsItem.publishedDate || new Date().toISOString(),
+                description: newsItem.summary || newsItem.content || '',
+                link: newsItem.source || '#',
+                publishedDate: newsItem.publishedAt?.toISOString() || new Date().toISOString(),
                 category: newsItem.category,
-                thumbnail: newsItem.thumbnail || newsItem.image,
-                author: newsItem.author
+                thumbnail: newsItem.image || undefined,
+                author: newsItem.source || undefined
               };
               
               return (
                 <NewsCard 
                   key={newsItem.id} 
                   news={newsItemFormatted}
-                  onClick={(news) => {
-                    setSelectedNews(news);
-                    setIsNewsModalOpen(true);
-                  }}
                 />
               );
             })}
@@ -168,15 +161,6 @@ export default function News() {
         </>
       )}
 
-      {/* Modals */}
-      <NewsModal
-        news={selectedNews}
-        isOpen={isNewsModalOpen}
-        onClose={() => {
-          setIsNewsModalOpen(false);
-          setSelectedNews(null);
-        }}
-      />
 
       <CreateNewsModal
         isOpen={isCreateModalOpen}
