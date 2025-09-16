@@ -199,12 +199,11 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
               }}
               variant="default"
               size="sm"
-              className="px-3 text-xs transition-all duration-200 bg-green-500 hover:bg-red-500 text-white"
+              className="px-2 text-xs transition-all duration-200 bg-green-500 hover:bg-red-500 text-white"
               title="Desmarcar como assistido"
               data-testid={`button-unwatch-episode-${episode.number}`}
             >
-              <CheckCheck className="w-3 h-3 mr-1" />
-              <span className="hidden sm:inline">Assistido</span>
+              <CheckCheck className="w-4 h-4" />
             </Button>
           )}
         </div>
