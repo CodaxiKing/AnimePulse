@@ -12,32 +12,15 @@ import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal, getAnimeByIdAPI
 import type { Episode } from "@shared/schema";
 
 
-const mockComments = [
-  {
-    id: "1",
-    user: "João_otaku",
-    avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=40&h=40&fit=crop&crop=face",
-    content: "Excelente episódio! A animação está incrível nesta temporada.",
-    timestamp: "2 horas atrás",
-    likes: 15
-  },
-  {
-    id: "2", 
-    user: "AnimeGirl",
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b332c02c?w=40&h=40&fit=crop&crop=face",
-    content: "Nossa, que plot twist! Não esperava por essa reviravolta na história.",
-    timestamp: "4 horas atrás",
-    likes: 23
-  },
-  {
-    id: "3",
-    user: "SenpaiReviews",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
-    content: "A trilha sonora deste episódio foi espetacular. Os produtores realmente se superaram!",
-    timestamp: "6 horas atrás", 
-    likes: 8
-  }
-];
+// Interface para comentários
+interface Comment {
+  id: string;
+  user: string;
+  avatar: string;
+  content: string;
+  timestamp: string;
+  likes: number;
+}
 
 export default function EpisodeWatch() {
   const [, params] = useRoute("/animes/:animeId/episodes/:episodeNumber");
@@ -53,7 +36,7 @@ export default function EpisodeWatch() {
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
-  const [comments, setComments] = useState(mockComments);
+  const [comments, setComments] = useState<Comment[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Buscar dados do anime
