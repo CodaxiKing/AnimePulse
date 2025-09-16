@@ -86,6 +86,18 @@ export default function AnimeDetail() {
   const handleWatchTrailer = () => {
     if (!anime) return;
     
+    // Primeiro verificar se há trailer da API da AniList
+    if (anime.trailerUrl) {
+      setSelectedTrailer({
+        animeTitle: anime.title,
+        trailerUrl: anime.trailerUrl
+      });
+      setTrailerModalOpen(true);
+      console.log(`🎬 Abrindo trailer da API da AniList para: ${anime.title}`);
+      return;
+    }
+    
+    // Fallback para trailers hardcoded
     const trailer = getAnimeTrailer(anime.title);
     if (trailer) {
       setSelectedTrailer({
@@ -93,9 +105,15 @@ export default function AnimeDetail() {
         trailerUrl: trailer.trailerUrl
       });
       setTrailerModalOpen(true);
-      console.log(`🎬 Abrindo trailer para: ${anime.title}`);
+      console.log(`🎬 Abrindo trailer (fallback) para: ${anime.title}`);
     } else {
-      console.log(`❌ Nenhum trailer disponível para: ${anime.title}`);
+      // Mesmo sem trailer, mostrar um placeholder ou mensagem
+      setSelectedTrailer({
+        animeTitle: anime.title,
+        trailerUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' // Placeholder
+      });
+      setTrailerModalOpen(true);
+      console.log(`⚠️ Nenhum trailer encontrado para: ${anime.title}, mostrando placeholder`);
     }
   };
 
@@ -313,24 +331,14 @@ export default function AnimeDetail() {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                  {hasTrailer(anime.title) ? (
-                    <Button
-                      onClick={handleWatchTrailer}
-                      className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-6 py-2 font-semibold anime-glow hover:opacity-95 text-sm"
-                      data-testid="button-watch-trailer"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Ver Trailer
-                    </Button>
-                  ) : (
-                    <Button
-                      className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-6 py-2 font-semibold anime-glow hover:opacity-95 text-sm"
-                      data-testid="button-watch-anime"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Ver Episódios
-                    </Button>
-                  )}
+                  <Button
+                    onClick={handleWatchTrailer}
+                    className="bg-gradient-to-r from-[#8A2BE2] via-[#B026FF] to-[#FF4DD8] text-white rounded-xl px-6 py-2 font-semibold anime-glow hover:opacity-95 text-sm"
+                    data-testid="button-watch-trailer"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Ver Trailer
+                  </Button>
                   
                   <Button
                     variant="secondary"
@@ -354,6 +362,94 @@ export default function AnimeDetail() {
             </div>
           </div>
         </div>
+
+        {/* Seção de Relacionados */}
+        {anime.relations && anime.relations.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
+            <h2 className="text-xl font-semibold mb-6">Relacionados</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {anime.relations.slice(0, 12).map((relationStr, index) => {
+                const relation = JSON.parse(relationStr);
+                return (
+                  <div key={index} className="bg-card rounded-xl overflow-hidden border hover:shadow-lg transition-shadow">
+                    <div className="aspect-[3/4] relative">
+                      <img
+                        src={relation.image}
+                        alt={relation.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "https://via.placeholder.com/300x400?text=No+Image";
+                        }}
+                      />
+                    </div>
+                    <div className="p-3">
+                      <div className="text-xs text-primary font-medium mb-1 capitalize">
+                        {relation.type}
+                      </div>
+                      <h3 className="font-medium text-sm line-clamp-2 mb-1">
+                        {relation.title}
+                      </h3>
+                      <div className="text-xs text-muted-foreground">
+                        {relation.format}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Seção de Personagens */}
+        {anime.characters && anime.characters.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
+            <h2 className="text-xl font-semibold mb-6">Personagens Principais</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {anime.characters.slice(0, 12).map((characterStr, index) => {
+                const character = JSON.parse(characterStr);
+                return (
+                  <div key={index} className="bg-card rounded-xl p-4 border hover:shadow-lg transition-shadow">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-shrink-0">
+                        <img
+                          src={character.image}
+                          alt={character.name}
+                          className="w-16 h-16 rounded-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = "https://via.placeholder.com/64x64?text=?";
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm truncate">
+                          {character.name}
+                        </h3>
+                        <div className="text-xs text-primary mb-2">
+                          {character.role}
+                        </div>
+                        {character.voiceActor && (
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={character.voiceActor.image}
+                              alt={character.voiceActor.name}
+                              className="w-6 h-6 rounded-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = "https://via.placeholder.com/24x24?text=?";
+                              }}
+                            />
+                            <span className="text-xs text-muted-foreground truncate">
+                              {character.voiceActor.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Seção de Episódios */}
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">

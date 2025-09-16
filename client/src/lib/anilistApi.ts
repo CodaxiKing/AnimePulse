@@ -53,6 +53,52 @@ interface AniListAnime {
     episode: number;
     timeUntilAiring: number;
   };
+  trailer?: {
+    id?: string;
+    site?: string;
+    thumbnail?: string;
+  };
+  relations?: {
+    edges: Array<{
+      relationType: string;
+      node: {
+        id: number;
+        title: {
+          romaji: string;
+          english?: string;
+        };
+        coverImage: {
+          medium: string;
+        };
+        type: string;
+        format?: string;
+        status: string;
+      };
+    }>;
+  };
+  characters?: {
+    edges: Array<{
+      role: string;
+      node: {
+        id: number;
+        name: {
+          full: string;
+        };
+        image: {
+          medium: string;
+        };
+      };
+      voiceActors?: Array<{
+        id: number;
+        name: {
+          full: string;
+        };
+        image: {
+          medium: string;
+        };
+      }>;
+    }>;
+  };
 }
 
 interface AniListManga {
@@ -194,6 +240,11 @@ const TRENDING_ANIME_QUERY = `
           episode
           timeUntilAiring
         }
+        trailer {
+          id
+          site
+          thumbnail
+        }
       }
     }
   }
@@ -244,6 +295,11 @@ const TOP_ANIME_QUERY = `
         favourites
         format
         source
+        trailer {
+          id
+          site
+          thumbnail
+        }
       }
     }
   }
@@ -297,6 +353,52 @@ const ANIME_BY_ID_QUERY = `
         episode
         timeUntilAiring
       }
+      trailer {
+        id
+        site
+        thumbnail
+      }
+      relations {
+        edges {
+          relationType
+          node {
+            id
+            title {
+              romaji
+              english
+            }
+            coverImage {
+              medium
+            }
+            type
+            format
+            status
+          }
+        }
+      }
+      characters(sort: ROLE, perPage: 12) {
+        edges {
+          role
+          node {
+            id
+            name {
+              full
+            }
+            image {
+              medium
+            }
+          }
+          voiceActors(language: JAPANESE, sort: FAVOURITES_DESC) {
+            id
+            name {
+              full
+            }
+            image {
+              medium
+            }
+          }
+        }
+      }
     }
   }
 `;
@@ -346,6 +448,11 @@ const SEARCH_ANIME_QUERY = `
         favourites
         format
         source
+        trailer {
+          id
+          site
+          thumbnail
+        }
       }
     }
   }
@@ -505,6 +612,38 @@ function convertAniListAnimeToAnime(anilistAnime: AniListAnime): Anime {
     ? `${anilistAnime.startDate.year}-${String(anilistAnime.startDate.month || 1).padStart(2, '0')}-${String(anilistAnime.startDate.day || 1).padStart(2, '0')}`
     : '';
 
+  // Construir URL do trailer se disponível
+  let trailerUrl = null;
+  if (anilistAnime.trailer?.id && anilistAnime.trailer?.site) {
+    if (anilistAnime.trailer.site.toLowerCase() === 'youtube') {
+      trailerUrl = `https://www.youtube.com/embed/${anilistAnime.trailer.id}`;
+    }
+  }
+
+  // Processar relations
+  const relations = anilistAnime.relations?.edges?.map(edge => JSON.stringify({
+    type: edge.relationType,
+    id: edge.node.id,
+    title: edge.node.title.english || edge.node.title.romaji,
+    image: edge.node.coverImage.medium,
+    mediaType: edge.node.type,
+    format: edge.node.format,
+    status: edge.node.status
+  })) || [];
+
+  // Processar characters
+  const characters = anilistAnime.characters?.edges?.map(edge => JSON.stringify({
+    role: edge.role,
+    id: edge.node.id,
+    name: edge.node.name.full,
+    image: edge.node.image.medium,
+    voiceActor: edge.voiceActors?.[0] ? {
+      id: edge.voiceActors[0].id,
+      name: edge.voiceActors[0].name.full,
+      image: edge.voiceActors[0].image.medium
+    } : null
+  })) || [];
+
   return {
     id: anilistAnime.id.toString(),
     title,
@@ -517,7 +656,10 @@ function convertAniListAnimeToAnime(anilistAnime: AniListAnime): Anime {
     status: anilistAnime.status?.toLowerCase() || 'unknown',
     totalEpisodes: anilistAnime.episodes || 0,
     rating: (anilistAnime.averageScore || anilistAnime.meanScore || 0).toString(),
-    viewCount: anilistAnime.popularity || 0
+    viewCount: anilistAnime.popularity || 0,
+    trailerUrl,
+    relations,
+    characters
   };
 }
 

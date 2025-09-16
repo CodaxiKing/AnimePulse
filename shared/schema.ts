@@ -27,6 +27,9 @@ export const animes = pgTable("animes", {
   totalEpisodes: integer("total_episodes"),
   rating: text("rating"),
   viewCount: integer("view_count").default(0),
+  trailerUrl: text("trailer_url"),
+  relations: text("relations").array(),
+  characters: text("characters").array(),
 });
 
 export const episodes = pgTable("episodes", {
