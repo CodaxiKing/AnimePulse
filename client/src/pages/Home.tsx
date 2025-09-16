@@ -28,28 +28,26 @@ function ContinueWatchingSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   
-  const { data: continueAnimes, isLoading } = useQuery({
+  const { data: continueAnimes, isLoading, refetch } = useQuery({
     queryKey: ['continue'],
     queryFn: async () => {
       const { getContinueWatching } = await import("@/lib/api");
       return getContinueWatching();
     },
+    staleTime: 0, // Sempre considerar dados como stale para força re-fetch
+    cacheTime: 0, // Não fazer cache dos dados
   });
 
   useEffect(() => {
     const handleContinueWatchingUpdate = () => {
-      // Pequeno delay para garantir que o localStorage foi atualizado
-      setTimeout(() => {
-        // Invalidar o cache para atualizar a seção Continue assistindo
-        queryClient.invalidateQueries({ queryKey: ['continue'] });
-      }, 100);
+      // Forçar re-fetch imediato dos dados
+      refetch();
     };
 
     // Também escutar eventos de episódios desmarcados
     const handleEpisodeUnwatched = () => {
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['continue'] });
-      }, 100);
+      // Forçar re-fetch imediato dos dados
+      refetch();
     };
 
     window.addEventListener('continueWatchingUpdated', handleContinueWatchingUpdate);
@@ -59,7 +57,7 @@ function ContinueWatchingSection() {
       window.removeEventListener('continueWatchingUpdated', handleContinueWatchingUpdate);
       window.removeEventListener('episodeUnwatched', handleEpisodeUnwatched);
     };
-  }, [queryClient]);
+  }, [refetch]);
 
   const scrollLeft = () => {
     if (scrollRef.current) {
