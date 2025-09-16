@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Plus, Heart, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { getTrendingAnime } from "@/lib/api";
+import { getLatestAnime } from "@/lib/api";
 import { Link } from "wouter";
 import TrailerModal from "@/components/TrailerModal";
 import { getAnimeTrailer, hasTrailer } from "@/lib/trailerService";
@@ -16,8 +16,8 @@ export default function HeroCarousel() {
   const [selectedTrailer, setSelectedTrailer] = useState<{ animeTitle: string; trailerUrl: string } | null>(null);
   
   const { data: animes } = useQuery({
-    queryKey: ["hero-trending"],
-    queryFn: getTrendingAnime,
+    queryKey: ["hero-latest"],
+    queryFn: getLatestAnime,
   });
 
   const heroAnimes = animes?.slice(0, 3) || [
