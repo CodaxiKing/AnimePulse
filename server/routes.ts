@@ -26,6 +26,8 @@ import {
 import session from "express-session";
 import { ZodError } from "zod";
 import { generateRandomDisplayName, getDaysUntilNextChange } from "./nameGenerator";
+import cookieParser from 'cookie-parser';
+import { promisify } from 'util';
 
 // Extend Express Session interface
 declare module "express-session" {
@@ -127,8 +129,11 @@ const mockUserProgress = [
 ];
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configurar cookie parser
+  app.use(cookieParser());
+  
   // Configurar sessão
-  app.use(session({
+  const sessionMiddleware = session({
     secret: process.env.SESSION_SECRET || 'anime-pulse-secret-key-development',
     resave: false,
     saveUninitialized: false,
@@ -137,7 +142,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000 // 24 horas
     }
-  }));
+  });
+  
+  app.use(sessionMiddleware);
   // MyAnimeList Proxy Endpoints
 
   app.get("/api/mal/anime/trending", async (req, res) => {
@@ -2177,67 +2184,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
 
+  // Helper function to validate WebSocket session
+  async function validateWebSocketSession(req: any): Promise<string | null> {
+    return new Promise((resolve) => {
+      // Use the same session middleware as Express
+      const fakeRes: any = {
+        getHeader: () => {},
+        setHeader: () => {},
+        cookie: () => {},
+        clearCookie: () => {},
+        end: () => {}
+      };
+      
+      sessionMiddleware(req, fakeRes, () => {
+        // Session has been populated by middleware
+        const userId = req.session?.userId;
+        resolve(userId || null);
+      });
+    });
+  }
+
   // WebSocket server setup for real-time chat and watch parties  
   const wss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws',
-    verifyClient: (info) => {
-      // Extract session from upgrade request
-      const cookies = info.req.headers.cookie;
-      if (!cookies) return false;
-      
-      // Parse session cookie (simplified - in production use proper cookie parser)
-      const sessionMatch = cookies.match(/connect\.sid=([^;]+)/);
-      if (!sessionMatch) return false;
-      
-      return true; // Basic validation - detailed session verification in connection handler
+    verifyClient: async (info) => {
+      try {
+        // Validate Origin/Host to prevent cross-site WebSocket hijacking
+        const origin = info.origin;
+        const host = info.req.headers.host;
+        
+        // In development, allow localhost connections
+        if (process.env.NODE_ENV === 'development') {
+          const allowedOrigins = [
+            `http://localhost:5000`,
+            `http://127.0.0.1:5000`,
+            `http://${host}`
+          ];
+          
+          if (origin && !allowedOrigins.includes(origin)) {
+            console.log(`❌ WebSocket connection rejected - invalid origin: ${origin}`);
+            return false;
+          }
+        } else {
+          // In production, implement strict origin validation
+          const expectedOrigin = `https://${host}`;
+          if (origin !== expectedOrigin) {
+            console.log(`❌ WebSocket connection rejected - invalid origin: ${origin}, expected: ${expectedOrigin}`);
+            return false;
+          }
+        }
+        
+        // Validate session
+        const userId = await validateWebSocketSession(info.req);
+        if (!userId) {
+          console.log('❌ WebSocket connection rejected - authentication required');
+          return false;
+        }
+        
+        // Store userId in request for use in connection handler
+        info.req.authenticatedUserId = userId;
+        console.log(`✅ WebSocket connection authenticated for user: ${userId}`);
+        return true;
+        
+      } catch (error) {
+        console.error('❌ Error during WebSocket verification:', error);
+        return false;
+      }
     }
   });
 
   // Store active connections with secure user identification
   const clients = new Map<string, { ws: WebSocket, userId: string, chatRoomId?: string }>();
 
-  wss.on('connection', (ws: WebSocket, req) => {
-    let userId: string | null = null;
+  wss.on('connection', async (ws: WebSocket, req: any) => {
+    // Extract authenticated userId from request (set by verifyClient)
+    const userId = req.authenticatedUserId as string;
     
-    // Extract and verify session from upgrade request
-    try {
-      const cookies = req.headers.cookie || '';
-      const sessionMatch = cookies.match(/connect\.sid=([^;]+)/);
-      
-      if (!sessionMatch) {
-        ws.close(1008, 'Authentication required');
-        return;
-      }
-      
-      // For now, we'll need to manually verify session - in production use proper session parser
-      // This is a simplified approach - the session validation should be more robust
-      console.log('🔌 Nova conexão WebSocket autenticada estabelecida');
-    } catch (error) {
-      console.error('❌ Erro na autenticação WebSocket:', error);
-      ws.close(1008, 'Authentication failed');
+    if (!userId) {
+      console.error('❌ WebSocket connection without authenticated user ID');
+      ws.close(1008, 'Authentication required');
       return;
     }
+    
+    console.log(`🔌 Secure WebSocket connection established for user: ${userId}`);
 
     ws.on('message', async (data) => {
       try {
         const message = JSON.parse(data.toString());
         const { type, payload } = message;
 
-        // SECURITY: Extract userId from authenticated session, not from client payload
-        if (!userId) {
-          // For now, we need a proper session parser - this is a temporary solution
-          // In production, implement proper session verification here
-          ws.send(JSON.stringify({
-            type: 'error', 
-            payload: { message: 'Authentication required' }
-          }));
-          return;
-        }
-
+        // Use authenticated userId from session (never trust client)
         switch (type) {
           case 'join_chat': {
-            const { chatRoomId } = payload; // Only accept chatRoomId - userId comes from session
+            const { chatRoomId } = payload; // Remove client-supplied userId
+            
+            if (!chatRoomId) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                payload: { message: 'Chat room ID required' }
+              }));
+              return;
+            }
             
             // Verify user has permission to join this room
             const existingParticipant = await db.select()
@@ -2279,7 +2327,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           case 'send_message': {
             const { chatRoomId, content, type: messageType = 'text', replyToId } = payload;
-            // SECURITY: Use authenticated userId, not client-supplied
+            
+            if (!chatRoomId || !content) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                payload: { message: 'Chat room ID and content required' }
+              }));
+              return;
+            }
             
             // Verify user is participant of this room
             const participant = await db.select()
@@ -2326,7 +2381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           case 'watch_party_sync': {
-            const { userId, chatRoomId, eventType, timestamp, episodeNumber } = payload;
+            const { chatRoomId, eventType, timestamp, episodeNumber } = payload; // Remove client-supplied userId
             
             // Insert sync event
             await db.insert(watchPartyEvents).values({
@@ -2375,7 +2430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           case 'typing_start': {
-            const { userId, chatRoomId } = payload;
+            const { chatRoomId } = payload; // Remove client-supplied userId
             
             // Broadcast typing indicator
             const roomClients = Array.from(clients.values()).filter(
@@ -2394,7 +2449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           case 'typing_stop': {
-            const { userId, chatRoomId } = payload;
+            const { chatRoomId } = payload; // Remove client-supplied userId
             
             // Broadcast stop typing indicator
             const roomClients = Array.from(clients.values()).filter(
