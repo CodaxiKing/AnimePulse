@@ -557,6 +557,70 @@ export function removeWatchedEpisode(animeId: string, episodeNumber: number) {
   localStorage.setItem(WATCHED_EPISODES_KEY, JSON.stringify(filtered));
 }
 
+// Função completa para desmarcar episódio como assistido e ajustar progresso
+export function unmarkEpisodeAsWatched(
+  animeId: string, 
+  episodeNumber: number, 
+  animeTitle: string, 
+  animeImage: string, 
+  totalEpisodes: number
+) {
+  console.log(`🔄 Desmarcando episódio ${episodeNumber} do anime ${animeTitle}`);
+  
+  // 1. Remover da lista de episódios assistidos
+  removeWatchedEpisode(animeId, episodeNumber);
+  
+  // 2. Ajustar o progresso do anime
+  const progress = getLocalWatchProgress();
+  const animeIndex = progress.findIndex(p => p.animeId === animeId);
+  
+  if (animeIndex >= 0) {
+    const animeProgress = progress[animeIndex];
+    
+    // Buscar qual é o maior episódio consecutivo ainda assistido
+    const watchedEpisodes = getWatchedEpisodesList();
+    const remainingWatched = watchedEpisodes
+      .filter(ep => ep.animeId === animeId)
+      .map(ep => ep.episodeNumber)
+      .sort((a, b) => a - b);
+    
+    // Encontrar o último episódio consecutivo assistido
+    let lastConsecutiveEpisode = 0;
+    for (let i = 1; i <= totalEpisodes; i++) {
+      if (remainingWatched.includes(i)) {
+        lastConsecutiveEpisode = i;
+      } else {
+        break;
+      }
+    }
+    
+    if (lastConsecutiveEpisode === 0) {
+      // Se não há mais episódios assistidos consecutivos, remover completamente da lista Continue Assistindo
+      progress.splice(animeIndex, 1);
+      console.log(`🗑️ Anime ${animeTitle} removido da lista Continue Assistindo - nenhum episódio consecutivo assistido`);
+    } else {
+      // Ajustar progresso para o último episódio consecutivo assistido
+      progress[animeIndex] = {
+        ...animeProgress,
+        episodeNumber: lastConsecutiveEpisode,
+        progressPercent: Math.round((lastConsecutiveEpisode / totalEpisodes) * 100),
+        lastWatched: new Date().toISOString()
+      };
+      console.log(`📊 Progresso ajustado para episódio ${lastConsecutiveEpisode} - ${progress[animeIndex].progressPercent}%`);
+    }
+    
+    localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(progress));
+  }
+  
+  // 3. Disparar evento para atualizar a UI
+  const progressEvent = new CustomEvent('progressUpdated', { 
+    detail: { animeId, episodeNumber, action: 'unmarked' } 
+  });
+  window.dispatchEvent(progressEvent);
+  
+  console.log(`✅ Episódio ${episodeNumber} desmarcado com sucesso`);
+}
+
 // Função para verificar se um episódio específico foi assistido
 export function isEpisodeWatched(animeId: string, episodeNumber: number): boolean {
   const watchedEpisodes = getWatchedEpisodesList();

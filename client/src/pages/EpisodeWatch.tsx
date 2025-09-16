@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Play, Loader2, ChevronLeft, ChevronRight, Calendar, Clock, MessageCircle, LogIn, Check } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Play, Loader2, ChevronLeft, ChevronRight, Calendar, Clock, MessageCircle, LogIn, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { getEpisodeVideoUrl } from "@/lib/scrapingApi";
-import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal, getAnimeByIdAPI, getEpisodesByAnimeIdAPI, isEpisodeWatched } from "@/lib/api";
+import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal, getAnimeByIdAPI, getEpisodesByAnimeIdAPI, isEpisodeWatched, unmarkEpisodeAsWatched } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
 
@@ -26,6 +26,7 @@ export default function EpisodeWatch() {
   const [, params] = useRoute("/animes/:animeId/episodes/:episodeNumber");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   const animeId = params?.animeId;
   const episodeNumber = params?.episodeNumber ? parseInt(params.episodeNumber) : 1;
@@ -202,6 +203,35 @@ export default function EpisodeWatch() {
     
     setComments([comment, ...comments]);
     setNewComment("");
+  };
+
+  const handleUnmarkEpisode = (episodeNumber: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevenir navegação para o episódio
+    
+    if (!animeId || !anime) return;
+    
+    console.log(`🗑️ Desmarcando episódio ${episodeNumber} como assistido`);
+    
+    unmarkEpisodeAsWatched(
+      animeId,
+      episodeNumber,
+      anime.title,
+      anime.image,
+      anime.totalEpisodes || episodes?.length || 12
+    );
+    
+    // Atualizar estado local
+    setWatchedEpisodes(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(episodeNumber);
+      return newSet;
+    });
+    
+    // Invalidar queries relacionadas para atualizar a UI
+    queryClient.invalidateQueries({ queryKey: ['continue'] });
+    queryClient.invalidateQueries({ queryKey: ['home-animes'] });
+    
+    console.log(`✅ Episódio ${episodeNumber} desmarcado com sucesso`);
   };
 
   // Loading states
@@ -486,7 +516,17 @@ export default function EpisodeWatch() {
                                 Episódio {episode.number}
                               </p>
                               {isWatched && (
-                                <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
+                                <div className="flex items-center gap-1">
+                                  <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
+                                  <button
+                                    onClick={(e) => handleUnmarkEpisode(episode.number, e)}
+                                    className="w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center transition-colors"
+                                    title="Desmarcar como assistido"
+                                    data-testid={`unmark-episode-${episode.number}`}
+                                  >
+                                    <X className="w-2.5 h-2.5 text-red-400" />
+                                  </button>
+                                </div>
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">
