@@ -366,13 +366,8 @@ export default function EpisodeWatch() {
                       autoPlay
                       onEnded={handleVideoEnd}
                       key={videoUrl}
-                    >
-                      <source 
-                        src={videoUrl} 
-                        type="video/mp4" 
-                      />
-                      Seu navegador não suporta reprodução de vídeo.
-                    </video>
+                      src={videoUrl}
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-muted">
                       <div className="text-center p-8">
