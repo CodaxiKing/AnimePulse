@@ -2,6 +2,7 @@
 [x] 2. Restart the workflow to see if the project is working
 [x] 3. Verify the project is working using the feedback tool
 [x] 4. Inform user the import is completed and they can start building, mark the import as completed using the complete_project_import tool
+[x] 5. Fixed news content display issue - content now renders properly formatted HTML instead of raw HTML tags
 [x] 5. Remove 'Descobrir' tab from navigation and integrate ScrapedAnimeGrid into Animes page
 [x] 6. Fix manga image loading by adding proper error handling and fallback images
 [x] 7. Verified episode watch tracking functionality works correctly - episodes only marked as watched when video finishes playing

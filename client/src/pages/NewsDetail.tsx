@@ -264,9 +264,12 @@ export default function NewsDetail() {
 
         {/* Conteúdo */}
         <div className="prose prose-lg dark:prose-invert max-w-none">
-          <div className="text-lg leading-relaxed">
-            {news.content || news.excerpt}
-          </div>
+          <div 
+            className="text-lg leading-relaxed" 
+            dangerouslySetInnerHTML={{ 
+              __html: news.content || news.excerpt || 'Conteúdo não disponível.' 
+            }}
+          />
         </div>
 
         {/* Navegação adicional */}
