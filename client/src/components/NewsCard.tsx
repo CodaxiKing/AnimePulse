@@ -15,24 +15,26 @@ interface NewsItem {
   publishedAt?: Date | null;
 }
 
+import { Link } from 'wouter';
+
 interface NewsCardProps {
   news: NewsItem;
   onClick?: (news: NewsItem) => void;
 }
 
 export default function NewsCard({ news, onClick }: NewsCardProps) {
+  // Se há onClick definido, usar comportamento original (modal)
+  // Senão, navegar para a página de detalhes
+  const hasCustomClick = !!onClick;
+  
   const handleClick = () => {
     if (onClick) {
       onClick(news);
     }
   };
 
-  return (
-    <div
-      className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group"
-      onClick={handleClick}
-      data-testid={`card-news-${news.id}`}
-    >
+  const cardContent = (
+    <div className="bg-card rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group">
       <img
         src={news.thumbnail || news.image || "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop"}
         alt={news.title}
@@ -52,5 +54,21 @@ export default function NewsCard({ news, onClick }: NewsCardProps) {
         </div>
       </div>
     </div>
+  );
+
+  // Se há onClick definido, usar comportamento original (modal)
+  if (hasCustomClick) {
+    return (
+      <div onClick={handleClick} data-testid={`card-news-${news.id}`}>
+        {cardContent}
+      </div>
+    );
+  }
+
+  // Senão, navegar para a página de detalhes
+  return (
+    <Link href={`/noticias/${news.id}`} data-testid={`card-news-${news.id}`}>
+      {cardContent}
+    </Link>
   );
 }
