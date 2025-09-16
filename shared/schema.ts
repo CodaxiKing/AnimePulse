@@ -77,13 +77,118 @@ export const news = pgTable("news", {
   publishedAt: timestamp("published_at").defaultNow(),
 });
 
+// Sistema de seguir usuários
+export const follows = pgTable("follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  followerId: varchar("follower_id").notNull().references(() => users.id),
+  followingId: varchar("following_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Grupos da comunidade
+export const groups = pgTable("groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  coverImage: text("cover_image"),
+  ownerId: varchar("owner_id").notNull().references(() => users.id),
+  privacy: text("privacy").default("open"), // 'open', 'closed', 'private'
+  memberCount: integer("member_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Community Posts - Sistema completo de posts sociais
 export const posts = pgTable("posts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
   content: text("content").notNull(),
-  image: text("image"),
-  likes: integer("likes").default(0),
-  comments: integer("comments").default(0),
+  mediaUrls: text("media_urls").array(), // Array de URLs de imagens/vídeos
+  animeId: text("anime_id"), // Referência opcional a um anime
+  animeTitle: text("anime_title"), // Nome do anime para display
+  animeImage: text("anime_image"), // Imagem do anime
+  visibility: text("visibility").default("public"), // 'public', 'followers', 'group'
+  groupId: varchar("group_id").references(() => groups.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Comentários nos posts
+export const comments = pgTable("comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => posts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  parentCommentId: varchar("parent_comment_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Reações aos posts (likes, loves, etc.)
+export const reactions = pgTable("reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").references(() => posts.id),
+  commentId: varchar("comment_id").references(() => comments.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // 'like', 'love', 'haha', 'wow', 'angry'
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Membros dos grupos
+export const groupMembers = pgTable("group_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull().references(() => groups.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  role: text("role").default("member"), // 'owner', 'moderator', 'member'
+  joinedAt: timestamp("joined_at").defaultNow(),
+});
+
+// Tags para posts (hashtags)
+export const tags = pgTable("tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  color: text("color").default("#3b82f6"),
+  postCount: integer("post_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relação entre posts e tags
+export const postTags = pgTable("post_tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").notNull().references(() => posts.id),
+  tagId: varchar("tag_id").notNull().references(() => tags.id),
+});
+
+// Sistema de notificações
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // 'like', 'comment', 'follow', 'group_invite', 'mention'
+  actorId: varchar("actor_id").references(() => users.id), // Quem fez a ação
+  entityType: text("entity_type"), // 'post', 'comment', 'group'
+  entityId: varchar("entity_id"), // ID da entidade relacionada
+  message: text("message").notNull(),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Sistema de relatórios e moderação
+export const reports = pgTable("reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reporterId: varchar("reporter_id").notNull().references(() => users.id),
+  targetType: text("target_type").notNull(), // 'post', 'comment', 'user'
+  targetId: varchar("target_id").notNull(),
+  reason: text("reason").notNull(),
+  description: text("description"),
+  status: text("status").default("open"), // 'open', 'reviewed', 'resolved', 'dismissed'
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+// Bookmarks/Posts salvos
+export const bookmarks = pgTable("bookmarks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  postId: varchar("post_id").notNull().references(() => posts.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -156,10 +261,62 @@ export const insertNewsSchema = createInsertSchema(news).omit({
   id: true,
 });
 
+// Insert schemas para as novas tabelas da comunidade
 export const insertPostSchema = createInsertSchema(posts).omit({
   id: true,
-  likes: true,
-  comments: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommentSchema = createInsertSchema(comments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReactionSchema = createInsertSchema(reactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFollowSchema = createInsertSchema(follows).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertGroupSchema = createInsertSchema(groups).omit({
+  id: true,
+  memberCount: true,
+  createdAt: true,
+});
+
+export const insertGroupMemberSchema = createInsertSchema(groupMembers).omit({
+  id: true,
+  joinedAt: true,
+});
+
+export const insertTagSchema = createInsertSchema(tags).omit({
+  id: true,
+  postCount: true,
+  createdAt: true,
+});
+
+export const insertPostTagSchema = createInsertSchema(postTags).omit({
+  id: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReportSchema = createInsertSchema(reports).omit({
+  id: true,
+  createdAt: true,
+  reviewedAt: true,
+});
+
+export const insertBookmarkSchema = createInsertSchema(bookmarks).omit({
+  id: true,
   createdAt: true,
 });
 
@@ -231,6 +388,26 @@ export type News = typeof news.$inferSelect;
 export type InsertNews = z.infer<typeof insertNewsSchema>;
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
+export type Comment = typeof comments.$inferSelect;
+export type InsertComment = z.infer<typeof insertCommentSchema>;
+export type Reaction = typeof reactions.$inferSelect;
+export type InsertReaction = z.infer<typeof insertReactionSchema>;
+export type Follow = typeof follows.$inferSelect;
+export type InsertFollow = z.infer<typeof insertFollowSchema>;
+export type Group = typeof groups.$inferSelect;
+export type InsertGroup = z.infer<typeof insertGroupSchema>;
+export type GroupMember = typeof groupMembers.$inferSelect;
+export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
+export type Tag = typeof tags.$inferSelect;
+export type InsertTag = z.infer<typeof insertTagSchema>;
+export type PostTag = typeof postTags.$inferSelect;
+export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Report = typeof reports.$inferSelect;
+export type InsertReport = z.infer<typeof insertReportSchema>;
+export type Bookmark = typeof bookmarks.$inferSelect;
+export type InsertBookmark = z.infer<typeof insertBookmarkSchema>;
 export type WatchProgress = typeof watchProgress.$inferSelect;
 export type InsertWatchProgress = z.infer<typeof insertWatchProgressSchema>;
 export type UserStats = typeof userStats.$inferSelect;
@@ -254,8 +431,39 @@ export type MangaWithChapters = Manga & {
   chapters?: Chapter[];
 };
 
+// Tipos estendidos para a comunidade
 export type PostWithUser = Post & {
   user: User;
+  reactions?: Reaction[];
+  comments?: Comment[];
+  tags?: Tag[];
+  isLiked?: boolean;
+  isBookmarked?: boolean;
+  reactionsCount?: number;
+  commentsCount?: number;
+};
+
+export type CommentWithUser = Comment & {
+  user: User;
+  reactions?: Reaction[];
+  replies?: CommentWithUser[];
+  isLiked?: boolean;
+};
+
+export type GroupWithDetails = Group & {
+  owner: User;
+  members?: GroupMember[];
+  isMember?: boolean;
+  isOwner?: boolean;
+};
+
+export type UserProfile = User & {
+  stats?: UserStats;
+  followersCount?: number;
+  followingCount?: number;
+  postsCount?: number;
+  isFollowing?: boolean;
+  isFollowingYou?: boolean;
 };
 
 export type AnimeCategory = 'continue' | 'recommended' | 'latest' | 'trending';
