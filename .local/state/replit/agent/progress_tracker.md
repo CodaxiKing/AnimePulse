@@ -10,3 +10,4 @@
 [x] 10. Created admin user with credentials: username="admin", password="admin123", displayName="Admin Admin"
 [x] 11. Evaluated AniAPI integration and confirmed current Jikan API + scraping setup is optimal
 [x] 12. Verified all anime data fetching and streaming functionality is working properly
+[x] 13. Removed generic video player and added proper error message when episode can't be fetched from API

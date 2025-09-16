@@ -111,14 +111,14 @@ export default function EpisodeWatch() {
         setVideoUrl(url);
         console.log(`✅ URL do vídeo encontrada`);
       } else {
-        console.warn('⚠️ Nenhuma URL de vídeo encontrada, usando placeholder');
-        setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
-        setVideoError('Episódio real não disponível - Usando vídeo de demonstração');
+        console.warn('⚠️ Nenhuma URL de vídeo encontrada');
+        setVideoUrl(null);
+        setVideoError('Episódio não disponível no momento');
       }
     } catch (error) {
       console.error('❌ Erro ao buscar vídeo:', error);
-      setVideoUrl('https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4');
-      setVideoError('Erro ao buscar episódio - Usando vídeo de demonstração');
+      setVideoUrl(null);
+      setVideoError('Erro ao carregar o episódio');
     } finally {
       setIsLoadingVideo(false);
     }
@@ -358,7 +358,7 @@ export default function EpisodeWatch() {
                         </div>
                       </div>
                     </>
-                  ) : (
+                  ) : videoUrl ? (
                     <video
                       ref={videoRef}
                       className="w-full h-full"
@@ -367,14 +367,36 @@ export default function EpisodeWatch() {
                       onEnded={handleVideoEnd}
                       key={videoUrl}
                     >
-                      {videoUrl && (
-                        <source 
-                          src={videoUrl} 
-                          type="video/mp4" 
-                        />
-                      )}
+                      <source 
+                        src={videoUrl} 
+                        type="video/mp4" 
+                      />
                       Seu navegador não suporta reprodução de vídeo.
                     </video>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <div className="text-center p-8">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-muted-foreground/20 rounded-full flex items-center justify-center">
+                          <Play className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-medium mb-2">Episódio não disponível</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {videoError || 'Não foi possível carregar o episódio no momento.'}
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => loadVideoUrl()}
+                          disabled={isLoadingVideo}
+                        >
+                          {isLoadingVideo ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Tentando novamente...</>
+                          ) : (
+                            <>Tentar novamente</>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </CardContent>
