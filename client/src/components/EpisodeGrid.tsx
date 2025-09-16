@@ -183,44 +183,30 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
             <Play className="w-3 h-3 mr-1" />
             Assistir
           </Button>
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isWatched && animeId) {
-                // Se já está assistido, desmarcar
-                removeWatchedEpisode(animeId, episode.number);
-                console.log(`Desmarcado episódio ${episode.number}!`);
-                // Reforce a atualização do estado
-                window.dispatchEvent(new CustomEvent('episodeUnwatched', { 
-                  detail: { animeId, episodeNumber: episode.number } 
-                }));
-              } else {
-                // Se não está assistido, marcar
-                handleMarkAsWatched?.(episode);
-              }
-            }}
-            variant={isWatched ? "default" : "ghost"}
-            size="sm"
-            className={`px-3 text-xs transition-all duration-200 ${
-              isWatched 
-                ? 'bg-green-500 hover:bg-red-500 text-white' 
-                : 'hover:bg-green-500 hover:text-white'
-            }`}
-            title={isWatched ? "Desmarcar como assistido" : "Marcar como assistido"}
-            data-testid={`button-mark-watched-${episode.number}`}
-          >
-            {isWatched ? (
-              <>
-                <CheckCheck className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">Assistido</span>
-              </>
-            ) : (
-              <>
-                <Check className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">Marcar</span>
-              </>
-            )}
-          </Button>
+          {isWatched && (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (animeId) {
+                  // Desmarcar como assistido
+                  removeWatchedEpisode(animeId, episode.number);
+                  console.log(`Desmarcado episódio ${episode.number}!`);
+                  // Reforce a atualização do estado
+                  window.dispatchEvent(new CustomEvent('episodeUnwatched', { 
+                    detail: { animeId, episodeNumber: episode.number } 
+                  }));
+                }
+              }}
+              variant="default"
+              size="sm"
+              className="px-3 text-xs transition-all duration-200 bg-green-500 hover:bg-red-500 text-white"
+              title="Desmarcar como assistido"
+              data-testid={`button-unwatch-episode-${episode.number}`}
+            >
+              <CheckCheck className="w-3 h-3 mr-1" />
+              <span className="hidden sm:inline">Assistido</span>
+            </Button>
+          )}
         </div>
       </div>
     </div>
