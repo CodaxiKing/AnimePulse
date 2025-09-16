@@ -77,11 +77,6 @@ export default function AnimeDetail() {
     enabled: !!id,
   });
 
-  const { data: episodes, isLoading: loadingEpisodes } = useQuery({
-    queryKey: ["episodes", id, selectedSeason],
-    queryFn: () => getEpisodesByAnimeIdAPI(id!, selectedSeason),
-    enabled: !!id,
-  });
 
   // Listener para evento de conclusão de anime via player
   useEffect(() => {
@@ -90,16 +85,8 @@ export default function AnimeDetail() {
       if (anime && anime.title === animeTitle) {
         setEarnedPoints(points);
         setShowCongrats(true);
-        // Atualizar interface para refletir episódios assistidos
-        setRefreshKey(prev => prev + 1);
         queryClient.invalidateQueries({ queryKey: ['continue'] });
       }
-    };
-
-    const handleEpisodeWatched = () => {
-      // Atualizar interface quando um episódio for marcado via player
-      setRefreshKey(prev => prev + 1);
-      queryClient.invalidateQueries({ queryKey: ['continue'] });
     };
 
     const handleMilestonesAchieved = (event: CustomEvent) => {
@@ -112,31 +99,14 @@ export default function AnimeDetail() {
     };
 
     window.addEventListener('animeCompleted', handleAnimeCompleted as EventListener);
-    window.addEventListener('episodeWatched', handleEpisodeWatched as EventListener);
     window.addEventListener('milestonesAchieved', handleMilestonesAchieved as EventListener);
     
     return () => {
       window.removeEventListener('animeCompleted', handleAnimeCompleted as EventListener);
-      window.removeEventListener('episodeWatched', handleEpisodeWatched as EventListener);
       window.removeEventListener('milestonesAchieved', handleMilestonesAchieved as EventListener);
     };
   }, [anime, queryClient]);
 
-  // Gerar lista de temporadas baseada no anime (máximo 3 temporadas por simplicidade)
-  const getAvailableSeasons = () => {
-    if (!anime) return [];
-    const totalEpisodes = anime.totalEpisodes || 12;
-    
-    // Assumir que animes com mais episódios têm mais temporadas
-    let seasonsCount = 1;
-    if (totalEpisodes > 25) seasonsCount = 3;
-    else if (totalEpisodes > 12) seasonsCount = 2;
-    
-    return Array.from({ length: seasonsCount }, (_, i) => ({
-      value: String(i + 1),
-      label: `Temporada ${i + 1}`
-    }));
-  };
 
   if (loadingAnime) {
     return (
