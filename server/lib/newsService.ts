@@ -161,13 +161,55 @@ export class AnimeNewsService {
     }
   }
 
-  // Método para simular notícias do Jikan usando dados de animes populares
-  async getJikanNews(limit: number = 20): Promise<NewsItem[]> {
+  // Método para buscar notícias reais da API do MyAnimeList via Jikan
+  async getJikanRealNews(limit: number = 20): Promise<NewsItem[]> {
+    try {
+      console.log(`📰 Buscando notícias reais do MyAnimeList via Jikan API... (limite: ${limit})`);
+      
+      // Usar o endpoint oficial de notícias da Jikan API
+      const response = await fetch(`${this.JIKAN_API_BASE}/news?limit=${Math.min(limit, 100)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json() as any;
+      
+      if (!data.data || !Array.isArray(data.data)) {
+        console.log("⚠️ Resposta da API do Jikan news não contém dados válidos");
+        return [];
+      }
+      
+      console.log(`✅ ${data.data.length} notícias reais encontradas no MyAnimeList`);
+      
+      // Converter notícias do Jikan para o formato interno
+      const newsItems: NewsItem[] = data.data.slice(0, limit).map((newsItem: JikanNewsItem) => {
+        return {
+          id: `mal-${newsItem.mal_id}`,
+          title: newsItem.title,
+          description: newsItem.excerpt ? newsItem.excerpt.substring(0, 200) + (newsItem.excerpt.length > 200 ? '...' : '') : 'Notícia do MyAnimeList',
+          content: newsItem.excerpt || newsItem.title,
+          link: newsItem.url,
+          publishedDate: newsItem.date,
+          category: 'news',
+          thumbnail: newsItem.images?.jpg?.image_url,
+          author: newsItem.author_username || 'MyAnimeList'
+        };
+      });
+      
+      return newsItems;
+    } catch (error) {
+      console.error("❌ Erro ao buscar notícias reais do Jikan API:", error);
+      return [];
+    }
+  }
+
+  // Método para simular notícias do Jikan usando dados de animes populares (fallback)
+  async getJikanSimulatedNews(limit: number = 20): Promise<NewsItem[]> {
     try {
       console.log(`📰 Simulando notícias baseadas em animes populares... (limite: ${limit})`);
       
-      // Como a API do Jikan v4 não tem endpoint de notícias direto, vamos usar dados dos animes
-      // para criar notícias simuladas baseadas nos animes mais populares
+      // Como fallback, usar dados dos animes para criar notícias simuladas
       const response = await fetch(`${this.JIKAN_API_BASE}/top/anime?limit=${Math.min(limit, 25)}`);
       
       if (!response.ok) {
@@ -220,7 +262,19 @@ export class AnimeNewsService {
   }
 
   async getNews(category: 'all' | 'news' | 'reviews' | 'features' = 'news', limit: number = 20): Promise<NewsItem[]> {
-    // 1. Tentar RSS da ANN primeiro (notícias reais)
+    // 1. Tentar notícias reais do MyAnimeList via Jikan API primeiro
+    console.log(`📰 Buscando notícias reais do MyAnimeList via Jikan API...`);
+    try {
+      const jikanRealNews = await this.getJikanRealNews(limit);
+      if (jikanRealNews.length > 0) {
+        console.log(`✅ Usando ${jikanRealNews.length} notícias reais do MyAnimeList`);
+        return jikanRealNews;
+      }
+    } catch (jikanError) {
+      console.log("⚠️ Notícias reais do Jikan falharam, tentando RSS da ANN...");
+    }
+
+    // 2. Fallback para RSS da ANN (notícias reais alternativas)
     console.log(`📰 Buscando notícias reais do RSS da Anime News Network...`);
     try {
       const rssNews = await this.getRSSNews(category, limit);
@@ -229,16 +283,16 @@ export class AnimeNewsService {
         return rssNews;
       }
     } catch (rssError) {
-      console.log("⚠️ RSS da ANN falhou, tentando Jikan API como fallback...");
+      console.log("⚠️ RSS da ANN falhou, tentando notícias simuladas...");
     }
 
-    // 2. Fallback para API do Jikan (notícias simuladas)
-    console.log(`📰 Tentando Jikan API como fallback...`);
+    // 3. Fallback para notícias simuladas do Jikan
+    console.log(`📰 Tentando notícias simuladas baseadas em animes populares...`);
     try {
-      const jikanNews = await this.getJikanNews(limit);
-      if (jikanNews.length > 0) {
-        console.log(`✅ Usando ${jikanNews.length} notícias simuladas do Jikan API`);
-        return jikanNews;
+      const jikanSimulatedNews = await this.getJikanSimulatedNews(limit);
+      if (jikanSimulatedNews.length > 0) {
+        console.log(`✅ Usando ${jikanSimulatedNews.length} notícias simuladas do Jikan API`);
+        return jikanSimulatedNews;
       }
     } catch (jikanError) {
       console.log("⚠️ Jikan API falhou, usando dados mock como fallback final");
