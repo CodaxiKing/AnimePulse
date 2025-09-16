@@ -5,3 +5,6 @@
 [x] 5. Remove 'Descobrir' tab from navigation and integrate ScrapedAnimeGrid into Animes page
 [x] 6. Fix manga image loading by adding proper error handling and fallback images
 [x] 7. Verified episode watch tracking functionality works correctly - episodes only marked as watched when video finishes playing
+[x] 8. Added visual indicators for watched episodes in episode list with green checkmarks and styling
+[x] 9. Created PostgreSQL database and configured all tables
+[x] 10. Created admin user with credentials: username="admin", password="admin123", displayName="Admin Admin"
