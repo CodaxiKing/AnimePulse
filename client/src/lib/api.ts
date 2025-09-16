@@ -819,18 +819,18 @@ export async function getAnimesBySeason(season: string = 'now'): Promise<AnimeWi
 }
 
 export async function getTopAnime(): Promise<AnimeWithProgress[]> {
-  console.log("🏆 Getting top anime - AniList API as primary, Jikan as fallback...");
+  console.log("🏆 Getting top 10 most watched anime - ordered by view count...");
   
   try {
     // 1. Tentar AniList API primeiro (PRINCIPAL)
-    console.log("🌟 Trying AniList API (primary) for top anime...");
-    const anilistAnimes = await getAniListTopAnime(25);
+    console.log("🌟 Trying AniList API (primary) for most watched anime...");
+    const anilistAnimes = await getAniListTopAnime(50); // Buscar mais para ter melhor seleção
     if (anilistAnimes.length > 0) {
-      // Pegar os top 10 baseado no rating
+      // Ordenar por viewCount/popularity em ordem decrescente e pegar top 10
       const topAnimes = anilistAnimes
-        .sort((a: any, b: any) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'))
+        .sort((a: any, b: any) => (b.viewCount || b.popularity || 0) - (a.viewCount || a.popularity || 0))
         .slice(0, 10);
-      console.log(`✅ Got ${topAnimes.length} top rated animes from AniList (primary)`);
+      console.log(`✅ Got top 10 most watched animes from AniList by view count`);
       return getAnimesWithProgress(topAnimes);
     }
   } catch (anilistError) {
@@ -842,11 +842,12 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
     const response = await fetch('/api/animes/trending');
     if (response.ok) {
       const data = await response.json();
-      // Pegar os top 10 baseado no rating
+      // Ordenar por viewCount em ordem decrescente e pegar top 10
       const topAnimes = data.data
-        .sort((a: any, b: any) => parseFloat(b.rating || '0') - parseFloat(a.rating || '0'))
+        .filter((anime: any) => anime.viewCount || anime.popularity) // Filtrar animes com dados de visualização
+        .sort((a: any, b: any) => (b.viewCount || b.popularity || 0) - (a.viewCount || a.popularity || 0))
         .slice(0, 10);
-      console.log(`✅ Got ${topAnimes.length} top rated animes from server`);
+      console.log(`✅ Got top 10 most watched animes from server by view count`);
       return getAnimesWithProgress(topAnimes);
     }
   } catch (error) {
@@ -854,19 +855,29 @@ export async function getTopAnime(): Promise<AnimeWithProgress[]> {
   }
   
   try {
-    // 3. Fallback final para Jikan API 
-    const jikanAnimes = await getJikanTopAnime(10);
+    // 3. Fallback final para Jikan API com foco em popularidade
+    const jikanAnimes = await getJikanTopAnime(25);
     if (jikanAnimes.length > 0) {
-      console.log(`✅ Using ${jikanAnimes.length} top animes from Jikan`);
-      return getAnimesWithProgress(jikanAnimes);
+      // Ordenar Jikan por members/popularity que indica visualizações
+      const topAnimes = jikanAnimes
+        .sort((a: any, b: any) => (b.viewCount || b.members || b.popularity || 0) - (a.viewCount || a.members || a.popularity || 0))
+        .slice(0, 10);
+      console.log(`✅ Using top 10 most watched animes from Jikan by popularity`);
+      return getAnimesWithProgress(topAnimes);
     }
   } catch (jikanError) {
-    console.log("⚠️ All APIs failed, using mock data...");
+    console.log("⚠️ All APIs failed, using mock data ordered by view count...");
   }
   
-  // Fallback: ordenar dados mock por viewCount
+  // Fallback: dados mock ordenados especificamente por viewCount (mais assistidos)
   const mockData = getAnimesByCategory('trending');
-  return mockData.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)).slice(0, 10);
+  const topMostWatched = mockData
+    .filter(anime => anime.viewCount && anime.viewCount > 0) // Apenas animes com view count válido
+    .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+    .slice(0, 10);
+  
+  console.log(`✅ Returning top 10 most watched animes from mock data (${topMostWatched.length} found)`);
+  return topMostWatched;
 }
 
 export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
