@@ -1,20 +1,27 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { ObjectStorageService } from "./objectStorage";
+import { db } from "./db";
+import { eq, and, sql } from "drizzle-orm";
 import type { 
   Anime, Episode, Manga, News, InsertUser,
   Post, Comment, Reaction, Group, Notification,
   InsertPost, InsertComment, InsertReaction, InsertGroup,
   InsertFollow, InsertGroupMember, InsertNotification,
-  InsertReport, InsertBookmark, InsertTag
+  InsertReport, InsertBookmark, InsertTag,
+  ChatRoom, ChatMessage, ChatParticipant, WatchPartyEvent,
+  InsertChatRoom, InsertChatMessage, InsertChatParticipant, InsertWatchPartyEvent
 } from "@shared/schema";
 import fetch from 'node-fetch';
 import { 
   insertUserSchema, insertPostSchema, insertCommentSchema, 
   insertReactionSchema, insertGroupSchema, insertFollowSchema,
   insertGroupMemberSchema, insertNotificationSchema, insertReportSchema,
-  insertBookmarkSchema, insertTagSchema
+  insertBookmarkSchema, insertTagSchema, insertChatRoomSchema, 
+  insertChatMessageSchema, insertChatParticipantSchema, insertWatchPartyEventSchema,
+  chatRooms, chatMessages, chatParticipants, watchPartyEvents, users
 } from "@shared/schema";
 import session from "express-session";
 import { ZodError } from "zod";
@@ -1932,6 +1939,449 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== CHAT API ENDPOINTS ==========
+
+  // Listar todas as salas de chat públicas
+  app.get("/api/chat/rooms", async (req, res) => {
+    try {
+      const { type = 'public' } = req.query;
+      
+      const rooms = await db.select({
+        id: chatRooms.id,
+        name: chatRooms.name,
+        description: chatRooms.description,
+        type: chatRooms.type,
+        avatar: chatRooms.avatar,
+        animeTitle: chatRooms.animeTitle,
+        currentEpisode: chatRooms.currentEpisode,
+        maxMembers: chatRooms.maxMembers,
+        isActive: chatRooms.isActive,
+        createdAt: chatRooms.createdAt,
+        participantCount: sql<number>`(SELECT COUNT(*) FROM ${chatParticipants} WHERE ${chatParticipants.chatRoomId} = ${chatRooms.id})`
+      })
+      .from(chatRooms)
+      .where(eq(chatRooms.type, type as string))
+      .orderBy(chatRooms.createdAt);
+
+      res.json({ data: rooms });
+    } catch (error) {
+      console.error("Error getting chat rooms:", error);
+      res.status(500).json({ error: "Failed to get chat rooms" });
+    }
+  });
+
+  // Criar nova sala de chat
+  app.post("/api/chat/rooms", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { name, description, type = 'public', animeId, animeTitle, maxMembers = 50 } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Nome da sala é obrigatório" });
+      }
+
+      const [room] = await db.insert(chatRooms).values({
+        name,
+        description,
+        type,
+        ownerId: userId,
+        animeId,
+        animeTitle,
+        maxMembers,
+        isActive: true
+      }).returning();
+
+      // Adicionar criador como participante
+      await db.insert(chatParticipants).values({
+        chatRoomId: room.id,
+        userId,
+        role: 'owner'
+      });
+
+      res.json({ data: room });
+    } catch (error) {
+      console.error("Error creating chat room:", error);
+      res.status(500).json({ error: "Failed to create chat room" });
+    }
+  });
+
+  // Entrar em uma sala de chat
+  app.post("/api/chat/rooms/:roomId/join", requireAuth, async (req, res) => {
+    try {
+      const { roomId } = req.params;
+      const userId = req.session.userId!;
+
+      // Verificar se já é participante
+      const existingParticipant = await db.select()
+        .from(chatParticipants)
+        .where(and(eq(chatParticipants.chatRoomId, roomId), eq(chatParticipants.userId, userId)));
+
+      if (existingParticipant.length > 0) {
+        return res.json({ data: { message: "Já é participante desta sala" } });
+      }
+
+      // Verificar limite de participantes
+      const room = await db.select().from(chatRooms).where(eq(chatRooms.id, roomId));
+      if (!room.length) {
+        return res.status(404).json({ error: "Sala não encontrada" });
+      }
+
+      const participantCount = await db.select({ count: sql<number>`COUNT(*)` })
+        .from(chatParticipants)
+        .where(eq(chatParticipants.chatRoomId, roomId));
+
+      if (participantCount[0]?.count >= room[0].maxMembers) {
+        return res.status(400).json({ error: "Sala lotada" });
+      }
+
+      // Adicionar participante
+      await db.insert(chatParticipants).values({
+        chatRoomId: roomId,
+        userId,
+        role: 'member'
+      });
+
+      res.json({ data: { message: "Entrou na sala com sucesso" } });
+    } catch (error) {
+      console.error("Error joining chat room:", error);
+      res.status(500).json({ error: "Failed to join chat room" });
+    }
+  });
+
+  // Obter mensagens de uma sala
+  app.get("/api/chat/rooms/:roomId/messages", requireAuth, async (req, res) => {
+    try {
+      const { roomId } = req.params;
+      const { limit = 50, offset = 0 } = req.query;
+
+      // Verificar se é participante
+      const userId = req.session.userId!;
+      const participant = await db.select()
+        .from(chatParticipants)
+        .where(and(eq(chatParticipants.chatRoomId, roomId), eq(chatParticipants.userId, userId)));
+
+      if (!participant.length) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
+      const messages = await db.select({
+        id: chatMessages.id,
+        content: chatMessages.content,
+        type: chatMessages.type,
+        mediaUrl: chatMessages.mediaUrl,
+        isEdited: chatMessages.isEdited,
+        createdAt: chatMessages.createdAt,
+        user: {
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatar: users.avatar
+        }
+      })
+      .from(chatMessages)
+      .innerJoin(users, eq(chatMessages.userId, users.id))
+      .where(eq(chatMessages.chatRoomId, roomId))
+      .orderBy(chatMessages.createdAt)
+      .limit(Number(limit))
+      .offset(Number(offset));
+
+      res.json({ data: messages });
+    } catch (error) {
+      console.error("Error getting messages:", error);
+      res.status(500).json({ error: "Failed to get messages" });
+    }
+  });
+
+  // Criar watch party
+  app.post("/api/chat/watch-party", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { name, animeId, animeTitle, description } = req.body;
+
+      if (!name || !animeId || !animeTitle) {
+        return res.status(400).json({ error: "Nome, ID do anime e título são obrigatórios" });
+      }
+
+      const [room] = await db.insert(chatRooms).values({
+        name,
+        description,
+        type: 'watch_party',
+        ownerId: userId,
+        animeId,
+        animeTitle,
+        currentEpisode: 1,
+        currentTime: 0,
+        isPlaying: false,
+        maxMembers: 10
+      }).returning();
+
+      // Adicionar criador como participante
+      await db.insert(chatParticipants).values({
+        chatRoomId: room.id,
+        userId,
+        role: 'owner'
+      });
+
+      res.json({ data: room });
+    } catch (error) {
+      console.error("Error creating watch party:", error);
+      res.status(500).json({ error: "Failed to create watch party" });
+    }
+  });
+
+  // Obter estado da watch party
+  app.get("/api/chat/watch-party/:roomId/state", requireAuth, async (req, res) => {
+    try {
+      const { roomId } = req.params;
+      const userId = req.session.userId!;
+
+      // Verificar se é participante
+      const participant = await db.select()
+        .from(chatParticipants)
+        .where(and(eq(chatParticipants.chatRoomId, roomId), eq(chatParticipants.userId, userId)));
+
+      if (!participant.length) {
+        return res.status(403).json({ error: "Acesso negado" });
+      }
+
+      const room = await db.select().from(chatRooms).where(eq(chatRooms.id, roomId));
+      if (!room.length || room[0].type !== 'watch_party') {
+        return res.status(404).json({ error: "Watch party não encontrada" });
+      }
+
+      const participants = await db.select({
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        avatar: users.avatar,
+        isOnline: chatParticipants.isOnline
+      })
+      .from(chatParticipants)
+      .innerJoin(users, eq(chatParticipants.userId, users.id))
+      .where(eq(chatParticipants.chatRoomId, roomId));
+
+      const watchPartyState = {
+        isPlaying: room[0].isPlaying,
+        currentTime: room[0].currentTime,
+        currentEpisode: room[0].currentEpisode,
+        animeTitle: room[0].animeTitle,
+        participants: participants.map(p => p.displayName)
+      };
+
+      res.json({ data: watchPartyState });
+    } catch (error) {
+      console.error("Error getting watch party state:", error);
+      res.status(500).json({ error: "Failed to get watch party state" });
+    }
+  });
+
   const httpServer = createServer(app);
+
+  // WebSocket server setup for real-time chat and watch parties
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  // Store active connections
+  const clients = new Map<string, { ws: WebSocket, userId: string, chatRoomId?: string }>();
+
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('🔌 Nova conexão WebSocket estabelecida');
+
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        const { type, payload } = message;
+
+        switch (type) {
+          case 'join_chat': {
+            const { userId, chatRoomId } = payload;
+            
+            // Store client connection
+            const clientId = `${userId}_${Date.now()}`;
+            clients.set(clientId, { ws, userId, chatRoomId });
+            
+            // Update participant status
+            await db.update(chatParticipants)
+              .set({ isOnline: true, lastSeen: new Date() })
+              .where(and(eq(chatParticipants.userId, userId), eq(chatParticipants.chatRoomId, chatRoomId)));
+
+            // Notify other participants
+            const roomClients = Array.from(clients.values()).filter(
+              client => client.chatRoomId === chatRoomId && client.ws.readyState === WebSocket.OPEN
+            );
+            
+            roomClients.forEach(client => {
+              if (client.ws !== ws) {
+                client.ws.send(JSON.stringify({
+                  type: 'user_joined',
+                  payload: { userId, chatRoomId }
+                }));
+              }
+            });
+            break;
+          }
+
+          case 'send_message': {
+            const { userId, chatRoomId, content, type: messageType = 'text', replyToId } = payload;
+            
+            // Insert message into database
+            const [newMessage] = await db.insert(chatMessages).values({
+              userId,
+              chatRoomId,
+              content,
+              type: messageType,
+              replyToId
+            }).returning();
+
+            // Get user details
+            const [user] = await db.select().from(users).where(eq(users.id, userId));
+
+            const messageWithUser = {
+              ...newMessage,
+              user
+            };
+
+            // Broadcast message to all room participants
+            const roomClients = Array.from(clients.values()).filter(
+              client => client.chatRoomId === chatRoomId && client.ws.readyState === WebSocket.OPEN
+            );
+
+            roomClients.forEach(client => {
+              client.ws.send(JSON.stringify({
+                type: 'new_message',
+                payload: messageWithUser
+              }));
+            });
+            break;
+          }
+
+          case 'watch_party_sync': {
+            const { userId, chatRoomId, eventType, timestamp, episodeNumber } = payload;
+            
+            // Insert sync event
+            await db.insert(watchPartyEvents).values({
+              userId,
+              chatRoomId,
+              eventType,
+              timestamp,
+              episodeNumber
+            });
+
+            // Update room state for watch parties
+            if (eventType === 'play' || eventType === 'pause') {
+              await db.update(chatRooms)
+                .set({ 
+                  isPlaying: eventType === 'play',
+                  currentTime: timestamp,
+                  updatedAt: new Date()
+                })
+                .where(eq(chatRooms.id, chatRoomId));
+            }
+
+            if (eventType === 'episode_change') {
+              await db.update(chatRooms)
+                .set({ 
+                  currentEpisode: episodeNumber,
+                  currentTime: 0,
+                  updatedAt: new Date()
+                })
+                .where(eq(chatRooms.id, chatRoomId));
+            }
+
+            // Broadcast sync event to all room participants except sender
+            const roomClients = Array.from(clients.values()).filter(
+              client => client.chatRoomId === chatRoomId && client.ws.readyState === WebSocket.OPEN
+            );
+
+            roomClients.forEach(client => {
+              if (client.userId !== userId) {
+                client.ws.send(JSON.stringify({
+                  type: 'watch_party_sync',
+                  payload: { eventType, timestamp, episodeNumber, userId }
+                }));
+              }
+            });
+            break;
+          }
+
+          case 'typing_start': {
+            const { userId, chatRoomId } = payload;
+            
+            // Broadcast typing indicator
+            const roomClients = Array.from(clients.values()).filter(
+              client => client.chatRoomId === chatRoomId && client.ws.readyState === WebSocket.OPEN
+            );
+
+            roomClients.forEach(client => {
+              if (client.userId !== userId) {
+                client.ws.send(JSON.stringify({
+                  type: 'typing_start',
+                  payload: { userId, chatRoomId }
+                }));
+              }
+            });
+            break;
+          }
+
+          case 'typing_stop': {
+            const { userId, chatRoomId } = payload;
+            
+            // Broadcast stop typing indicator
+            const roomClients = Array.from(clients.values()).filter(
+              client => client.chatRoomId === chatRoomId && client.ws.readyState === WebSocket.OPEN
+            );
+
+            roomClients.forEach(client => {
+              if (client.userId !== userId) {
+                client.ws.send(JSON.stringify({
+                  type: 'typing_stop',
+                  payload: { userId, chatRoomId }
+                }));
+              }
+            });
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erro processando mensagem WebSocket:', error);
+        ws.send(JSON.stringify({
+          type: 'error',
+          payload: { message: 'Erro interno do servidor' }
+        }));
+      }
+    });
+
+    ws.on('close', async () => {
+      // Find and remove client from active connections
+      const clientEntry = Array.from(clients.entries()).find(([_, client]) => client.ws === ws);
+      
+      if (clientEntry) {
+        const [clientId, client] = clientEntry;
+        clients.delete(clientId);
+        
+        // Update participant status to offline
+        if (client.userId) {
+          await db.update(chatParticipants)
+            .set({ isOnline: false, lastSeen: new Date() })
+            .where(eq(chatParticipants.userId, client.userId));
+
+          // Notify other participants
+          if (client.chatRoomId) {
+            const roomClients = Array.from(clients.values()).filter(
+              c => c.chatRoomId === client.chatRoomId && c.ws.readyState === WebSocket.OPEN
+            );
+            
+            roomClients.forEach(c => {
+              c.ws.send(JSON.stringify({
+                type: 'user_left',
+                payload: { userId: client.userId, chatRoomId: client.chatRoomId }
+              }));
+            });
+          }
+        }
+      }
+      console.log('🔌 Conexão WebSocket fechada');
+    });
+  });
+
   return httpServer;
 }

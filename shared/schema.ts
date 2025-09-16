@@ -469,3 +469,114 @@ export type UserProfile = User & {
 export type AnimeCategory = 'continue' | 'recommended' | 'latest' | 'trending';
 export type MangaCategory = 'mangas' | 'latest' | 'authors' | 'art' | 'libraries' | 'funding';
 export type NewsCategory = 'anime' | 'manga' | 'geek' | 'cosplay';
+
+// Sistema de Chat
+export const chatRooms = pgTable("chat_rooms", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // 'public', 'private', 'watch_party'
+  avatar: text("avatar"),
+  ownerId: varchar("owner_id").notNull().references(() => users.id),
+  animeId: text("anime_id"), // Para watch parties
+  animeTitle: text("anime_title"),
+  currentEpisode: integer("current_episode"),
+  currentTime: integer("current_time").default(0), // em segundos
+  isPlaying: boolean("is_playing").default(false),
+  maxMembers: integer("max_members").default(50),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Participantes dos chats
+export const chatParticipants = pgTable("chat_participants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatRoomId: varchar("chat_room_id").notNull().references(() => chatRooms.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  role: text("role").default("member"), // 'owner', 'moderator', 'member'
+  joinedAt: timestamp("joined_at").defaultNow(),
+  lastSeen: timestamp("last_seen").defaultNow(),
+  isOnline: boolean("is_online").default(false),
+});
+
+// Mensagens do chat
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatRoomId: varchar("chat_room_id").notNull().references(() => chatRooms.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  type: text("type").default("text"), // 'text', 'image', 'system', 'anime_sync'
+  mediaUrl: text("media_url"),
+  replyToId: varchar("reply_to_id"),
+  isEdited: boolean("is_edited").default(false),
+  editedAt: timestamp("edited_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Eventos de sincronização para watch parties
+export const watchPartyEvents = pgTable("watch_party_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatRoomId: varchar("chat_room_id").notNull().references(() => chatRooms.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  eventType: text("event_type").notNull(), // 'play', 'pause', 'seek', 'episode_change'
+  timestamp: integer("timestamp"), // posição do vídeo em segundos
+  episodeNumber: integer("episode_number"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Schemas para inserção
+export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChatParticipantSchema = createInsertSchema(chatParticipants).omit({
+  id: true,
+  joinedAt: true,
+  lastSeen: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+  editedAt: true,
+});
+
+export const insertWatchPartyEventSchema = createInsertSchema(watchPartyEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Tipos inferidos
+export type ChatRoom = typeof chatRooms.$inferSelect;
+export type InsertChatRoom = z.infer<typeof insertChatRoomSchema>;
+export type ChatParticipant = typeof chatParticipants.$inferSelect;
+export type InsertChatParticipant = z.infer<typeof insertChatParticipantSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type WatchPartyEvent = typeof watchPartyEvents.$inferSelect;
+export type InsertWatchPartyEvent = z.infer<typeof insertWatchPartyEventSchema>;
+
+// Tipos estendidos para chat
+export type ChatRoomWithDetails = ChatRoom & {
+  owner: User;
+  participants: (ChatParticipant & { user: User })[];
+  lastMessage?: ChatMessage & { user: User };
+  unreadCount?: number;
+  participantCount: number;
+};
+
+export type ChatMessageWithUser = ChatMessage & {
+  user: User;
+  replyTo?: ChatMessage & { user: User };
+};
+
+export type WatchPartyState = {
+  isPlaying: boolean;
+  currentTime: number;
+  currentEpisode: number;
+  animeTitle?: string;
+  participants: string[];
+};
