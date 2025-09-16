@@ -269,44 +269,6 @@ export default function NewsDetail() {
           </div>
         </div>
 
-        <Separator />
-
-        {/* Links e ações */}
-        <div className="flex flex-wrap gap-4 justify-between items-center">
-          <div className="space-y-2">
-            <h3 className="font-semibold">Links relacionados:</h3>
-            <div className="flex flex-wrap gap-2">
-              {news.url && (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <a href={news.url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4" />
-                    Ver no MyAnimeList
-                  </a>
-                </Button>
-              )}
-              
-              {news.forum_url && (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <a href={news.forum_url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4" />
-                    Discutir no fórum
-                  </a>
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Navegação adicional */}
         <div className="mt-8 p-6 bg-muted/50 rounded-lg">
           <h3 className="font-semibold mb-4">Explorar mais:</h3>
