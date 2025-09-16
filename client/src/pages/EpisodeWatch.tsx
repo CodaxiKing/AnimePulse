@@ -1,33 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Play, Loader2, ChevronLeft, ChevronRight, Calendar, Clock, MessageCircle, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { getEpisodeVideoUrl } from "@/lib/scrapingApi";
-import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal } from "@/lib/api";
+import { markEpisodeWatchedFromPlayer, showAnimeCompletionModal, getAnimeByIdAPI, getEpisodesByAnimeIdAPI } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
-// Mock data para demonstração - em uma aplicação real, estes dados viriam de uma API
-const mockAnime = {
-  id: "1",
-  title: "Gachakuta",
-  image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=800&h=450&fit=crop",
-  description: "Uma história emocionante sobre aventura e descoberta em um mundo mágico...",
-  totalEpisodes: 12,
-  episodes: Array.from({ length: 12 }, (_, i) => ({
-    id: `ep-${i + 1}`,
-    animeId: "1",
-    number: i + 1,
-    title: `Episódio ${i + 1}`,
-    duration: "24 min",
-    releaseDate: new Date(2024, 0, i + 1).toISOString().split('T')[0],
-    thumbnail: `https://images.unsplash.com/photo-${1578662996442 + i}?w=400&h=225&fit=crop`,
-    streamingUrl: i === 0 ? "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4" : null,
-    downloadUrl: null
-  }))
-};
 
 const mockComments = [
   {
@@ -73,27 +56,43 @@ export default function EpisodeWatch() {
   const [comments, setComments] = useState(mockComments);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Buscar dados do anime
+  const { data: anime, isLoading: loadingAnime } = useQuery({
+    queryKey: ["anime", animeId],
+    queryFn: () => getAnimeByIdAPI(animeId!),
+    enabled: !!animeId,
+  });
+
+  // Buscar episódios do anime
+  const { data: episodes, isLoading: loadingEpisodes } = useQuery({
+    queryKey: ["episodes", animeId, "1"],
+    queryFn: () => getEpisodesByAnimeIdAPI(animeId!, "1"),
+    enabled: !!animeId,
+  });
+
   // Encontrar episódio atual
   useEffect(() => {
-    const episode = mockAnime.episodes.find(ep => ep.number === episodeNumber);
-    setCurrentEpisode(episode || null);
-  }, [episodeNumber]);
+    if (episodes && episodes.length > 0) {
+      const episode = episodes.find(ep => ep.number === episodeNumber);
+      setCurrentEpisode(episode || null);
+    }
+  }, [episodeNumber, episodes]);
 
   // Carregar URL do vídeo quando episódio muda
   useEffect(() => {
-    if (currentEpisode && mockAnime.title) {
+    if (currentEpisode && anime) {
       loadVideoUrl();
     }
-  }, [currentEpisode]);
+  }, [currentEpisode, anime]);
 
   const loadVideoUrl = async () => {
-    if (!currentEpisode || !mockAnime.title) return;
+    if (!currentEpisode || !anime) return;
     
     setIsLoadingVideo(true);
     setVideoError(null);
     
     try {
-      console.log(`🎬 Buscando vídeo real para: ${mockAnime.title} - Episódio ${currentEpisode.number}`);
+      console.log(`🎬 Buscando vídeo real para: ${anime.title} - Episódio ${currentEpisode.number}`);
       
       // Se já tem URL do streaming, usar ela
       if (currentEpisode.streamingUrl) {
@@ -103,7 +102,7 @@ export default function EpisodeWatch() {
       }
       
       // Buscar URL do vídeo via API de scraping
-      const url = await getEpisodeVideoUrl(mockAnime.title, currentEpisode.number);
+      const url = await getEpisodeVideoUrl(anime.title, currentEpisode.number);
       
       if (url) {
         setVideoUrl(url);
@@ -143,7 +142,7 @@ export default function EpisodeWatch() {
   const handleVideoEnd = async () => {
     console.log(`🎬 Video terminou! Marcando episódio ${currentEpisode?.number} como assistido...`);
     
-    if (!animeId || !mockAnime.title || !currentEpisode) {
+    if (!animeId || !anime || !currentEpisode) {
       console.error('❌ Dados do anime não encontrados');
       return;
     }
@@ -152,20 +151,21 @@ export default function EpisodeWatch() {
       const result = await markEpisodeWatchedFromPlayer(
         animeId,
         currentEpisode.number,
-        mockAnime.title,
-        mockAnime.image,
-        mockAnime.totalEpisodes
+        anime.title,
+        anime.image,
+        anime.totalEpisodes || episodes?.length || 12
       );
       
       console.log('✅ Episódio marcado como assistido automaticamente!', result);
       
       if (result.completed) {
         console.log('🎉 Anime completado! Mostrando parabéns...');
-        showAnimeCompletionModal(mockAnime.title, result.points);
+        showAnimeCompletionModal(anime.title, result.points);
       } else {
         // Auto avançar para o próximo episódio após 3 segundos
         const nextEpisode = currentEpisode.number + 1;
-        if (nextEpisode <= mockAnime.totalEpisodes) {
+        const totalEpisodes = anime.totalEpisodes || episodes?.length || 12;
+        if (nextEpisode <= totalEpisodes) {
           setTimeout(() => {
             setLocation(`/animes/${animeId}/episodes/${nextEpisode}`);
           }, 3000);
@@ -177,7 +177,8 @@ export default function EpisodeWatch() {
   };
 
   const navigateToEpisode = (episodeNum: number) => {
-    if (episodeNum >= 1 && episodeNum <= mockAnime.totalEpisodes) {
+    const totalEpisodes = anime?.totalEpisodes || episodes?.length || 12;
+    if (episodeNum >= 1 && episodeNum <= totalEpisodes) {
       setLocation(`/animes/${animeId}/episodes/${episodeNum}`);
     }
   };
@@ -198,7 +199,37 @@ export default function EpisodeWatch() {
     setNewComment("");
   };
 
-  if (!currentEpisode) {
+  // Loading states
+  if (loadingAnime || loadingEpisodes) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="w-10 h-10" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Skeleton className="aspect-video w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentEpisode || !anime) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
@@ -225,7 +256,7 @@ export default function EpisodeWatch() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-lg font-semibold">{mockAnime.title}</h1>
+              <h1 className="text-lg font-semibold">{anime.title}</h1>
               <p className="text-sm text-muted-foreground">
                 Episódio {currentEpisode.number} - {currentEpisode.title}
               </p>
@@ -244,7 +275,7 @@ export default function EpisodeWatch() {
                 variant="outline"
                 size="sm"
                 onClick={() => navigateToEpisode(currentEpisode.number + 1)}
-                disabled={currentEpisode.number >= mockAnime.totalEpisodes}
+                disabled={currentEpisode.number >= (anime.totalEpisodes || episodes?.length || 12)}
               >
                 Próximo
                 <ChevronRight className="w-4 h-4" />
@@ -265,7 +296,7 @@ export default function EpisodeWatch() {
                   {!isPlaying ? (
                     <>
                       <img
-                        src={currentEpisode.thumbnail || mockAnime.image}
+                        src={currentEpisode.thumbnail || anime.image}
                         alt={currentEpisode.title}
                         className="w-full h-full object-cover"
                       />
@@ -331,7 +362,7 @@ export default function EpisodeWatch() {
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed">
-                  {mockAnime.description}
+                  {anime.synopsis || "Descrição não disponível."}
                 </p>
               </CardContent>
             </Card>
@@ -414,7 +445,7 @@ export default function EpisodeWatch() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {mockAnime.episodes.map((episode) => (
+                  {episodes?.map((episode) => (
                     <button
                       key={episode.id}
                       onClick={() => navigateToEpisode(episode.number)}
@@ -426,7 +457,7 @@ export default function EpisodeWatch() {
                     >
                       <div className="flex gap-3">
                         <img
-                          src={episode.thumbnail}
+                          src={episode.thumbnail || "https://via.placeholder.com/400x225"}
                           alt={episode.title}
                           className="w-16 h-9 object-cover rounded"
                         />
