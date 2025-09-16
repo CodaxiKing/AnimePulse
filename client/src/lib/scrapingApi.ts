@@ -1,6 +1,6 @@
 // Cliente para a API de Web Scraping dos sites de anime
 
-const API_BASE_URL = import.meta.env.VITE_SCRAPING_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_SCRAPING_API_URL || ''; // Use relative URLs via Vite proxy
 
 export interface ScrapedAnime {
   id: string;
