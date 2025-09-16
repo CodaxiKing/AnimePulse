@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Play, Clock, Calendar, X, Check } from "lucide-react";
+import { Play, Clock, Calendar, X, Check, CheckCheck } from "lucide-react";
 import { isEpisodeWatched, removeWatchedEpisode } from "@/lib/api";
 import type { Episode } from "@shared/schema";
 
@@ -201,14 +201,25 @@ const EpisodeCard = ({ episode, onClick, handleMarkAsWatched, animeId }: { episo
             }}
             variant={isWatched ? "default" : "ghost"}
             size="sm"
-            className={`px-2 text-xs ${
+            className={`px-3 text-xs transition-all duration-200 ${
               isWatched 
-                ? 'bg-green-500 hover:bg-green-600 text-white' 
-                : ''
+                ? 'bg-green-500 hover:bg-red-500 text-white' 
+                : 'hover:bg-green-500 hover:text-white'
             }`}
+            title={isWatched ? "Desmarcar como assistido" : "Marcar como assistido"}
             data-testid={`button-mark-watched-${episode.number}`}
           >
-            <Check className="w-3 h-3" />
+            {isWatched ? (
+              <>
+                <CheckCheck className="w-3 h-3 mr-1" />
+                <span className="hidden sm:inline">Assistido</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-3 h-3 mr-1" />
+                <span className="hidden sm:inline">Marcar</span>
+              </>
+            )}
           </Button>
         </div>
       </div>
