@@ -730,6 +730,9 @@ export async function getContinueWatching(): Promise<AnimeWithProgress[]> {
       totalEpisodes: progress.totalEpisodes,
       rating: null,
       viewCount: null,
+      trailerUrl: null,
+      relations: null,
+      characters: null,
       progress: {
         id: Math.random().toString(),
         userId: "1",
@@ -934,6 +937,9 @@ export async function getAnimeByIdAPI(id: string): Promise<AnimeWithProgress> {
     totalEpisodes: 0,
     rating: "0",
     viewCount: Math.floor(Math.random() * 50000) + 5000,
+    trailerUrl: null,
+    relations: null,
+    characters: null,
   };
 }
 
@@ -1501,6 +1507,9 @@ function adaptAnimeFromAPI(apiAnime: any): AnimeWithProgress {
     totalEpisodes: apiAnime.episodes || apiAnime.episodeCount,
     rating: apiAnime.rating || apiAnime.score?.toString(),
     viewCount: apiAnime.members || apiAnime.popularity || Math.floor(Math.random() * 300000) + 20000,
+    trailerUrl: null,
+    relations: null,
+    characters: null,
   };
 }
 
@@ -1521,6 +1530,9 @@ function adaptAnimeFromJikanAPI(jikanAnime: any): AnimeWithProgress {
     totalEpisodes: jikanAnime.episodes || 0,
     rating: jikanAnime.score?.toString() || "0",
     viewCount: jikanAnime.members || jikanAnime.favorites || Math.floor(Math.random() * 500000) + 50000,
+    trailerUrl: null,
+    relations: null,
+    characters: null,
   };
 }
 
