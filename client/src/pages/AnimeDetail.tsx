@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp, Trophy, Star } from "lucide-react";
+import { ArrowLeft, Plus, Heart, Play, ChevronDown, ChevronUp, Trophy, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import EpisodeModal from "@/components/EpisodeModal";
 import EpisodeGrid from "@/components/EpisodeGrid";
 import MilestoneModal from "@/components/MilestoneModal";
@@ -366,31 +367,48 @@ export default function AnimeDetail() {
         {/* Seção de Relacionados */}
         {anime.relations && anime.relations.length > 0 && (
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-            <h2 className="text-xl font-semibold mb-6">Relacionados</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                🔗 Relacionados
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Animes e mangás relacionados a esta série
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
               {anime.relations.slice(0, 12).map((relationStr, index) => {
                 const relation = JSON.parse(relationStr);
                 return (
-                  <div key={index} className="bg-card rounded-xl overflow-hidden border hover:shadow-lg transition-shadow">
-                    <div className="aspect-[3/4] relative">
-                      <img
-                        src={relation.image}
-                        alt={relation.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "https://via.placeholder.com/300x400?text=No+Image";
-                        }}
-                      />
-                    </div>
-                    <div className="p-3">
-                      <div className="text-xs text-primary font-medium mb-1 capitalize">
-                        {relation.type}
+                  <div key={index} className="group cursor-pointer">
+                    <div className="bg-gradient-to-br from-card to-card/80 rounded-2xl overflow-hidden border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1">
+                      <div className="aspect-[3/4] relative overflow-hidden">
+                        <img
+                          src={relation.image}
+                          alt={relation.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                          onError={(e) => {
+                            e.currentTarget.src = "https://via.placeholder.com/300x400?text=No+Image";
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute top-2 left-2">
+                          <span className="bg-primary/90 backdrop-blur-sm text-primary-foreground px-2 py-1 rounded-full text-xs font-medium capitalize">
+                            {relation.type}
+                          </span>
+                        </div>
                       </div>
-                      <h3 className="font-medium text-sm line-clamp-2 mb-1">
-                        {relation.title}
-                      </h3>
-                      <div className="text-xs text-muted-foreground">
-                        {relation.format}
+                      <div className="p-4">
+                        <h3 className="font-semibold text-sm line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+                          {relation.title}
+                        </h3>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                            {relation.format}
+                          </span>
+                          <div className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                            Ver mais →
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -400,53 +418,113 @@ export default function AnimeDetail() {
           </div>
         )}
 
-        {/* Seção de Personagens */}
+        {/* Seção de Personagens - Carrossel */}
         {anime.characters && anime.characters.length > 0 && (
           <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 pb-8">
-            <h2 className="text-xl font-semibold mb-6">Personagens Principais</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {anime.characters.slice(0, 12).map((characterStr, index) => {
-                const character = JSON.parse(characterStr);
-                return (
-                  <div key={index} className="bg-card rounded-xl p-4 border hover:shadow-lg transition-shadow">
-                    <div className="flex items-center gap-4">
-                      <div className="flex-shrink-0">
-                        <img
-                          src={character.image}
-                          alt={character.name}
-                          className="w-16 h-16 rounded-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = "https://via.placeholder.com/64x64?text=?";
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm truncate">
-                          {character.name}
-                        </h3>
-                        <div className="text-xs text-primary mb-2">
-                          {character.role}
-                        </div>
-                        {character.voiceActor && (
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={character.voiceActor.image}
-                              alt={character.voiceActor.name}
-                              className="w-6 h-6 rounded-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = "https://via.placeholder.com/24x24?text=?";
-                              }}
-                            />
-                            <span className="text-xs text-muted-foreground truncate">
-                              {character.voiceActor.name}
-                            </span>
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                👥 Personagens Principais
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Conheça os personagens principais e seus dubladores
+              </p>
+            </div>
+            
+            <Carousel 
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-2 md:-ml-4">
+                {anime.characters.slice(0, 16).map((characterStr, index) => {
+                  const character = JSON.parse(characterStr);
+                  return (
+                    <CarouselItem key={index} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                      <div className="group cursor-pointer h-full">
+                        <div className="bg-gradient-to-br from-card via-card to-card/90 rounded-2xl p-6 border border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-2 h-full">
+                          <div className="flex flex-col items-center text-center h-full">
+                            {/* Imagem do Personagem */}
+                            <div className="relative mb-4">
+                              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-primary/20 group-hover:border-primary/60 transition-all duration-300 group-hover:scale-110">
+                                <img
+                                  src={character.image}
+                                  alt={character.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "https://via.placeholder.com/80x80?text=?";
+                                  }}
+                                />
+                              </div>
+                              <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-primary to-primary/80 rounded-full flex items-center justify-center">
+                                <span className="text-xs">⭐</span>
+                              </div>
+                            </div>
+                            
+                            {/* Nome do Personagem */}
+                            <h3 className="font-bold text-sm mb-1 line-clamp-2 group-hover:text-primary transition-colors leading-tight">
+                              {character.name}
+                            </h3>
+                            
+                            {/* Role */}
+                            <div className="mb-3">
+                              <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-medium border border-primary/20">
+                                {character.role}
+                              </span>
+                            </div>
+                            
+                            {/* Dublador */}
+                            {character.voiceActor && (
+                              <div className="mt-auto pt-3 border-t border-border/50 w-full">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-muted">
+                                    <img
+                                      src={character.voiceActor.image}
+                                      alt={character.voiceActor.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.src = "https://via.placeholder.com/32x32?text=?";
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-muted-foreground truncate">
+                                      🎙️ {character.voiceActor.name}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    </CarouselItem>
+                  );
+                })}
+              </CarouselContent>
+              <CarouselPrevious className="hidden sm:flex -left-12 border-primary/20 hover:border-primary/60 hover:bg-primary/10" />
+              <CarouselNext className="hidden sm:flex -right-12 border-primary/20 hover:border-primary/60 hover:bg-primary/10" />
+            </Carousel>
+            
+            {/* Indicador de navegação móvel */}
+            <div className="flex justify-center mt-6 gap-2 sm:hidden">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="px-3 py-1 text-xs rounded-full border-primary/20 hover:border-primary/60 hover:bg-primary/10"
+              >
+                <ChevronLeft className="w-3 h-3 mr-1" />
+                Anterior
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="px-3 py-1 text-xs rounded-full border-primary/20 hover:border-primary/60 hover:bg-primary/10"
+              >
+                Próximo
+                <ChevronRight className="w-3 h-3 ml-1" />
+              </Button>
             </div>
           </div>
         )}
