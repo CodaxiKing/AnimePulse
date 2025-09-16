@@ -782,12 +782,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Criar novo usuário
       const user = await storage.createUser(userData);
       
-      // Criar sessão
-      req.session.userId = user.id;
-      
-      // Retornar usuário sem senha
-      const { password, ...userWithoutPassword } = user;
-      res.status(201).json({ user: userWithoutPassword });
+      // SECURITY: Regenerate session ID to prevent session fixation attacks
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Session regeneration failed:', err);
+          return res.status(500).json({ error: "Session management error" });
+        }
+        
+        // Criar sessão na nova sessão regenerada
+        req.session.userId = user.id;
+        
+        // Retornar usuário sem senha
+        const { password, ...userWithoutPassword } = user;
+        res.status(201).json({ user: userWithoutPassword });
+      });
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({ error: "Invalid data", details: error.errors });
@@ -811,12 +819,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // Criar sessão
-      req.session.userId = user.id;
-      
-      // Retornar usuário sem senha
-      const { password: _, ...userWithoutPassword } = user;
-      res.json({ user: userWithoutPassword });
+      // SECURITY: Regenerate session ID to prevent session fixation attacks
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Session regeneration failed:', err);
+          return res.status(500).json({ error: "Session management error" });
+        }
+        
+        // Criar sessão na nova sessão regenerada
+        req.session.userId = user.id;
+        
+        // Retornar usuário sem senha
+        const { password: _, ...userWithoutPassword } = user;
+        res.json({ user: userWithoutPassword });
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Failed to login" });
