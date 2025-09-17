@@ -830,9 +830,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Criar sessão na nova sessão regenerada
         req.session.userId = user.id;
         
-        // Retornar usuário sem senha
-        const { password: _, ...userWithoutPassword } = user;
-        res.json({ user: userWithoutPassword });
+        // Salvar sessão explicitamente
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save failed:', saveErr);
+            return res.status(500).json({ error: "Session management error" });
+          }
+          
+          console.log('✅ Session saved successfully for user:', user.username);
+          
+          // Retornar usuário sem senha
+          const { password: _, ...userWithoutPassword } = user;
+          res.json({ user: userWithoutPassword });
+        });
       });
     } catch (error) {
       console.error("Login error:", error);
