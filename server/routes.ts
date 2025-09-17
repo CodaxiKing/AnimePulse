@@ -38,9 +38,20 @@ declare module "express-session" {
 
 // Middleware para verificar autenticação
 function requireAuth(req: any, res: any, next: any) {
-  if (!req.session.userId) {
+  console.log('🔍 requireAuth middleware - Session details:', {
+    sessionId: req.sessionID,
+    hasSession: !!req.session,
+    userId: req.session?.userId,
+    sessionData: req.session,
+    cookies: req.headers.cookie
+  });
+  
+  if (!req.session || !req.session.userId) {
+    console.log('❌ Authentication failed - no session or userId');
     return res.status(401).json({ error: "Authentication required" });
   }
+  
+  console.log('✅ Authentication successful for user:', req.session.userId);
   next();
 }
 
@@ -137,11 +148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     secret: process.env.SESSION_SECRET || 'anime-pulse-secret-key-development',
     resave: false,
     saveUninitialized: false,
+    name: 'sessionId', // Nome específico para o cookie
     cookie: {
       secure: false, // Set to true in production with HTTPS
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 horas
-      sameSite: 'lax' // Importante para o Replit
+      sameSite: 'lax', // Importante para o Replit
+      path: '/', // Garantir que o cookie seja enviado para todas as rotas
+      domain: undefined // Deixar undefined para funcionar em qualquer domínio
     }
   });
   
@@ -837,7 +851,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(500).json({ error: "Session management error" });
           }
           
-          console.log('✅ Session saved successfully for user:', user.username);
+          console.log('✅ Session saved successfully:', {
+            user: user.username,
+            sessionId: req.sessionID,
+            userId: req.session.userId,
+            cookie: req.session.cookie
+          });
           
           // Retornar usuário sem senha
           const { password: _, ...userWithoutPassword } = user;
@@ -856,7 +875,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Logout error:", err);
         return res.status(500).json({ error: "Failed to logout" });
       }
-      res.clearCookie('connect.sid'); // Nome padrão do cookie de sessão
+      res.clearCookie('sessionId'); // Nome do cookie que configuramos
+      res.clearCookie('connect.sid'); // Nome padrão do cookie de sessão (fallback)
       res.json({ message: "Logged out successfully" });
     });
   });
