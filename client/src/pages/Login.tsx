@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, User, Lock, ArrowLeft } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import Logo from "@/components/Logo";
 
 interface LoginData {
@@ -21,6 +21,7 @@ export default function Login() {
     password: "",
   });
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
@@ -32,8 +33,11 @@ export default function Login() {
         title: "Login realizado com sucesso!",
         description: `Bem-vindo de volta, ${data.user.username}!`,
       });
-      // Redirect to home
-      window.location.href = "/";
+      // Update auth cache and navigate using SPA
+      queryClient.setQueryData(["/api/auth/me"], data);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/stats"] });
+      setLocation("/");
     },
     onError: (error: any) => {
       toast({
